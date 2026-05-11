@@ -1,3 +1,5 @@
+import { Params } from 'react-router';
+
 import { APP_VERSION_HASH } from './appVersion';
 
 type OpenReplayUser = {
@@ -40,6 +42,13 @@ export function trackOpenReplayUser(user: OpenReplayUser | null): void {
     applyTrackedUser();
 }
 
+export function trackPageView(url: string, params: Params<string>): void {
+    const payload = { url, params };
+    trackerSingleton?.event(`page_view`, payload);
+    trackerSingleton?.analytics?.track(`page_view`, payload);
+    console.log(`Track page view to ${url}: %o`, params);
+}
+
 export function initializeOpenReplay(): Promise<void> {
     if (!isBrowser()) {
         return Promise.resolve();
@@ -78,6 +87,10 @@ export function initializeOpenReplay(): Promise<void> {
                 /* do not capture the games canvas */
                 canvas: {
                     disableCanvas: true,
+                },
+
+                analytics: {
+                    active: true,
                 },
             });
 
