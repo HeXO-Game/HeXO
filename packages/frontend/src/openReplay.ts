@@ -46,7 +46,6 @@ export function trackPageView(url: string, params: Params<string>): void {
     const payload = { url, params };
     trackerSingleton?.event(`page_view`, payload);
     trackerSingleton?.analytics?.track(`page_view`, payload);
-    console.log(`Track page view to ${url}: %o`, params);
 }
 
 export function initializeOpenReplay(): Promise<void> {
