@@ -1,5 +1,6 @@
 export const FINISHED_GAMES_PAGE_SIZE = 20;
 export type FinishedGamesArchiveView = `all` | `mine`;
+export type FinishedGamesRatedFilter = `all` | `rated` | `unrated`;
 
 export const queryKeys = {
     account: [`account`] as const,
@@ -26,9 +27,15 @@ export const queryKeys = {
     sandboxPosition: (positionId: string | null) => [`sandbox-position`, positionId ?? `none`] as const,
 
     finishedGames: [`finished-games`] as const,
-    finishedGamesPage: (view: FinishedGamesArchiveView, page: number, pageSize: number, baseTimestamp: number) =>
+    finishedGamesPage: (
+        view: FinishedGamesArchiveView,
+        ratedFilter: FinishedGamesRatedFilter,
+        page: number,
+        pageSize: number,
+        baseTimestamp: number,
+    ) =>
         [
-            `finished-games`, view, page, pageSize, baseTimestamp,
+            `finished-games`, view, ratedFilter, page, pageSize, baseTimestamp,
         ] as const,
     finishedGame: (gameId: string | null) => [`finished-games`, gameId ?? `empty`] as const,
 

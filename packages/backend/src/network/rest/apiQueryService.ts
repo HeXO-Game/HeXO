@@ -39,6 +39,7 @@ export class ApiRequestError extends Error {
 
 type FinishedGamesQueryOptions = {
     view: FinishedGamesArchiveView;
+    ratedFilter: `all` | `rated` | `unrated`;
     page: number;
     pageSize: number;
     baseTimestamp: number;
@@ -143,6 +144,7 @@ export class ApiQueryService {
             pageSize: options.pageSize,
             baseTimestamp: options.baseTimestamp,
             playerProfileId: options.view === `mine` ? currentUser?.id : undefined,
+            ratedFilter: options.ratedFilter,
         });
     }
 

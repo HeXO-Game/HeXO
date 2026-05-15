@@ -1,10 +1,12 @@
 import type { AccountProfile, LobbyInfo } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 
+import { useSsrCompatibleNow } from '../ssrState';
 import { cn } from '../utils/cn';
 import { formatTimeControl } from '../utils/gameTimeControl';
 import { formatLobbyLiveDuration } from '../utils/lobby';
-import { useSsrCompatibleNow } from '../ssrState';
+import type { RatedFilter } from '../utils/ratedFilter';
+import RatedFilterTabs from './RatedFilterTabs';
 
 type PublicMatchesListProps = {
     liveSessions: LobbyInfo[]
@@ -14,14 +16,6 @@ type PublicMatchesListProps = {
     onJoinGame: (sessionId: string) => void
     className?: string
 };
-
-type LobbyFilter = `all` | `rated` | `unrated`;
-
-const lobbyFilterOptions: { value: LobbyFilter, label: string }[] = [
-    { value: `all`, label: `All` },
-    { value: `rated`, label: `Rated` },
-    { value: `unrated`, label: `Unrated` },
-];
 
 function ClockBadgeIcon() {
     return (
@@ -161,7 +155,7 @@ export default function PublicMatchesList({
         return () => window.clearInterval(interval);
     }, []);
 
-    const [activeFilter, setActiveFilter] = useState<LobbyFilter>(`all`);
+    const [activeFilter, setActiveFilter] = useState<RatedFilter>(`all`);
     const filteredSessions = liveSessions.filter((session) => {
         if (activeFilter === `rated`) {
             return session.rated;
@@ -224,27 +218,10 @@ export default function PublicMatchesList({
             </div>
 
             <div className="relative mt-5 flex flex-col min-h-0 gap-4 sm:mt-6">
-                <div className="inline-flex w-full max-w-max rounded-full border border-white/10 bg-slate-900 p-1">
-                    {lobbyFilterOptions.map((filterOption) => {
-                        const isActive = activeFilter === filterOption.value;
-                        return (
-                            <button
-                                key={filterOption.value}
-                                type="button"
-                                aria-pressed={isActive}
-                                onClick={() => setActiveFilter(filterOption.value)}
-                                className={cn(
-                                    `rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition sm:px-5`,
-                                    isActive
-                                        ? `bg-sky-300 text-slate-950`
-                                        : `cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white`,
-                                )}
-                            >
-                                {filterOption.label}
-                            </button>
-                        );
-                    })}
-                </div>
+                <RatedFilterTabs
+                    value={activeFilter}
+                    onChange={setActiveFilter}
+                />
 
                 <div className="min-h-0 sm:flex-1 flex-col sm:overflow-y-auto sm:overscroll-contain sm:pr-1 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
                     {filteredSessions.length === 0 ? (
@@ -275,7 +252,7 @@ export default function PublicMatchesList({
                                                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${canJoin
                                                     ? `bg-emerald-400/15 text-emerald-200`
                                                     : `bg-sky-400/15 text-sky-200`
-                                                    }`}
+                                                }`}
                                                 >
                                                     {canJoin ? `Lobby` : `Game`}
                                                     {` `}
@@ -285,7 +262,7 @@ export default function PublicMatchesList({
                                                 <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${session.rated
                                                     ? `bg-amber-300/15 text-amber-100`
                                                     : `bg-white/8 text-slate-200`
-                                                    }`}
+                                                }`}
                                                 >
                                                     <ModeBadgeIcon rated={session.rated} />
                                                     {session.rated ? `Rated` : `Unrated`}
@@ -315,7 +292,7 @@ export default function PublicMatchesList({
                                                         : canJoin
                                                             ? `cursor-pointer bg-sky-400 text-slate-950 shadow-[0_10px_30px_rgba(56,189,248,0.28)] hover:-translate-y-0.5 hover:bg-sky-300`
                                                             : `cursor-pointer border border-white/15 bg-white/8 text-white hover:-translate-y-0.5 hover:bg-white/14`
-                                                        }`}
+                                                    }`}
                                                 >
                                                     {joinButtonLabel}
                                                 </button>

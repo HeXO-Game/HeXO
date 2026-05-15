@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
 
-import type { FinishedGamesArchiveView } from '../query/queryDefinitions';
+import type { FinishedGamesArchiveView, FinishedGamesRatedFilter } from '../query/queryDefinitions';
 
 function parseArchivePage(searchParams: URLSearchParams) {
     const pageValue = searchParams.get(`page`);
@@ -19,6 +19,15 @@ function parseArchiveBaseTimestamp(searchParams: URLSearchParams) {
     return Number.isFinite(value) && value > 0 ? value : null;
 }
 
+function parseRatedFilter(searchParams: URLSearchParams): FinishedGamesRatedFilter {
+    const ratedValue = searchParams.get(`rated`);
+    if (ratedValue === `rated` || ratedValue === `unrated`) {
+        return ratedValue;
+    }
+
+    return `all`;
+}
+
 export function getArchiveViewFromPath(pathname: string): FinishedGamesArchiveView {
     return pathname.startsWith(`/account/games`) ? `mine` : `all`;
 }
@@ -27,9 +36,13 @@ export function buildFinishedGamesPath(
     archivePage: number,
     archiveBaseTimestamp: number,
     archiveView: FinishedGamesArchiveView = `all`,
+    ratedFilter: FinishedGamesRatedFilter = `all`,
 ) {
     const searchParams = new URLSearchParams();
     searchParams.set(`at`, String(archiveBaseTimestamp));
+    if (ratedFilter !== `all`) {
+        searchParams.set(`rated`, ratedFilter);
+    }
 
     if (archivePage > 1) {
         searchParams.set(`page`, String(archivePage));
@@ -58,6 +71,7 @@ export function useArchiveRouteState() {
     const archivePage = parseArchivePage(searchParams);
     const archiveBaseTimestamp = parseArchiveBaseTimestamp(searchParams);
     const archiveView = getArchiveViewFromPath(location.pathname);
+    const ratedFilter = parseRatedFilter(searchParams);
 
     useEffect(() => {
         if (archiveBaseTimestamp) {
@@ -68,11 +82,12 @@ export function useArchiveRouteState() {
             pathname: location.pathname,
             search: `?${new URLSearchParams({
                 at: String(Date.now()),
+                ...(ratedFilter !== `all` ? { rated: ratedFilter } : {}),
                 ...(archivePage > 1 ? { page: String(archivePage) } : {}),
             }).toString()}`,
         }, { replace: true });
     }, [
-        archiveBaseTimestamp, archivePage, archiveView, location.pathname, navigate,
+        archiveBaseTimestamp, archivePage, archiveView, ratedFilter, location.pathname, navigate,
     ]);
 
     if (!archiveBaseTimestamp) {
@@ -83,5 +98,6 @@ export function useArchiveRouteState() {
         archivePage,
         archiveBaseTimestamp,
         archiveView,
+        ratedFilter,
     };
 }
