@@ -36,6 +36,7 @@ type ListFinishedGamesOptions = {
     pageSize?: number;
     baseTimestamp?: number;
     playerProfileId?: string;
+    ratedFilter?: `all` | `rated` | `unrated`;
 };
 
 export type GameHistoryAdminWindowStats = {
@@ -239,7 +240,11 @@ export class GameHistoryRepository {
         const pageSize = this.normalizePageSize(options.pageSize);
         const baseTimestamp = this.normalizeBaseTimestamp(options.baseTimestamp);
         const requestedPage = this.normalizePage(options.page);
-        const matchStage = this.buildFinishedGamesMatch(baseTimestamp, options.playerProfileId);
+        const matchStage = this.buildFinishedGamesMatch(
+            baseTimestamp,
+            options.playerProfileId,
+            options.ratedFilter ?? `all`,
+        );
         const aggregationResult = await collection.aggregate<{
             games: GameHistoryDocument[];
             totals: { totalGames: number; totalMoves: number }[];
@@ -917,13 +922,22 @@ export class GameHistoryRepository {
         return Object.fromEntries(Object.entries(playerTiles).map(([playerId, playerTileConfig]) => [playerId, { ...playerTileConfig }]));
     }
 
-    private buildFinishedGamesMatch(baseTimestamp: number, playerProfileId?: string) {
+    private buildFinishedGamesMatch(
+        baseTimestamp: number,
+        playerProfileId?: string,
+        ratedFilter: 'all' | 'rated' | 'unrated' = `all`,
+    ) {
+        const ratedMatch = ratedFilter === `all`
+            ? {}
+            : { 'gameOptions.rated': ratedFilter === `rated` };
+
         return {
             finishedAt: {
                 $ne: null,
                 $lte: baseTimestamp,
             },
             ...(playerProfileId ? { 'players.profileId': playerProfileId } : {}),
+            ...ratedMatch,
         };
     }
 

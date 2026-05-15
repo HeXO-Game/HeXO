@@ -1,6 +1,6 @@
 import type { FinishedGamesPage, FinishedGameSummary } from '@ih3t/shared';
 
-import type { FinishedGamesArchiveView } from '../query/queryDefinitions';
+import type { FinishedGamesArchiveView, FinishedGamesRatedFilter } from '../query/queryDefinitions';
 import { formatDateTime, useIntlFormatProvider } from '../utils/dateTime';
 import { formatCompactDuration } from '../utils/duration';
 import {
@@ -11,6 +11,7 @@ import {
 import { getPlayerLabel, getPlayerTileColor } from '../utils/gameBoard';
 import { getVisiblePageNumbers } from '../utils/pagination';
 import PageCorpus from './PageCorpus';
+import RatedFilterTabs from './RatedFilterTabs';
 
 type FinishedGamesScreenProps = {
     archive: FinishedGamesPage | null
@@ -23,6 +24,8 @@ type FinishedGamesScreenProps = {
     onOpenGame: (gameId: string) => void
     onChangePage: (page: number) => void
     onRefresh: () => void
+    ratedFilter: FinishedGamesRatedFilter
+    onChangeRatedFilter: (ratedFilter: FinishedGamesRatedFilter) => void
 };
 
 function getResultPresentation(
@@ -75,6 +78,8 @@ function FinishedGamesScreen({
     errorMessage,
     onOpenGame,
     onChangePage,
+    ratedFilter,
+    onChangeRatedFilter,
 }: Readonly<FinishedGamesScreenProps>) {
     const intlFormatProvider = useIntlFormatProvider();
     const isOwnArchive = archiveView === `mine`;
@@ -115,6 +120,13 @@ function FinishedGamesScreen({
                     <span className="ml-2 text-base font-black text-white sm:ml-3 sm:text-lg">
                         {totalMoves}
                     </span>
+                </div>
+
+                <div className="col-span-2 lg:col-span-1 lg:ml-auto">
+                    <RatedFilterTabs
+                        value={ratedFilter}
+                        onChange={onChangeRatedFilter}
+                    />
                 </div>
 
                 {showSignInHint && (

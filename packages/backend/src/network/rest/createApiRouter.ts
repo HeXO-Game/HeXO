@@ -55,11 +55,13 @@ const zPositiveInteger = z.coerce.number().int()
     .positive();
 const zPositiveIntegerQueryValue = z.preprocess((value): unknown => Array.isArray(value) ? value[0] : value, zPositiveInteger);
 const zFinishedGamesView = z.enum([`all`, `mine`]);
+const zFinishedGamesRatedFilter = z.enum([`all`, `rated`, `unrated`]);
 const zFinishedGamesQuery = z.object({
     page: zPositiveIntegerQueryValue.optional(),
     pageSize: zPositiveIntegerQueryValue.optional(),
     baseTimestamp: zPositiveIntegerQueryValue.optional(),
     view: z.preprocess((value): unknown => Array.isArray(value) ? value[0] : value, zFinishedGamesView).optional(),
+    rated: z.preprocess((value): unknown => Array.isArray(value) ? value[0] : value, zFinishedGamesRatedFilter).optional(),
 });
 const zAdminStatsQuery = z.object({
     tzOffsetMinutes: z.preprocess(
@@ -251,6 +253,7 @@ export class ApiRouter {
             try {
                 res.json(await this.apiQueryService.getFinishedGames(req, {
                     view: query.view ?? `all`,
+                    ratedFilter: query.rated ?? `all`,
                     page: query.page ?? 1,
                     pageSize: query.pageSize ?? 20,
                     baseTimestamp: query.baseTimestamp ?? Date.now(),

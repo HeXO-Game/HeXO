@@ -198,15 +198,20 @@ export class FrontendSsrRenderer {
 
         if (path === `/games` || path === `/account/games`) {
             const archiveView: FinishedGamesArchiveView = path.startsWith(`/account/games`) ? `mine` : `all`;
+            const ratedFilterParam = requestUrl.searchParams.get(`rated`);
+            const ratedFilter = ratedFilterParam === `rated` || ratedFilterParam === `unrated`
+                ? ratedFilterParam
+                : `all`;
             const page = parsePositiveInteger(requestUrl.searchParams.get(`page`)) ?? 1;
             const baseTimestamp = parsePositiveInteger(requestUrl.searchParams.get(`at`));
 
             if (baseTimestamp !== null) {
                 try {
                     queryClient.setQueryData(
-                        queryKeys.finishedGamesPage(archiveView, page, FINISHED_GAMES_PAGE_SIZE, baseTimestamp),
+                        queryKeys.finishedGamesPage(archiveView, ratedFilter, page, FINISHED_GAMES_PAGE_SIZE, baseTimestamp),
                         await this.dependencies.apiQueryService.getFinishedGames(req, {
                             view: archiveView,
+                            ratedFilter,
                             page,
                             pageSize: FINISHED_GAMES_PAGE_SIZE,
                             baseTimestamp,
