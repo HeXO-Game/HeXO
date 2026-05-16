@@ -1,5 +1,4 @@
 import { createEmptyGameState, SessionId } from '@ih3t/shared';
-import type { MouseEvent } from 'react';
 import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useBeforeUnload, useBlocker, useNavigate, useParams } from 'react-router';
 import { toast } from 'react-toastify';
@@ -25,17 +24,8 @@ import { useQueryAccount, useQueryAccountPreferences } from '../query/accountCli
 import { useQueryServerShutdown } from '../query/serverClient';
 import { useQuerySessionInfo } from '../query/sessionClient';
 import { describeSessionInvite } from '../utils/routeMetadata';
-import { buildFinishedGamePath, buildSessionPath } from './archiveRouteState';
+import { buildSessionPath } from './archiveRouteState';
 import type { SandboxRouteState } from './sandboxRouteState';
-
-function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>) {
-    return event.button === 0
-        && !event.defaultPrevented
-        && !event.metaKey
-        && !event.altKey
-        && !event.ctrlKey
-        && !event.shiftKey;
-}
 
 function showErrorToast(message: string) {
     toast.error(message, {
@@ -395,22 +385,6 @@ function SessionRoute() {
         });
     };
 
-    const handleFinishedGameReviewClick = (
-        event: MouseEvent<HTMLAnchorElement>,
-        finishedGameId: string,
-    ) => {
-        if (!isPlainLeftClick(event)) {
-            return;
-        }
-
-        event.preventDefault();
-
-        blockSessionJoinRef.current = true;
-
-        leaveSession();
-        void navigate(buildFinishedGamePath(finishedGameId));
-    };
-
     const inviteFriend = async () => {
         const inviteUrl = new URL(`/`, window.location.origin);
         inviteUrl.searchParams.set(`join`, sessionId);
@@ -509,18 +483,15 @@ function SessionRoute() {
             /* do not display an overlay */
             screenOverlay = null;
         } else if (session.localParticipantRole === `spectator`) {
-            const gameId = session.state.gameId;
             screenOverlay = (
                 <GameOverlayFinishedSpectator
                     state={session.state}
                     players={session.players}
 
-                    onReviewGame={(event) => handleFinishedGameReviewClick(event, gameId)}
                     onReturnToLobby={leaveSessionAndNavigate}
                 />
             );
         } else {
-            const gameId = session.state.gameId;
             screenOverlay = (
                 <GameOverlayFinishedPlayer
                     state={session.state}
@@ -528,7 +499,6 @@ function SessionRoute() {
                     localPlayerId={session.localParticipantId}
                     isTournament={Boolean(session.tournament)}
 
-                    onReviewGame={(event) => handleFinishedGameReviewClick(event, gameId)}
                     onReturnToLobby={leaveSessionAndNavigate}
                     onRequestRematch={session.tournament ? undefined : requestRematch}
                 />

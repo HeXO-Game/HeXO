@@ -1,5 +1,4 @@
 import type { SessionPlayer, SessionStateFinished } from '@ih3t/shared';
-import type { MouseEvent } from 'react';
 import { NavLink } from 'react-router';
 
 import { buildFinishedGamePath } from '../routes/archiveRouteState';
@@ -11,7 +10,6 @@ type GameOverlayFinishedSpectatorProps = {
     state: SessionStateFinished,
 
     onReturnToLobby: () => void
-    onReviewGame?: (event: MouseEvent<HTMLAnchorElement>) => void
 };
 
 
@@ -20,7 +18,6 @@ function GameOverlayFinishedSpectator({
     players,
 
     onReturnToLobby,
-    onReviewGame,
 }: Readonly<GameOverlayFinishedSpectatorProps>) {
     const winnerName = players.find(player => player.id === state.winningPlayerId)?.displayName ?? null;
 
@@ -75,7 +72,7 @@ function GameOverlayFinishedSpectator({
                             <NavLink
                                 to={buildFinishedGamePath(state.gameId)}
                                 className="block w-full rounded-2xl border border-sky-200/25 bg-sky-950/55 px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-sky-950/80"
-                                onClick={onReviewGame}
+                                target="_blank"
                             >
                                 Review Game
                             </NavLink>

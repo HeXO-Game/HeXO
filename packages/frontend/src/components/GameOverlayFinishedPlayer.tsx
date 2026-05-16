@@ -1,5 +1,5 @@
 import type { SessionPlayer, SessionStateFinished } from '@ih3t/shared';
-import { type MouseEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router';
 
 import { buildFinishedGamePath } from '../routes/archiveRouteState';
@@ -14,7 +14,6 @@ type GameOverlayFinishedPlayerProps = {
     isTournament?: boolean,
 
     onReturnToLobby: () => void
-    onReviewGame?: (event: MouseEvent<HTMLAnchorElement>) => void
     onRequestRematch?: () => void
 };
 
@@ -121,7 +120,6 @@ function GameOverlayFinishedPlayer({
     isTournament,
 
     onReturnToLobby,
-    onReviewGame,
     onRequestRematch,
 }: Readonly<GameOverlayFinishedPlayerProps>) {
     const isDraw = state.finishReason === `draw-agreement`;
@@ -253,7 +251,6 @@ function GameOverlayFinishedPlayer({
                             <NavLink
                                 to={buildFinishedGamePath(state.gameId)}
                                 className={`block w-full rounded-2xl border px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] transition ${theme.secondaryButton}`}
-                                onClick={onReviewGame}
                                 target="_blank"
                             >
                                 Review Game
