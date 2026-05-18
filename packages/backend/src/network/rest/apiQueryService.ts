@@ -167,12 +167,7 @@ export class ApiQueryService {
         return await this.tournamentService.getTournamentDetail(tournamentId, currentUser);
     }
 
-    async searchUsers(req: express.Request, query: string): Promise<UserSearchResponse> {
-        const currentUser = await this.authService.getUserFromRequest(req);
-        if (!currentUser) {
-            throw new ApiRequestError(401, `Sign in with Discord to search for tournament players.`);
-        }
-
+    async searchUsers(query: string): Promise<UserSearchResponse> {
         const users = await this.authRepository.searchUserProfiles(query, 10);
         return {
             users: users.map((user) => this.toPublicAccountProfile(user)).filter((user): user is NonNullable<typeof user> => Boolean(user)),
