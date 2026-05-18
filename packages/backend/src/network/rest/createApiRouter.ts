@@ -296,7 +296,7 @@ export class ApiRouter {
         router.get(`/users/search`, async (req, res) => {
             try {
                 const query = zAdminUserSearchQuery.parse(req.query);
-                const response: UserSearchResponse = await this.apiQueryService.searchUsers(req, query.q);
+                const response: UserSearchResponse = await this.apiQueryService.searchUsers(query.q);
                 res.json(response);
             } catch (error: unknown) {
                 if (error instanceof ApiRequestError) {
