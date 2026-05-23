@@ -45,53 +45,59 @@ function AppShell() {
     );
 }
 
-const appRoutes = createRoutesFromElements(
-    <>
-        <Route element={<AppShell />} errorElement={<RouteErrorScreen />} middleware={[openReplayRouterMiddleware]}>
-            <Route element={<CommonPageLayout limitWidth={true} />}>
-                <Route path="/" element={<LobbyRoute />} />
-                <Route path="/games" element={<FinishedGamesRoute />} />
-                <Route path="/games/:gameId" element={<FinishedGameRoute />} />
-                <Route path="/changelog" element={<ChangelogRoute />} />
-                <Route path="/rules" element={<RulesRoute />} />
-                <Route path="/account/profile" element={<ProfileRoute />} />
-                <Route path="/account/preferences" element={<AccountPreferencesRoute />} />
-                <Route path="/account/games" element={<FinishedGamesRoute />} />
-                <Route path="/account/games/:gameId" element={<FinishedGameRoute />} />
-                <Route path="/profile/:profileId" element={<ProfileRoute />} />
-                <Route path="/leaderboard" element={<LeaderboardRoute />} />
-                <Route path="/tournaments" element={<TournamentListRoute />} />
-                <Route path="/tournaments/:tournamentId" element={<TournamentRoute />} />
-                <Route path="/admin/controls" element={<AdminControlsRoute />} />
-                <Route path="/admin/stats" element={<AdminRoute />} />
+function createAppRoutesInternal(trackPageViews: boolean) {
+    return createRoutesFromElements(
+        <>
+            <Route
+                element={<AppShell />}
+                errorElement={<RouteErrorScreen />}
+                middleware={trackPageViews ? [openReplayRouterMiddleware] : undefined}
+            >
+                <Route element={<CommonPageLayout limitWidth={true} />}>
+                    <Route path="/" element={<LobbyRoute />} />
+                    <Route path="/games" element={<FinishedGamesRoute />} />
+                    <Route path="/games/:gameId" element={<FinishedGameRoute />} />
+                    <Route path="/changelog" element={<ChangelogRoute />} />
+                    <Route path="/rules" element={<RulesRoute />} />
+                    <Route path="/account/profile" element={<ProfileRoute />} />
+                    <Route path="/account/preferences" element={<AccountPreferencesRoute />} />
+                    <Route path="/account/games" element={<FinishedGamesRoute />} />
+                    <Route path="/account/games/:gameId" element={<FinishedGameRoute />} />
+                    <Route path="/profile/:profileId" element={<ProfileRoute />} />
+                    <Route path="/leaderboard" element={<LeaderboardRoute />} />
+                    <Route path="/tournaments" element={<TournamentListRoute />} />
+                    <Route path="/tournaments/:tournamentId" element={<TournamentRoute />} />
+                    <Route path="/admin/controls" element={<AdminControlsRoute />} />
+                    <Route path="/admin/stats" element={<AdminRoute />} />
+                </Route>
+
+                <Route element={<CommonPageLayout limitWidth={false} hideMobile={true} />}>
+                    <Route path="/sandbox" element={<SandboxRoute />} />
+                    <Route path="/sandbox/:positionId" element={<SandboxRoute />} />
+                    <Route path="/session/:sessionId" element={<SessionRoute />} />
+                </Route>
+
+                <Route element={<CommonPageLayout limitWidth={false} />}>
+                    <Route path="/tournaments/:tournamentId/bracket" element={<TournamentBracketRoute />} />
+                    <Route path="/tournaments/:tournamentId/multiview" element={<TournamentMultiviewRoute />} />
+                </Route>
             </Route>
 
-            <Route element={<CommonPageLayout limitWidth={false} hideMobile={true} />}>
-                <Route path="/sandbox" element={<SandboxRoute />} />
-                <Route path="/sandbox/:positionId" element={<SandboxRoute />} />
-                <Route path="/session/:sessionId" element={<SessionRoute />} />
-            </Route>
-
-            <Route element={<CommonPageLayout limitWidth={false} />}>
-                <Route path="/tournaments/:tournamentId/bracket" element={<TournamentBracketRoute />} />
-                <Route path="/tournaments/:tournamentId/multiview" element={<TournamentMultiviewRoute />} />
-            </Route>
-        </Route>
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-    </>,
-);
-
-export function createAppRoutes() {
-    return appRoutes;
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </>,
+    );
 }
+
+const clientRoutes = createAppRoutesInternal(true);
 
 export function createClientRouter() {
-    return createBrowserRouter(appRoutes);
+    return createBrowserRouter(clientRoutes);
 }
 
+const serverRoutes = createAppRoutesInternal(false);
+
 export function createServerRouter(url: string) {
-    return createMemoryRouter(appRoutes, {
+    return createMemoryRouter(serverRoutes, {
         initialEntries: [url],
     });
 }
