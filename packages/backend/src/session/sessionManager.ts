@@ -206,6 +206,8 @@ export class SessionManager {
             tournament: params.tournament ?? null,
         });
 
+        this.logger.info(session);
+
         this.sessions.set(session.id, session);
 
         /*
@@ -487,6 +489,7 @@ export class SessionManager {
                 playerId,
                 x: cell.x,
                 y: cell.y,
+                placementRadius: session.gameOptions.placementRadius,
             });
         } catch (error: unknown) {
             if (error instanceof SimulationError || error instanceof GameTimeControlError) {
