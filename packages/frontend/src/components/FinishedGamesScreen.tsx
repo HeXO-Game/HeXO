@@ -122,7 +122,10 @@ function FinishedGamesScreen({
                     </span>
                 </div>
 
-                <div className="col-span-2 lg:col-span-1 lg:ml-auto">
+                <div className={showSignInHint
+                    ? `col-span-2 lg:col-span-2 lg:row-start-2`
+                    : `col-span-2 lg:col-span-1 lg:ml-auto`}
+                >
                     <RatedFilterTabs
                         value={ratedFilter}
                         onChange={onChangeRatedFilter}
@@ -130,7 +133,7 @@ function FinishedGamesScreen({
                 </div>
 
                 {showSignInHint && (
-                    <div className="mt-2 col-span-2 lg:col-span-1 ml-auto lg:mt-[-2em] w-full lg:text-right lg:max-w-md rounded-[1.35rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50 sm:px-5">
+                    <div className="col-span-2 w-full rounded-[1.35rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50 sm:px-5 lg:col-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:ml-auto lg:max-w-md lg:text-right">
                         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/90">
                             Personal Match History
                         </div>
