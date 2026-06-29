@@ -2012,7 +2012,14 @@ export class TournamentService {
                         throw new SessionError(`Failed to resolve the winner for a tournament match.`);
                     }
 
-                    this.applyFinishedGameToMatch(tournament, match, session.state.gameId, winnerProfileId);
+                    const appliedGame = this.applyFinishedGameToMatch(tournament, match, session.state.gameId, winnerProfileId);
+                    if (appliedGame) {
+                        return true;
+                    }
+
+                    match.sessionId = null;
+                    match.state = `ready`;
+                    match.startedAt = null;
                     return true;
                 }
 
@@ -2028,14 +2035,17 @@ export class TournamentService {
             }
 
             /* Session is gone — try to recover the result from game history */
-            const recoveredGame = match.gameIds.length > 0
-                ? await this.gameHistoryRepository.getFinishedGame(match.gameIds[match.gameIds.length - 1])
-                : await this.gameHistoryRepository.getFinishedGameBySessionId(match.sessionId);
+            const recoveredGame = await this.gameHistoryRepository.getFinishedGameBySessionId(match.sessionId)
+                ?? (match.gameIds.length > 0
+                    ? await this.gameHistoryRepository.getFinishedGame(match.gameIds[match.gameIds.length - 1])
+                    : null);
             if (recoveredGame?.gameResult?.winningPlayerId) {
                 const winnerProfileId = recoveredGame.players.find((player) => player.playerId === recoveredGame.gameResult?.winningPlayerId)?.profileId ?? null;
                 if (winnerProfileId) {
-                    this.applyFinishedGameToMatch(tournament, match, recoveredGame.id, winnerProfileId);
-                    return true;
+                    const appliedGame = this.applyFinishedGameToMatch(tournament, match, recoveredGame.id, winnerProfileId);
+                    if (appliedGame) {
+                        return true;
+                    }
                 }
             }
 
@@ -2094,9 +2104,9 @@ export class TournamentService {
         match: TournamentMatch,
         gameId: string,
         winnerProfileId: string,
-    ) {
+    ): boolean {
         if (match.gameIds.includes(gameId)) {
-            return;
+            return false;
         }
         if (match.sessionId) {
             this.cancelClaimWin(match.id, match.sessionId);
@@ -2122,6 +2132,7 @@ export class TournamentService {
             match.state = `ready`;
             match.startedAt = null;
         }
+        return true;
     }
 
     /**
