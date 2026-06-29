@@ -325,13 +325,32 @@ class FakeSessionManager {
     }
 }
 
+type FakeFinishedGame = {
+    id: string;
+    players: Array<{ playerId: string; profileId: string | null }>;
+    gameResult: { winningPlayerId: string | null } | null;
+    sessionId?: string;
+};
+
 class FakeGameHistoryRepository {
-    async getFinishedGame(): Promise<null> {
+    finishedGames = new Map<string, FakeFinishedGame>();
+
+    async getFinishedGame(): Promise<FakeFinishedGame | null> {
         return null;
     }
 
-    async getFinishedGameBySessionId(): Promise<null> {
-        return null;
+    async getFinishedGameBySessionId(sessionId: string): Promise<FakeFinishedGame | null> {
+        return [...this.finishedGames.values()].find((game) => game.sessionId === sessionId) ?? null;
+    }
+}
+
+class FinishedGameByIdRepository extends FakeGameHistoryRepository {
+    constructor(private readonly game: FakeFinishedGame) {
+        super();
+    }
+
+    override async getFinishedGame(): Promise<FakeFinishedGame | null> {
+        return this.game;
     }
 }
 
@@ -416,6 +435,7 @@ function createServiceWithOverrides(options: {
     sessionManager?: FakeSessionManager;
     eventSink?: FakeTournamentEventSink;
     authRepository?: FakeAuthRepository;
+    gameHistoryRepository?: FakeGameHistoryRepository;
 }) {
     const repository = options.repository;
     const sessionManager = options.sessionManager ?? new FakeSessionManager();
@@ -425,7 +445,7 @@ function createServiceWithOverrides(options: {
         repository as never,
         authRepository as never,
         sessionManager as never,
-        new FakeGameHistoryRepository() as never,
+        (options.gameHistoryRepository ?? new FakeGameHistoryRepository()) as never,
     );
     service.setEventHandlers(eventSink);
 
@@ -1332,6 +1352,75 @@ test(`getTournamentDetail refreshes double-elimination participant statuses when
     assert.equal(detail?.status, `completed`);
     assert.equal(champion?.status, `completed`);
     assert.equal(runnerUp?.status, `eliminated`);
+});
+
+test(`getTournamentDetail repairs stale best-of session recovery without repeated updatedAt changes`, async () => {
+    const tournament = createTournament({
+        status: `live`,
+        format: `double-elimination`,
+        updatedAt: 123,
+        seriesSettings: {
+            earlyRoundsBestOf: 3,
+            finalsBestOf: 3,
+            grandFinalBestOf: 5,
+            grandFinalResetEnabled: true,
+        },
+        participants: [
+            createParticipant({ profileId: `player-1`, displayName: `Player 1`, registeredAt: 1, checkedInAt: 11, status: `checked-in`, checkInState: `checked-in`, seed: 1 }),
+            createParticipant({ profileId: `player-2`, displayName: `Player 2`, registeredAt: 2, checkedInAt: 12, status: `checked-in`, checkInState: `checked-in`, seed: 2 }),
+        ],
+        matches: [
+            createMatch({
+                id: `match-winners-1-1`,
+                bracket: `winners`,
+                round: 1,
+                order: 1,
+                state: `in-progress`,
+                bestOf: 3,
+                sessionId: `missing-game-two-session`,
+                startedAt: 456,
+                gameIds: [`finished-game-one`],
+                currentGameNumber: 2,
+                leftWins: 1,
+                rightWins: 0,
+                slots: [
+                    createSlot({ profileId: `player-1`, displayName: `Player 1`, seed: 1 }),
+                    createSlot({ profileId: `player-2`, displayName: `Player 2`, seed: 2 }),
+                ],
+            }),
+        ],
+    });
+    const repository = new FakeTournamentRepository(tournament);
+    const gameHistoryRepository = new FinishedGameByIdRepository({
+        id: `finished-game-one`,
+        players: [
+            { playerId: `left-player`, profileId: `player-1` },
+            { playerId: `right-player`, profileId: `player-2` },
+        ],
+        gameResult: { winningPlayerId: `left-player` },
+    });
+    const { service } = createServiceWithOverrides({
+        repository,
+        gameHistoryRepository,
+    });
+
+    await service.getTournamentDetail(tournament.id, null);
+
+    const repaired = repository.getSync(tournament.id).matches[0]!;
+    assert.equal(repaired.state, `ready`);
+    assert.equal(repaired.sessionId, null);
+    assert.deepEqual(repaired.gameIds, [`finished-game-one`]);
+    assert.equal(repaired.leftWins, 1);
+    assert.equal(repaired.currentGameNumber, 2);
+
+    await service.getTournamentDetail(tournament.id, null);
+    const recreated = repository.getSync(tournament.id);
+    const recreatedMatch = recreated.matches[0]!;
+    assert.equal(recreatedMatch.state, `in-progress`);
+    assert.notEqual(recreatedMatch.sessionId, null);
+
+    await service.getTournamentDetail(tournament.id, null);
+    assert.equal(repository.getSync(tournament.id).updatedAt, recreated.updatedAt);
 });
 
 test(`roundDelayMinutes keeps the grand final pending until its cooldown expires`, async () => {
