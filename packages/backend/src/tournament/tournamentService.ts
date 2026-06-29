@@ -2062,7 +2062,7 @@ export class TournamentService {
                     visibility: `private`,
                     timeControl: { ...tournament.timeControl },
                     rated: false,
-                    firstPlayer: `random`,
+                    firstPlayer: `host`,
                 },
                 reservedPlayerProfileIds: this.getReservedSeatOrder(match),
                 tournament: this.toSessionTournamentInfo(tournament, match, matchStartedAt),
