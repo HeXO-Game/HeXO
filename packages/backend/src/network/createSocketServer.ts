@@ -530,6 +530,10 @@ export class SocketServerGateway {
             return;
         }
 
+        if (socket.handshake.query.skipVersionCheck == `true`) {
+            return;
+        }
+
         const clientInfo = parseSocketClientInfo(socket);
         if (clientInfo.versionHash === APP_VERSION_HASH) {
             return;
