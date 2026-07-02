@@ -55,12 +55,12 @@ const TURN_TIME_STEP_SECONDS = [
 const TURN_TIME_DEFAULT = 45;
 
 const MATCH_TIME_STEP_MINUTES = [
-    1, 2, 3, 5, 10, 15, 20, 30, 45, 60,
+    1, 2, 3, 4, 5, 10, 15, 20, 30, 45, 60,
 ] as const;
 const MATCH_TIME_DEFAULT = 5;
 
 const INCREMENT_STEP_SECONDS = [
-    0, 1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 300,
+    0, 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 300,
 ] as const;
 const INCREMENT_DEFAULT = 5;
 
