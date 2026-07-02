@@ -55,7 +55,6 @@ type ClientSocketData = {
 type ClientSocket = Socket<ClientToServerEvents, ServerToClientEvents, any, ClientSocketData>;
 
 const LOBBY_LIST_DEBOUNCE_MS = 1_000;
-const MAX_WATCHED_SESSIONS_PER_SOCKET = 4;
 
 function getProfileRoom(profileId: string) {
     return `profile:${profileId}`;
@@ -277,13 +276,6 @@ export class SocketServerGateway {
                 }
 
                 const watchedSessions = this.getOrCreateWatchedSessions(socket.id);
-                if (!watchedSessions.has(request.sessionId) && watchedSessions.size >= MAX_WATCHED_SESSIONS_PER_SOCKET) {
-                    socket.emit(`session-watch-error`, {
-                        sessionId: request.sessionId,
-                        message: `You can only watch up to ${MAX_WATCHED_SESSIONS_PER_SOCKET} live matches at once.`,
-                    });
-                    return;
-                }
 
                 watchedSessions.add(request.sessionId);
                 await socket.join(request.sessionId);
