@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, Fragment, type ReactNode } from 'react';
 
+import { trackOpenReplayError } from '../openReplay';
 import AppErrorScreen from './AppErrorScreen';
 
 type AppErrorBoundaryProps = {
@@ -22,6 +23,12 @@ class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundary
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        const componentStack = errorInfo.componentStack?.trim() || null;
+        trackOpenReplayError(error, {
+            source: `react_error_boundary`,
+            boundary: `AppErrorBoundary`,
+            componentStack,
+        });
         console.error(`Unhandled React render error:`, error, errorInfo);
     }
 
