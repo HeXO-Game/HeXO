@@ -1447,6 +1447,7 @@ export class SessionManager {
                     status: `finished`,
 
                     gameId: session.gameId,
+                    startedAt: session.startedAt!,
 
                     finishReason: session.finishReason ?? `terminated`,
                     rematchAcceptedPlayerIds: session.rematchAcceptedPlayerIds,
