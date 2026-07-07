@@ -514,6 +514,8 @@ export type SessionSpectator = z.infer<typeof zSessionSpectator>;
 export const zSessionState = z.discriminatedUnion(`status`, [
     z.object({
         status: z.literal(`lobby`),
+
+        createdAt: zTimestamp,
     }),
     z.object({
         status: z.literal(`in-game`),
@@ -528,6 +530,7 @@ export const zSessionState = z.discriminatedUnion(`status`, [
         status: z.literal(`finished`),
 
         startedAt: zTimestamp,
+        finishedAt: zTimestamp,
         gameId: zIdentifier,
         finishReason: zSessionFinishReason,
         winningPlayerId: zIdentifier.nullable(),
