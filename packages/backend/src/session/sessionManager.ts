@@ -1427,6 +1427,8 @@ export class SessionManager {
             case `lobby`:
                 state = {
                     status: `lobby`,
+
+                    createdAt: session.createdAt,
                 };
                 break;
 
@@ -1448,6 +1450,7 @@ export class SessionManager {
 
                     gameId: session.gameId,
                     startedAt: session.startedAt!,
+                    finishedAt: session.finishedAt!,
 
                     finishReason: session.finishReason ?? `terminated`,
                     rematchAcceptedPlayerIds: session.rematchAcceptedPlayerIds,
