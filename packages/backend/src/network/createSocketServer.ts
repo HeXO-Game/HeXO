@@ -267,14 +267,6 @@ export class SocketServerGateway {
                     return;
                 }
 
-                if (snapshot.session.state.status !== `in-game`) {
-                    socket.emit(`session-watch-error`, {
-                        sessionId: request.sessionId,
-                        message: `session unavailable`,
-                    });
-                    return;
-                }
-
                 const watchedSessions = this.getOrCreateWatchedSessions(socket.id);
 
                 watchedSessions.add(request.sessionId);
