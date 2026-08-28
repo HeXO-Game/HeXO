@@ -523,6 +523,7 @@ export const zSessionState = z.discriminatedUnion(`status`, [
         drawRequest: zIdentifier.nullable(),
         drawRequestAvailableAfterTurn: z.number().int().nonnegative(),
 
+        createdAt: zTimestamp,
         startedAt: zTimestamp,
         gameId: zIdentifier,
     }),

@@ -1437,6 +1437,7 @@ export class SessionManager {
                     status: `in-game`,
 
                     gameId: session.gameId,
+                    createdAt: session.createdAt,
                     startedAt: session.startedAt!,
 
                     drawRequest: session.drawRequest,
