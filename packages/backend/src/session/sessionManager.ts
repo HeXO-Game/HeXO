@@ -1450,6 +1450,7 @@ export class SessionManager {
                     status: `finished`,
 
                     gameId: session.gameId,
+                    createdAt: session.createdAt,
                     startedAt: session.startedAt!,
                     finishedAt: session.finishedAt!,
 
