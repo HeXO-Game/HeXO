@@ -106,6 +106,7 @@ export const zLobbyOptions = z.object({
     timeControl: zGameTimeControl,
     rated: z.boolean().default(false),
     firstPlayer: zLobbyFirstPlayer.default(`random`),
+    placementRadius: z.number().int().positive().default(PLACE_CELL_HEX_RADIUS),
 });
 export type LobbyOptions = z.infer<typeof zLobbyOptions>;
 
@@ -192,15 +193,15 @@ export function getHexDistance(a: HexCoordinate, b: HexCoordinate): number {
 }
 
 export function isCellWithinPlacementRadius(
-    placedCells: readonly HexCoordinate[],
+    cells: readonly HexCoordinate[],
     candidate: HexCoordinate,
     radius = PLACE_CELL_HEX_RADIUS,
 ): boolean {
-    if (placedCells.length === 0) {
+    if (cells.length === 0) {
         return true;
     }
 
-    return placedCells.some((cell) => getHexDistance(cell, candidate) <= radius);
+    return cells.some((cell) => getHexDistance(cell, candidate) <= radius);
 }
 
 export const zGameState = z.object({
@@ -261,6 +262,7 @@ export type ApplyGameMoveParams = {
     playerId: string;
     x: number;
     y: number;
+    placementRadius: number;
 };
 
 export type ApplyGameMoveResult = {
@@ -349,7 +351,7 @@ export function applyGameMove(gameState: GameState, params: ApplyGameMoveParams)
         throw new GameRuleError(`First placement must be at the origin`);
     }
 
-    if (!isCellWithinPlacementRadius(gameState.cells, { x, y })) {
+    if (!isCellWithinPlacementRadius(gameState.cells, { x, y }, params.placementRadius)) {
         throw new GameRuleError(`Cell must be within ${PLACE_CELL_HEX_RADIUS} hexes of an existing placed cell`);
     }
 

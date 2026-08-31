@@ -11,6 +11,7 @@ type ApplyMoveParams = {
     playerId: string;
     x: number;
     y: number;
+    placementRadius: number;
 };
 
 type ApplyMoveResult = {
