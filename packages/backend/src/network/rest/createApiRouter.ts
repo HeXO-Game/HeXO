@@ -56,10 +56,17 @@ const zPositiveInteger = z.coerce.number().int()
 const zPositiveIntegerQueryValue = z.preprocess((value): unknown => Array.isArray(value) ? value[0] : value, zPositiveInteger);
 const zFinishedGamesView = z.enum([`all`, `mine`]);
 const zFinishedGamesRatedFilter = z.enum([`all`, `rated`, `unrated`]);
-const zFinishedGamesQuery = z.object({
+const zPaginationQuery = z.object({
     page: zPositiveIntegerQueryValue.optional(),
     pageSize: zPositiveIntegerQueryValue.optional(),
     baseTimestamp: zPositiveIntegerQueryValue.optional(),
+});
+const zProfileGamesQuery = z.object({
+    ...zPaginationQuery.shape,
+    rated: z.preprocess((value): unknown => Array.isArray(value) ? value[0] : value, zFinishedGamesRatedFilter).optional(),
+});
+const zFinishedGamesQuery = z.object({
+    ...zPaginationQuery.shape,
     view: z.preprocess((value): unknown => Array.isArray(value) ? value[0] : value, zFinishedGamesView).optional(),
     rated: z.preprocess((value): unknown => Array.isArray(value) ? value[0] : value, zFinishedGamesRatedFilter).optional(),
 });
@@ -225,7 +232,13 @@ export class ApiRouter {
         });
 
         router.get(`/profiles/:profileId/games`, async (req, res) => {
-            const response = await this.apiQueryService.getProfileGames(req.params.profileId);
+            const query = zProfileGamesQuery.parse(req.query);
+            const response = await this.apiQueryService.getProfileGames(req.params.profileId, {
+                page: query.page ?? 1,
+                pageSize: query.pageSize ?? 10,
+                baseTimestamp: query.baseTimestamp ?? Date.now(),
+                ratedFilter: query.rated ?? `all`,
+            });
             if (!response) {
                 res.status(404).json({ error: `Profile not found.` });
                 return;
