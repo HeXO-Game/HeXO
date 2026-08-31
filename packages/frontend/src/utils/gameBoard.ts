@@ -1,9 +1,18 @@
-import type { BoardCell, DatabaseGamePlayer, PlayerNames, PlayerTileConfig } from '@ih3t/shared';
-import { getCellKey, getHexDistance, PLACE_CELL_HEX_RADIUS } from '@ih3t/shared';
+import type {
+    BoardCell,
+    DatabaseGamePlayer,
+    PlayerNames,
+    PlayerTileConfig,
+} from "@ih3t/shared";
+import {
+    getCellKey,
+    getHexDistance,
+    PLACE_CELL_HEX_RADIUS,
+} from "@ih3t/shared";
 
 export const HEX_RADIUS = PLACE_CELL_HEX_RADIUS;
 export { getCellKey };
-export const MIN_SCALE = 12;
+export const MIN_SCALE = 2;
 export const MAX_SCALE = 200;
 export const DEFAULT_SCALE = 42;
 export const GRID_LINE_COLOR = `rgba(148, 163, 184, 0.18)`;
@@ -11,33 +20,35 @@ export const GRID_LINE_COLOR = `rgba(148, 163, 184, 0.18)`;
 const SQRT_THREE = Math.sqrt(3);
 
 export type HexCell = {
-    x: number
-    y: number
+    x: number;
+    y: number;
 };
 
 type CubeCell = {
-    x: number
-    y: number
-    z: number
+    x: number;
+    y: number;
+    z: number;
 };
 
 export type TilePieceMarker = `X` | `O`;
 
-type RenderableCellStatus = {
-    status: `empty`
-} | {
-    status: `occupied`,
-    color: string,
-    marker: TilePieceMarker,
-};
+type RenderableCellStatus =
+    | {
+          status: `empty`;
+      }
+    | {
+          status: `occupied`;
+          color: string;
+          marker: TilePieceMarker;
+      };
 
-export type RenderableCell = HexCell & RenderableCellStatus & {
-    key: string
+export type RenderableCell = HexCell &
+    RenderableCellStatus & {
+        key: string;
 
-    pointX: number
-    pointY: number
-};
-
+        pointX: number;
+        pointY: number;
+    };
 
 const STRAIGHT_HEX_DIRECTIONS: readonly HexCell[] = [
     { x: 1, y: 0 },
@@ -51,8 +62,14 @@ function getPlayerId(player: PlayerReference): string {
     return typeof player === `string` ? player : player.playerId;
 }
 
-function getDatabasePlayerDisplayName(players: readonly PlayerReference[], playerId: string): string | null {
-    const player = players.find((candidate) => typeof candidate !== `string` && candidate.playerId === playerId);
+function getDatabasePlayerDisplayName(
+    players: readonly PlayerReference[],
+    playerId: string,
+): string | null {
+    const player = players.find(
+        (candidate) =>
+            typeof candidate !== `string` && candidate.playerId === playerId,
+    );
     if (!player || typeof player === `string`) {
         return null;
     }
@@ -87,7 +104,9 @@ export function getPlayerLabel(
         return playerName;
     }
 
-    const playerIndex = players.findIndex((player) => getPlayerId(player) === playerId);
+    const playerIndex = players.findIndex(
+        (player) => getPlayerId(player) === playerId,
+    );
     if (playerIndex === -1) {
         return fallbackName;
     }
@@ -176,21 +195,30 @@ export function buildStraightHexLine(start: HexCell, end: HexCell): HexCell[] {
 
     for (const direction of STRAIGHT_HEX_DIRECTIONS) {
         const directionPoint = axialToUnitPoint(direction.x, direction.y);
-        const directionLengthSquared = directionPoint.x ** 2 + directionPoint.y ** 2;
-        const projectedSteps = Math.round((deltaX * directionPoint.x + deltaY * directionPoint.y) / directionLengthSquared);
+        const directionLengthSquared =
+            directionPoint.x ** 2 + directionPoint.y ** 2;
+        const projectedSteps = Math.round(
+            (deltaX * directionPoint.x + deltaY * directionPoint.y) /
+                directionLengthSquared,
+        );
         const candidateEndCell = {
             x: start.x + direction.x * projectedSteps,
             y: start.y + direction.y * projectedSteps,
         };
-        const candidatePoint = axialToUnitPoint(candidateEndCell.x, candidateEndCell.y);
+        const candidatePoint = axialToUnitPoint(
+            candidateEndCell.x,
+            candidateEndCell.y,
+        );
         const candidateDeltaX = endPoint.x - candidatePoint.x;
         const candidateDeltaY = endPoint.y - candidatePoint.y;
-        const candidateDistanceSquared = candidateDeltaX ** 2 + candidateDeltaY ** 2;
+        const candidateDistanceSquared =
+            candidateDeltaX ** 2 + candidateDeltaY ** 2;
         const candidateStepMagnitude = Math.abs(projectedSteps);
 
         if (
-            candidateDistanceSquared < closestDistanceSquared
-            || (candidateDistanceSquared === closestDistanceSquared && candidateStepMagnitude < closestStepMagnitude)
+            candidateDistanceSquared < closestDistanceSquared ||
+            (candidateDistanceSquared === closestDistanceSquared &&
+                candidateStepMagnitude < closestStepMagnitude)
         ) {
             closestEndCell = candidateEndCell;
             closestDistanceSquared = candidateDistanceSquared;
@@ -234,8 +262,10 @@ export function getTouchCenter(touches: React.TouchList) {
     };
 }
 
-
-export function buildRenderableCells(cells: BoardCell[], tileConfigs: Record<string, PlayerTileConfig>): Map<string, RenderableCell> {
+export function buildRenderableCells(
+    cells: BoardCell[],
+    tileConfigs: Record<string, PlayerTileConfig>,
+): Map<string, RenderableCell> {
     const renderableCells = new Map<string, RenderableCell>();
 
     if (cells.length === 0) {
@@ -257,15 +287,21 @@ export function buildRenderableCells(cells: BoardCell[], tileConfigs: Record<str
     const playerIds = Object.keys(tileConfigs);
     for (const cell of cells) {
         for (let x = cell.x - HEX_RADIUS; x <= cell.x + HEX_RADIUS; x += 1) {
-            for (let y = cell.y - HEX_RADIUS; y <= cell.y + HEX_RADIUS; y += 1) {
+            for (
+                let y = cell.y - HEX_RADIUS;
+                y <= cell.y + HEX_RADIUS;
+                y += 1
+            ) {
                 if (getHexDistance(cell, { x, y }) <= HEX_RADIUS) {
                     const key = getCellKey(x, y);
                     if (!renderableCells.has(key)) {
                         const point = axialToUnitPoint(x, y);
                         renderableCells.set(key, {
                             key,
-                            x, y,
-                            pointX: point.x, pointY: point.y,
+                            x,
+                            y,
+                            pointX: point.x,
+                            pointY: point.y,
                             status: `empty`,
                         });
                     }
