@@ -596,6 +596,7 @@ export const zSessionState = z.discriminatedUnion(`status`, [
     z.object({
         status: z.literal(`finished`),
 
+        createdAt: zTimestamp,
         startedAt: zTimestamp,
         finishedAt: zTimestamp,
         gameId: zIdentifier,
