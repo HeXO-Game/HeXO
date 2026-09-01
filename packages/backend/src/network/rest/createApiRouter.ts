@@ -912,9 +912,11 @@ export class ApiRouter {
         });
 
         router.get(`/sandbox-positions/:id`, async (req, res) => {
-            const id = zSandboxPositionId.parse(String(req.params.id ?? ``).trim()
+            const parsedId = zSandboxPositionId.safeParse(String(req.params.id ?? ``).trim()
                 .toLowerCase());
-            const sandboxPosition = await this.apiQueryService.getSandboxPosition(id);
+            const sandboxPosition = parsedId.success
+                ? await this.apiQueryService.getSandboxPosition(parsedId.data)
+                : null;
             if (!sandboxPosition) {
                 res.status(404).json({ error: `Sandbox position not found.` });
                 return;
