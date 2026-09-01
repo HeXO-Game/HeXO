@@ -38,9 +38,7 @@ function SandboxWinnerBanner({
                             className="mt-3 flex min-w-0 truncate items-center justify-center gap-3 text-2xl font-black uppercase tracking-[0.08em] sm:text-4xl"
                             style={{ color: winnerColor }}
                         >
-                            {winnerLabel}
-                            {` `}
-                            {t('wins', 'Wins')}
+                            {t('winnerWins', '{{winnerLabel}} Wins', { winnerLabel })}
                         </div>
 
                         <div className="mt-3 text-sm text-slate-200 sm:text-base">

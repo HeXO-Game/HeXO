@@ -120,7 +120,12 @@ function TournamentTimerSection({
                 </div>
                 <div className="mt-2 text-3xl font-black tabular-nums text-rose-100">{t('claimsecondss', '{{claimSeconds}}s', { claimSeconds })}</div>
                 <p className="mt-1 text-xs text-rose-200/70">
-                    {opponentName ?? `Opponent`}{t('hasClaimsecondsSecond', 'has {{claimSeconds}} second', { claimSeconds })}{claimSeconds !== 1 ? `s` : ``} {t('toJoinBeforeTheMatchIsForfeited', 'to join before the match is forfeited.')}
+                    {t('opponentHasTimeToJoin', {
+                        defaultValue_one: '{{opponentName}} has {{count}} second to join before the match is forfeited.',
+                        defaultValue_other: '{{opponentName}} has {{count}} seconds to join before the match is forfeited.',
+                        count: claimSeconds,
+                        opponentName: opponentName ?? t('opponent', 'Opponent'),
+                    })}
                 </p>
             </div>
         );
@@ -149,7 +154,7 @@ function TournamentTimerSection({
                         {t('joinTimerExpired', 'Join Timer Expired')}
                     </div>
                     <p className="mt-2 text-sm text-amber-100/80">
-                        {opponentName ?? t('yourOpponent', 'Your opponent')} {t('didNotJoinInTime', 'did not join in time.')}
+                        {t('opponentDidNotJoinInTime', '{{opponentName}} did not join in time.', { opponentName: opponentName ?? t('yourOpponent', 'Your opponent') })}
                     </p>
                 </div>
 

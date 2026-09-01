@@ -99,11 +99,11 @@ function LobbyScreen({
 
                             <span className="flex flex-col">
                                 <span className="font-semibold">
-                                    {unreadChangelogEntries}
-                                    {` new feature`}
-                                    {unreadChangelogEntries === 1 ? `` : `s`}
-                                    {` `}
-                                    dropped
+                                    {t('newFeaturesDropped', {
+                                        defaultValue_one: '{{count}} new feature dropped',
+                                        defaultValue_other: '{{count}} new features dropped',
+                                        count: unreadChangelogEntries,
+                                    })}
                                 </span>
 
                                 <span className="text-xs uppercase tracking-[0.18em] text-sky-200/85">

@@ -178,9 +178,9 @@ function LiveSessionRenderer({
                         : `bg-sky-400/15 text-sky-200`
                         }`}
                     >
-                        {canJoin ? `Lobby` : `Game`}
-                        {` `}
-                        {session.id}
+                        {canJoin
+                            ? t('lobbySession', 'Lobby {{sessionId}}', { sessionId: session.id })
+                            : t('gameSession', 'Game {{sessionId}}', { sessionId: session.id })}
                     </span>
 
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${session.rated

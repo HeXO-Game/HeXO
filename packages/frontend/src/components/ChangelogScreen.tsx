@@ -164,17 +164,13 @@ function ChangelogScreen({
                                 <div className="flex flex-wrap items-center gap-2">
                                     {dayBreakingChangeCount > 0 && (
                                         <div className="rounded-full border border-rose-300/20 bg-rose-500/12 px-4 py-2 text-sm text-rose-100">
-                                            {dayBreakingChangeCount}
-                                            {` `}
-                                            breaking
+                                            {t('breakingCount', '{{count}} breaking', { count: dayBreakingChangeCount })}
                                         </div>
                                     )}
 
                                     {dayNewEntryCount > 0 && (
                                         <div className="rounded-full border border-amber-300/20 bg-amber-300/12 px-4 py-2 text-sm text-amber-100">
-                                            {dayNewEntryCount}
-                                            {` `}
-                                            new
+                                            {t('newCount', '{{count}} new', { count: dayNewEntryCount })}
                                         </div>
                                     )}
 

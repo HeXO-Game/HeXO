@@ -564,9 +564,7 @@ function FinishedGameReplayView({
                                                 <div className="w-full text-left sm:w-auto sm:text-right">
                                                     {player.elo !== null && (
                                                         <div className="text-sm font-medium text-white">
-                                                            {player.elo}
-                                                            {` `}
-                                                            ELO
+                                                            {t('eloRating', '{{elo}} ELO', { elo: player.elo })}
                                                         </div>
                                                     )}
 
@@ -591,9 +589,11 @@ function FinishedGameReplayView({
                             </div>
 
                             <div className="text-sm text-slate-400">
-                                {game.moves.length}
-                                {` `}
-                                {t('loggedMoves', 'logged moves')}
+                                {t('loggedMoveCount', {
+                                    defaultValue_one: '{{count}} logged move',
+                                    defaultValue_other: '{{count}} logged moves',
+                                    count: game.moves.length,
+                                })}
                             </div>
                         </div>
 
@@ -646,14 +646,18 @@ function FinishedGameReplayView({
                                         </div>
 
                                         <div className="mt-2 wrap-break-word text-base font-semibold text-white sm:text-lg">
-                                            {getPlayerLabel(game.players, move.playerId)}
-                                            {` `}{t('placedAtXY', 'placed at (\n                                            {{x}}\n                                            ,\n                                            {{y}}\n                                            )', { x: move.x, y: move.y })}</div>
+                                            {t('playerPlacedAt', '{{playerLabel}} placed at ({{x}}, {{y}})', {
+                                                playerLabel: getPlayerLabel(game.players, move.playerId),
+                                                x: move.x,
+                                                y: move.y,
+                                            })}
+                                        </div>
 
                                         <div className="mt-1 wrap-break-word text-sm text-slate-300">
-                                            {formatDateTimeWithSeconds(intlFormatProvider, move.timestamp)}
-                                            {` `}
-                                            {t('key2', '• +')}
-                                            {formatMinutesSeconds(move.timestamp - game.startedAt)}
+                                            {t('moveTimestamp', '{{timestamp}} • +{{elapsed}}', {
+                                                timestamp: formatDateTimeWithSeconds(intlFormatProvider, move.timestamp),
+                                                elapsed: formatMinutesSeconds(move.timestamp - game.startedAt),
+                                            })}
                                         </div>
                                     </button>
                                 );

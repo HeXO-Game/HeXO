@@ -152,8 +152,12 @@ function ConfirmLeaveSessionDialog({
                 <h2 id="leave-session-title" className="text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
                     {t('leaveThisMatch', 'Leave This Match?')}
                 </h2>
-                <p className="text-sm leading-6 sm:text-base"><Trans i18nKey="leavingRightNowWillSurrenderTheMatchImmediatelybrStayIfYouWantToKeepPlaying">Leaving right now will surrender the match immediately.<br />
-                    Stay if you want to keep playing.</Trans></p>
+                <p className="text-sm leading-6 sm:text-base">
+                    <Trans i18nKey="leavingRightNowWillSurrenderTheMatchImmediatelybrStayIfYouWantToKeepPlaying">
+                        Leaving right now will surrender the match immediately.<br />
+                        Stay if you want to keep playing.
+                    </Trans>
+                </p>
 
                 <DialogFooter className={"bg-transparent"}>
                     <Button
@@ -439,8 +443,8 @@ function SessionRoute() {
                     </p>
 
                     <div className="mt-3 text-[11px] tabular-nums text-slate-500">
-                        {t('playersReady', 'Players ready:')}
-                        {` `}{t('length2', '{{length}}\n                        /2', { length: session.players.length })}</div>
+                        {t('playersReadyCount', 'Players ready: {{length}} / 2', { length: session.players.length })}
+                    </div>
 
                     <Button
                         onClick={leaveSessionAndNavigate}

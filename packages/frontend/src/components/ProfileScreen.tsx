@@ -366,16 +366,12 @@ function RecentGamesSection({
                                                     : `bg-rose-400/12 text-rose-200`
                                                     }`}
                                                 >
-                                                    {`ELO `}
-                                                    {` `}
-                                                    {formatEloChange(profileEloChange)}
+                                                    {t('eloChange', 'ELO {{change}}', { change: formatEloChange(profileEloChange) })}
                                                 </span>
                                             )}
 
                                             <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                {t('moves', 'Moves:')}
-                                                {` `}
-                                                {game.moveCount}
+                                                {t('moveCount', 'Moves: {{count}}', { count: game.moveCount })}
                                             </span>
 
                                             <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
@@ -552,7 +548,7 @@ function EloHistoryChartSection({
                             cursor={{ stroke: `rgba(125,211,252,0.35)`, strokeWidth: 1 }}
                             contentStyle={{
                                 backgroundColor: `rgba(2,6,23,0.94)`,
-                                border: t('1pxSolidRgba14816318402', '1px solid rgba(148,163,184,0.2)'),
+                                border: `1px solid rgba(148,163,184,0.2)`,
                                 borderRadius: `1rem`,
                                 color: `#e2e8f0`,
                             }}

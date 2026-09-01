@@ -8,7 +8,7 @@ import type {
 } from '@ih3t/shared';
 import { TOURNAMENT_BRACKET_SIZES, TOURNAMENT_SERIES_BEST_OF_VALUES } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
-import { useTranslation, Trans } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import i18next from 'i18next'
 
 type TournamentEditorCardProps = {
@@ -247,11 +247,11 @@ function EstimatedDuration({ form }: { form: TournamentFormState }) {
     const totalMinutes = checkInMin + waitlistMin + (totalRounds * matchMinutes) + (Math.max(0, totalRounds - 1) * roundDelay);
     const hours = Math.floor(totalMinutes / 60);
     const mins = Math.round(totalMinutes % 60);
-    const display = hours > 0 ? t('hourshMinsm', '~{{hours}}h {{mins}}m', { hours, mins }) : `~${mins}m`;
+    const display = hours > 0 ? t('hourshMinsm', '~{{hours}}h {{mins}}m', { hours, mins }) : t('minsm', '~{{mins}}m', { mins });
 
     return (
         <div className="mb-3 text-[10px] text-slate-500">
-            {t('estimatedMaxDuration', 'Estimated max duration:')} <span className="text-slate-400">{display}</span> <span className="text-slate-600">{t('approximate', '(approximate)')}</span>
+            {t('estimatedMaxDurationApproximate', 'Estimated max duration: {{display}} (approximate)', { display })}
         </div>
     );
 }
@@ -366,15 +366,9 @@ function TournamentEditorCard({
                 <Row label={t('start', 'Start')}>
                     <Input type="datetime-local" value={f.scheduledStartAt} onChange={(e) => set(`scheduledStartAt`, e.target.value)} className="w-full" />
                     <div className="text-[10px] text-slate-500">
-                        {t('timesAreEnteredInYourLocalTimezone', 'Times are entered in your local timezone.')}
-                        {scheduledStartUtcHint && (
-                            <>
-                                {` `}
-                                <span className="text-slate-400">
-                                    {t('utcScheduledstartutchint', 'UTC: {{scheduledStartUtcHint}}', { scheduledStartUtcHint })}
-                                </span>
-                            </>
-                        )}
+                        {scheduledStartUtcHint
+                            ? t('localTimezoneWithUtc', 'Times are entered in your local timezone. UTC: {{scheduledStartUtcHint}}', { scheduledStartUtcHint })
+                            : t('timesAreEnteredInYourLocalTimezone', 'Times are entered in your local timezone.')}
                     </div>
                 </Row>
                 <Row label={t('checkinMin', 'Check-in (min)')}><Input type="number" min={5} max={1440} value={f.checkInWindowMinutes} onChange={(e) => set(`checkInWindowMinutes`, e.target.value)} className="w-full" /></Row>
@@ -429,9 +423,11 @@ function TournamentEditorCard({
                                 <BestOfOptions />
                             </Select>
                         </div>
-                        <label className="flex items-center gap-1.5 text-[11px] text-slate-400"><Trans i18nKey="inputTypecheckboxCheckedfgrandfinalresetenabledOnchangeeSetgrandfinalresetenabledEtargetcheckedClassnameh3W3RoundedBorderwhite20Bgslate900Textamber300Reset"><input type="checkbox" checked={f.grandFinalResetEnabled} onChange={(e) => set(`grandFinalResetEnabled`, e.target.checked)}
+                        <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                            <input type="checkbox" checked={f.grandFinalResetEnabled} onChange={(e) => set(`grandFinalResetEnabled`, e.target.checked)}
                                 className="h-3 w-3 rounded border-white/20 bg-slate-900 text-amber-300" />
-                            Reset</Trans></label>
+                            {t('reset', 'Reset')}
+                        </label>
                     </>
                 )}
 

@@ -130,9 +130,10 @@ function SandboxBotPanel({
                 </Button>
 
                 <div className="col-span-2 text-xs leading-5 text-slate-300">
-                    {selectedFactory?.description()}
-                    {` `}
-                    {capabilityLabel}
+                    {t('botCapabilityDescription', '{{description}} {{capability}}', {
+                        description: selectedFactory?.description(),
+                        capability: capabilityLabel,
+                    })}
                 </div>
             </div>
 

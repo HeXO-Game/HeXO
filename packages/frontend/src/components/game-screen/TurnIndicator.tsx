@@ -91,9 +91,11 @@ function TurnIndicator({
                     </div>
 
                     <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                        {placementsRemaining}
-                        {` `}
-                        left
+                        {t('placementsRemaining', {
+                            defaultValue_one: '{{count}} left',
+                            defaultValue_other: '{{count}} left',
+                            count: placementsRemaining,
+                        })}
                     </span>
                 </div>
             </div>

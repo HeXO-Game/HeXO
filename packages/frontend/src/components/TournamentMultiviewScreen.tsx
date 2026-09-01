@@ -209,9 +209,11 @@ function MultiviewTimerStrip({
                 </span>
 
                 <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-slate-400">
-                    {gameState.placementsRemaining}
-                    {` `}
-                    {t('placementsLeft', { defaultValue_one: 'placement left', defaultValue_other: 'placements left', count: gameState.placementsRemaining })}
+                    {t('placementsLeftCount', {
+                        defaultValue_one: '{{count}} placement left',
+                        defaultValue_other: '{{count}} placements left',
+                        count: gameState.placementsRemaining,
+                    })}
                 </span>
             </div>
         );
@@ -276,11 +278,7 @@ function TournamentMultiviewTile({
 
                         <span className="text-slate-600">|</span>
 
-                        <span>
-                            {t('game', 'Game')}
-                            {` `}
-                            {tile.currentGameNumber}
-                        </span>
+                        <span>{t('gameNumber', 'Game {{number}}', { number: tile.currentGameNumber })}</span>
 
                         <MultiviewTimerStrip
                             status={tile.status}
@@ -500,7 +498,7 @@ function TournamentMultiviewScreen({
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{t('length4Selected', '{{length}}\n                                    /4 selected', { length: tiles.length })}</div>
+                                <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{t('length4Selected', '{{length}}/4 selected', { length: tiles.length })}</div>
 
                                 <Button
                                     onClick={() => setIsSelectorCollapsed(currentState => !currentState)}

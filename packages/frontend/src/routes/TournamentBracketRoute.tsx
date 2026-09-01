@@ -189,7 +189,7 @@ function BracketConnectors({
         paths.push(
             <path
                 key={`${edge.sourceRoundIndex}-${edge.sourceMatchIndex}-${edge.targetRoundIndex}-${edge.targetMatchIndex}`}
-                d={t('mX1SourceyHMidxVTargetyHX2', 'M {{x1}} {{sourceY}} H {{midX}} V {{targetY}} H {{x2}}', { x1, sourceY, midX, targetY, x2 })}
+                d={`M ${x1} ${sourceY} H ${midX} V ${targetY} H ${x2}`}
                 fill="none"
                 stroke="rgba(255,255,255,0.06)"
                 strokeWidth={1.5}

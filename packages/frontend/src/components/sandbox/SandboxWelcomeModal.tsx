@@ -28,7 +28,7 @@ function SandboxWelcomeModal({
                 </h1>
 
                 <p className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
-                    {t('sandboxModeIsALocalBoardWithNoClockControlBothPlayersYourselfHandEitherSideToABotAndResetAnyTimeStartFromAnEmptyBoardOrLoadASharedPosition', 'Sandbox mode is a local board with no clock. Control both players yourself, hand either side to a bot,\n                    and reset any time. Start from an empty board or load a shared position.')}
+                    {t('sandboxModeIsALocalBoardWithNoClockControlBothPlayersYourselfHandEitherSideToABotAndResetAnyTimeStartFromAnEmptyBoardOrLoadASharedPosition', 'Sandbox mode is a local board with no clock. Control both players yourself, hand either side to a bot, and reset any time. Start from an empty board or load a shared position.')}
                 </p>
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">

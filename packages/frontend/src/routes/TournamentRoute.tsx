@@ -148,9 +148,13 @@ function WaitlistBanner({ closesAt, availableSlots }: { closesAt: number; availa
                 </span>
             </div>
             <div className="mt-1 text-[11px] text-slate-400">
-                {availableSlots > 0 ? t('availableslotsSpotvalAvailable', '{{availableSlots}} spot{{val}} available', { availableSlots, val: availableSlots === 1 ? `` : `s` }) : t('noSpotsRemaining', 'No spots remaining')}
-                {` `}
-                {t('firstComeFirstServed', '— first come, first served')}
+                {availableSlots > 0
+                    ? t('availableSpotsFirstCome', {
+                        defaultValue_one: '{{count}} spot available — first come, first served',
+                        defaultValue_other: '{{count}} spots available — first come, first served',
+                        count: availableSlots,
+                    })
+                    : t('noSpotsRemainingFirstCome', 'No spots remaining — first come, first served')}
             </div>
         </div>
     );
@@ -181,7 +185,7 @@ function RoundDelayCountdown({ tournament }: { tournament: TournamentDetail }) {
             <div className="flex items-center gap-2">
                 <span className="inline-block h-2 w-2 rounded-full bg-sky-400" />
                 <span className="text-[12px] font-semibold text-sky-200">{t('roundBreak', 'Round break')}</span>
-                <span className="ml-auto text-[11px] tabular-nums text-sky-300">{t('nextRoundInMins', 'Next round in {{mins}}:', { mins })}{String(secs).padStart(2, `0`)}
+                <span className="ml-auto text-[11px] tabular-nums text-sky-300">{t('nextRoundInMins', 'Next round in {{mins}}:{{secs}}', { mins, secs: String(secs).padStart(2, `0`) })}
                 </span>
             </div>
         </div>
@@ -323,13 +327,13 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
             >
                 {p.seed && <span className="w-5 shrink-0 text-center text-[10px] font-bold tabular-nums text-slate-500">
                     {p.seed}
-                           </span>}
+                </span>}
 
                 <span className={`min-w-0 flex-1 truncate text-[13px] font-medium text-white ${!isActive ? `line-through decoration-slate-500` : ``}`}>
                     {p.displayName}
                 </span>
 
-                {st && <span className="text-[10px] tabular-nums text-slate-500">{t('winsW', '{{wins}}\n                    W', { wins: st.wins })}{` `}{t('lossesL', '{{losses}}\n                    L', { losses: st.losses })}</span>}
+                {st && <span className="text-[10px] tabular-nums text-slate-500">{t('winLossRecord', '{{wins}}W {{losses}}L', { wins: st.wins, losses: st.losses })}</span>}
 
                 <Chip color={pColor(p.status)}>
                     {pLabel(p.status)}
@@ -410,11 +414,9 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
 
             {removed.length > 0 && (
                 <Button onClick={() => setShowRemoved(!showRemoved)} variant="ghost" size="bare">
-                    {showRemoved ? `Hide` : `Show`}
-                    {` `}
-                    {removed.length}
-                    {` `}
-                    removed
+                    {showRemoved
+                        ? t('hideRemovedPlayers', 'Hide {{count}} removed', { count: removed.length })
+                        : t('showRemovedPlayers', 'Show {{count}} removed', { count: removed.length })}
                 </Button>
             )}
 
@@ -581,12 +583,11 @@ function PodiumCard({ standing, exit, isSelf, rank, matches }: {
             </span>
 
             {/* Record */}
-            <span className="mt-0.5 text-[10px] tabular-nums text-slate-400">{t('winsW2', '{{wins}}\n                W', { wins: standing.wins })}{` `}{t('lossesL2', '{{losses}}\n                L', { losses: standing.losses })}</span>
+            <span className="mt-0.5 text-[10px] tabular-nums text-slate-400">{t('winLossRecord', '{{wins}}W {{losses}}L', { wins: standing.wins, losses: standing.losses })}</span>
 
             {/* Label */}
-            <span className={`mt-1.5 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] ${
-                rank === 1 ? `bg-amber-400/15 text-amber-300` : rank === 2 ? `bg-slate-400/12 text-slate-300` : `bg-amber-700/12 text-amber-600`
-            }`}>
+            <span className={`mt-1.5 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] ${rank === 1 ? `bg-amber-400/15 text-amber-300` : rank === 2 ? `bg-slate-400/12 text-slate-300` : `bg-amber-700/12 text-amber-600`
+                }`}>
                 {exit.label}
             </span>
 
@@ -725,11 +726,11 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
                     </span>
 
                     {/* W-L pill */}
-                    <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-400">{t('winsLosses', '{{wins}}\n                        -\n                        {{losses}}', { wins: s.wins, losses: s.losses })}</span>
+                    <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-400">{t('winsLosses', '{{wins}}-{{losses}}', { wins: s.wins, losses: s.losses })}</span>
 
                     {/* Swiss tiebreakers */}
                     {isSwiss && (s.buchholz > 0 || s.sonnebornBerger > 0) && (
-                        <span className="hidden text-[9px] tabular-nums text-slate-600 sm:inline" title={t('buchholzSonnebornberger', 'Buchholz / Sonneborn-Berger')}>{t('buchholzSonnebornberger2', '{{buchholz}}\n                            /\n                            {{sonnebornBerger}}', { buchholz: s.buchholz, sonnebornBerger: s.sonnebornBerger })}</span>
+                        <span className="hidden text-[9px] tabular-nums text-slate-600 sm:inline" title={t('buchholzSonnebornberger', 'Buchholz / Sonneborn-Berger')}>{t('buchholzSonnebornberger2', '{{buchholz}}/{{sonnebornBerger}}', { buchholz: s.buchholz, sonnebornBerger: s.sonnebornBerger })}</span>
                     )}
 
                     {/* Exit label */}
@@ -764,9 +765,11 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
                 <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
                     {t('finalStandings', 'Final Standings')}
                     <span className="ml-2 text-slate-600">
-                        {standings.length}
-                        {` `}
-                        players
+                        {t('playerCount', {
+                            defaultValue_one: '{{count}} player',
+                            defaultValue_other: '{{count}} players',
+                            count: standings.length,
+                        })}
                     </span>
                 </div>
 
@@ -830,7 +833,7 @@ function TierGroup({ tier, standings, renderRow }: {
                 </span>
 
                 <span className={`text-[20px] text-slate-500 transition-transform ${collapsed ? `` : `rotate-180`}`}>
-                    {t('9662', '&#9662;')}
+                    &#9662;
                 </span>
             </button>
 
@@ -888,19 +891,19 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 <span className={`flex items-center gap-1.5 text-[12px] ${s.isBye ? `italic text-slate-600` : isTbd ? `italic text-slate-500` : isW ? `font-bold text-emerald-200` : `font-medium text-white`}`}>
                     {s.seed && <span className="text-[9px] text-slate-500">
                         {s.seed}
-                               </span>}
+                    </span>}
 
                     {s.displayName ?? `TBD`}
                     {canNavigate && sourceMatchRecord && <span className="text-[9px] text-slate-600">
                         {sourceRef.type === `winner` ? `W` : `L`}
                         {t('ofRroundmorder', 'of R{{round}}M{{order}}', { round: sourceMatchRecord.round, order: sourceMatchRecord.order })}
                         {sourceMatchRecord.bracket === `losers` ? ` (LB)` : sourceMatchRecord.bracket === `grand-final` ? ` (GF)` : sourceMatchRecord.bracket === `grand-final-reset` ? ` (GF Reset)` : ``}
-                                    </span>}
+                    </span>}
                 </span>
 
                 {!s.isBye && s.profileId && <span className={`text-[12px] tabular-nums ${isW ? `font-bold text-emerald-300` : `text-slate-500`}`}>
                     {wins}
-                                            </span>}
+                </span>}
             </div>
         );
     };
@@ -908,13 +911,13 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
     return (
         <div id={`match-${match.id}`} className="rounded-lg border border-white/6 bg-slate-950/40 p-2 transition-shadow duration-700 ease-out">
             <div className="mb-1.5 flex items-center gap-1.5">
-                <span className="text-[9px] font-semibold tabular-nums text-slate-600">{t('mOrder', 'M\n                    {{order}}', { order: match.order })}</span>
+                <span className="text-[9px] font-semibold tabular-nums text-slate-600">{t('mOrder', 'M{{order}}', { order: match.order })}</span>
 
                 <Chip color={stateColor}>
                     {match.state === `in-progress` ? `live` : match.state}
                 </Chip>
 
-                <Chip>{t('boBestof', 'BO\n                    {{bestOf}}', { bestOf: match.bestOf })}</Chip>
+                <Chip>{t('boBestof', 'BO{{bestOf}}', { bestOf: match.bestOf })}</Chip>
 
                 {canJoin && (
                     <Button
@@ -967,11 +970,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 <div className="mt-1.5 rounded bg-amber-300/6 px-2 py-1.5">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-[9px] text-amber-200/70">
-                            {t('extensionRequestedBy', 'Extension requested by')}
-                            {` `}
-                            <span className="font-semibold text-amber-200">
-                                {pendingExtension.requestedByDisplayName}
-                            </span>
+                            {t('extensionRequestedByName', 'Extension requested by {{name}}', { name: pendingExtension.requestedByDisplayName })}
                         </span>
 
                         {canManage && (
@@ -1025,12 +1024,12 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         </span>
 
                         {isParticipant && (
-                        <Button
-                            onClick={() => onRequestExtension(match.id)}
-                            variant="warning" size="xs"
-                        >{t('requestExtensionExtensionminutesMin', 'Request Extension (+{{extensionMinutes}} min)', { extensionMinutes })}</Button>
-                    )}
-                </div>
+                            <Button
+                                onClick={() => onRequestExtension(match.id)}
+                                variant="warning" size="xs"
+                            >{t('requestExtensionExtensionminutesMin', 'Request Extension (+{{extensionMinutes}} min)', { extensionMinutes })}</Button>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -1247,10 +1246,11 @@ function TournamentRoute() {
 
                                 <div className="flex-1">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/70">
-                                        {t('yourMatch', 'Your Match ·')}
-                                        {` `}
-                                        {tournament.viewer.nextMatch.bracket.replace(/-/g, ` `)}
-                                        {` `}{t('rRound', 'R\n                                        {{round}}', { round: tournament.viewer.nextMatch.round })}</div>
+                                        {t('yourMatchBracketRound', 'Your Match · {{bracket}} R{{round}}', {
+                                            bracket: tournament.viewer.nextMatch.bracket.replace(/-/g, ` `),
+                                            round: tournament.viewer.nextMatch.round,
+                                        })}
+                                    </div>
 
                                     <div className="mt-0.5 text-[13px] font-bold text-white">
                                         {tournament.viewer.nextMatch.opponentDisplayName
@@ -1258,7 +1258,11 @@ function TournamentRoute() {
                                             : t('waitingForOpponent', 'Waiting for opponent')}
 
                                         {(tournament.viewer.nextMatch.leftWins > 0 || tournament.viewer.nextMatch.rightWins > 0) && (
-                                            <span className="ml-2 text-[11px] font-normal tabular-nums text-slate-400">{t('leftwinsRightwins', '{{leftWins}}\n                                                –\n                                                {{rightWins}}', { leftWins: tournament.viewer.nextMatch.leftWins, rightWins: tournament.viewer.nextMatch.rightWins })}{` `}{t('inBoBestof', 'in BO\n                                                {{bestOf}}', { bestOf: tournament.viewer.nextMatch.bestOf })}</span>
+                                            <span className="ml-2 text-[11px] font-normal tabular-nums text-slate-400">{t('matchScoreBestOf', '{{leftWins}}–{{rightWins}} in BO{{bestOf}}', {
+                                                leftWins: tournament.viewer.nextMatch.leftWins,
+                                                rightWins: tournament.viewer.nextMatch.rightWins,
+                                                bestOf: tournament.viewer.nextMatch.bestOf,
+                                            })}</span>
                                         )}
                                     </div>
                                 </div>
@@ -1412,8 +1416,8 @@ function TournamentRoute() {
                                         return (
                                             <div key={key}>
                                                 <div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600">
-                                                    {bracketName(bracket)}
-                                                    {` `}{t('rRound2', '· R\n                                                    {{round}}', { round })}</div>
+                                                    {t('bracketRound', '{{bracket}} · R{{round}}', { bracket: bracketName(bracket), round })}
+                                                </div>
 
                                                 <div className="grid gap-2 sm:grid-cols-2">
                                                     {matches.sort((a, b) => a.order - b.order).map((m) => (
@@ -1466,7 +1470,7 @@ function TournamentRoute() {
                                                         {s.matchPoints}
                                                     </span>
 
-                                                    <span className="text-[10px] tabular-nums text-slate-500">{t('winsLosses2', '{{wins}}\n                                                        -\n                                                        {{losses}}', { wins: s.wins, losses: s.losses })}</span>
+                                                    <span className="text-[10px] tabular-nums text-slate-500">{t('winsLosses2', '{{wins}}-{{losses}}', { wins: s.wins, losses: s.losses })}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1562,15 +1566,9 @@ function TournamentRoute() {
 
                         {swapTarget && (
                             <div className="rounded-lg border border-amber-300/20 bg-amber-300/8 px-3 py-2 text-[11px] text-amber-200">
-                                {t('swapping', 'Swapping')}
-                                {` `}
-
-                                <strong>
-                                    {tournament.participants.find((p) => p.profileId === swapTarget)?.displayName ?? `player`}
-                                </strong>
-
-                                {` `}
-                                {t('pickReplacementBelow', '— pick replacement below')}
+                                {t('swappingPlayer', 'Swapping {{name}} — pick replacement below', {
+                                    name: tournament.participants.find((p) => p.profileId === swapTarget)?.displayName ?? t('player', 'player'),
+                                })}
                             </div>
                         )}
 

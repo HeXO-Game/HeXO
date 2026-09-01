@@ -58,7 +58,7 @@ function RulesScreen() {
                             <ol className="mt-3 grid gap-2">
                                 {TURN_FLOW.map((step, index) => (
                                     <li key={step} className="flex gap-3 text-sm leading-6 text-slate-100 sm:text-base">
-                                        {index + 1}{t('step', '.\n                                        {{step}}', { step })}</li>
+                                        {index + 1}{t('step', '. {{step}}', { step })}</li>
                                 ))}
                             </ol>
                         </section>

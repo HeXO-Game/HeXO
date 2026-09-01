@@ -106,15 +106,11 @@ function SandboxHud({
                     </div>
 
                     <div className="mt-1 text-white">
-                        {renderableCellCount}
-                        {` `}
-                        active
+                        {t('activeCellCount', '{{count}} active', { count: renderableCellCount })}
                     </div>
 
                     <div className="text-slate-300">
-                        {occupiedCellCount}
-                        {` `}
-                        occupied
+                        {t('occupiedCount', '{{count}} occupied', { count: occupiedCellCount })}
                     </div>
                 </div>
 

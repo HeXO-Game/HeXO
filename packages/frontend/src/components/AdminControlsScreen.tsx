@@ -286,7 +286,7 @@ function AdminControlsScreen({
                         </label>
 
                         <div className="mt-3 flex items-center justify-between gap-3">
-                            <div className="text-sm text-slate-400">{t('length280Characters', '{{length}}\n                                /280 characters', { length: messageDraft.trim().length })}</div>
+                            <div className="text-sm text-slate-400">{t('length280Characters', '{{length}}/280 characters', { length: messageDraft.trim().length })}</div>
 
                             <Button
                                 onClick={onSendMessage}

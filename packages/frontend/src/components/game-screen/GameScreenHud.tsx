@@ -223,9 +223,10 @@ function GameScreenHud({
                     {t('infiniteHexTictactoe', 'Infinite Hex Tic-Tac-Toe')}
                 </h1>
 
-                <div className="mt-2 text-sm text-slate-300"><Trans i18nKey="connect6HexagonsInARowBr">Connect 6 hexagons in a row.
-
-                    <br /></Trans>{localPlayerId
+                <div className="mt-2 text-sm text-slate-300">
+                    {t('connect6HexagonsInARow', "Connect 6 hexagons in a row.")}
+                    <br />
+                    {localPlayerId
                         ? t('tapToPlaceDragToPanPinchToZoom', 'Tap to place, drag to pan, pinch to zoom.')
                         : t('dragToPanPinchToZoom', 'Drag to pan, pinch to zoom.')}
 
@@ -259,14 +260,15 @@ function GameScreenHud({
                         </div>
 
                         <div className="mt-1 text-[11px] text-slate-300">
-                            {tournament.bracket.replace(/-/g, ` `)}
-                            {` `}{t('rRound3', 'R\n                            {{round}}', { round: tournament.round })}{` · `}{t('boBestof2', 'BO\n                            {{bestOf}}', { bestOf: tournament.bestOf })}{` · `}
-                            {t('game', 'Game')}
-                            {` `}
-                            {tournament.currentGameNumber}
-                            {` · `}
-                            {t('score', 'Score')}
-                            {` `}{t('leftwinsRightwins2', '{{leftWins}}\n                            –\n                            {{rightWins}}', { leftWins: tournament.leftWins, rightWins: tournament.rightWins })}</div>
+                            {t('tournamentGameSummary', '{{bracket}} R{{round}} · BO{{bestOf}} · Game {{currentGameNumber}} · Score {{leftWins}}–{{rightWins}}', {
+                                bracket: tournament.bracket.replace(/-/g, ` `),
+                                round: tournament.round,
+                                bestOf: tournament.bestOf,
+                                currentGameNumber: tournament.currentGameNumber,
+                                leftWins: tournament.leftWins,
+                                rightWins: tournament.rightWins,
+                            })}
+                        </div>
                     </div>
                 )}
 
@@ -284,15 +286,19 @@ function GameScreenHud({
 
                     <HudInfoBlock label="Game">
                         <div className="text-white">
-                            {turnCount}
-                            {` `}
-                            {t('turnsCompleted', 'turns completed')}
+                            {t('turnCountCompleted', {
+                                defaultValue_one: '{{count}} turn completed',
+                                defaultValue_other: '{{count}} turns completed',
+                                count: turnCount,
+                            })}
                         </div>
 
                         <div className="text-slate-300">
-                            {occupiedCellCount}
-                            {` `}
-                            {t('cellsOccupied', 'cells occupied')}
+                            {t('occupiedCellCount', {
+                                defaultValue_one: '{{count}} cell occupied',
+                                defaultValue_other: '{{count}} cells occupied',
+                                count: occupiedCellCount,
+                            })}
                         </div>
                     </HudInfoBlock>
 

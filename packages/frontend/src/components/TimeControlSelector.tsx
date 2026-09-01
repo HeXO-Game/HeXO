@@ -182,7 +182,7 @@ function TimeControlSelector({
                                     {t('mainTime', 'Main Time')}
                                 </div>
 
-                                <div className="mt-0.5 text-lg font-bold text-white">{t('matchtimeminutesM', '{{matchTimeMinutes}}\n                                    m', { matchTimeMinutes })}</div>
+                                <div className="mt-0.5 text-lg font-bold text-white">{t('matchtimeminutesM', '{{matchTimeMinutes}}m', { matchTimeMinutes })}</div>
                             </div>
 
                             <input

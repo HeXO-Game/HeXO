@@ -180,10 +180,7 @@ function ActiveGamesChartSection({
                     </div>
 
                     <div className="mt-1 text-sm font-semibold text-white">
-                        {t('peakConcurrentActiveGamesIn', 'Peak concurrent active games in')}
-                        {formatBucketSize(timeline.bucketSizeMs)}
-                        {` `}
-                        {t('bucketsOverTheLast7Days', 'buckets over the last 7 days')}
+                        {t('peakConcurrentActiveGames', 'Peak concurrent active games in {{bucketSize}} buckets over the last 7 days', { bucketSize: formatBucketSize(timeline.bucketSizeMs) })}
                     </div>
 
                     <div className="mt-1 text-xs leading-5 text-slate-400">
