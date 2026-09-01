@@ -16,6 +16,7 @@ export default defineConfig(
                     "/auth": `http://localhost:3001`,
                     "/socket.io": {
                         target: `http://localhost:3001`,
+                        rewriteWsOrigin: true,
                         ws: true,
                     },
                     "/dev": `http://localhost:3001`,

@@ -216,155 +216,112 @@ function WaitingScreen({
     const showOfflinePlayButton = !isTournament && gameOptions.visibility === `public` && playerCount < 2 && Boolean(onPlayOffline);
 
     return (
-        <div className="max-w-368 mx-auto flex flex-1 flex-col px-4 py-4 text-white sm:px-6 sm:py-6">
-            <div className="mx-auto flex gap-4 flex-col lg:flex-row lg:gap-8 lg:min-h-0 h-full flex-1 mt-4 lg:mt-[8vh]">
-                <section className="hidden w-full xl:flex relative rounded-[1.75rem] p-6 sm:min-h-136 sm:rounded-4xl sm:p-8 md:p-10 sm:h-136">
-                    <div className="relative flex flex-1 flex-col justify-center">
-                        <div className="self-start inline-flex rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-amber-100 sm:px-4 sm:text-xs sm:tracking-[0.35em]">
-                            Two Players
-                        </div>
+        <div className="flex flex-col justify-between h-full p-4 mx-8">
+            <div className="flex flex-col min-w-30 w-full max-w-2xl self-center my-auto pb-[10svh]">
+                <h2 className="font-black uppercase tracking-[0.08em] text-white mt-6 text-4xl">
+                    {`Waiting for ${isTournament ? opponentName ?? `opponent` : `another player`}`}
+                </h2>
 
-                        <h1 className="mt-5 text-3xl font-black uppercase tracking-[0.08em] text-white sm:mt-6 sm:text-5xl lg:text-6xl">
-                            HeXO
-                        </h1>
+                <p className="mt-4 text-slate-200 text-base leading-7">
+                    {isTournament
+                        ? `Your opponent has been notified. The match will start automatically once they join.`
+                        : gameOptions.visibility === `private`
+                            ? `Keep this session open and share the invite link with the player you want to join. The match will launch automatically once they arrive.`
+                            : `Keep this session open. As soon as the second player joins, the match will launch automatically.`}
+                </p>
 
-                        <h2 className="mt-1 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl lg:mt-3 lg:text-3xl">
-                            The infinite hexagonal
-                            <br />
-                            tic-tac-toe game
-                        </h2>
-
-                        <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:mt-6 sm:text-base sm:leading-7 lg:text-lg">
-                            Place your hexes on an infinite board, outmaneuver your opponent, and be the first to align six in a row.
-                        </p>
-                    </div>
-                </section>
-
-                <section className="w-full relative flex min-h-[43rem] overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/8 p-6 text-center shadow-[0_20px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:rounded-[2rem] sm:p-8 md:p-10">
-                    <div className="relative flex flex-1 flex-col justify-center">
+                <div className="relative flex flex-1 flex-col justify-center">
+                    <div className="mt-6 grid gap-3 sm:mt-8 sm:gap-4 sm:grid-cols-2">
                         {isTournament ? (
-                            <div className="mx-auto inline-flex items-center rounded-full border border-amber-300/40 bg-amber-300/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-amber-100">
-                                Tournament Match
-                            </div>
+                            <>
+                                <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
+                                    <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
+                                        Tournament
+                                    </div>
+                                    <div className="mt-2 break-words text-lg font-bold leading-tight text-white">
+                                        {tournament.tournamentName}
+                                    </div>
+                                </div>
+                                <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
+                                    <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
+                                        Time Control
+                                    </div>
+                                    <div className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">
+                                        {formatTimeControl(gameOptions.timeControl)}
+                                    </div>
+                                    <div className="mt-1 whitespace-nowrap text-sm tabular-nums text-slate-400">
+                                        {tournament.bracket.replace(/-/g, ` `)} R{tournament.round} · BO{tournament.bestOf} · Game {tournament.currentGameNumber} · Score {tournament.leftWins}‑{tournament.rightWins}
+                                    </div>
+                                </div>
+                            </>
                         ) : (
-                            <div className={`mx-auto inline-flex items-center rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] ${gameOptions.visibility === `private`
-                                ? `border-amber-300/40 bg-amber-300/10 text-amber-100`
-                                : `border-sky-300/35 bg-sky-300/10 text-sky-100`
-                                }`}
-                            >
-                                {gameOptions.visibility === `private` ? `Private Lobby` : `Public Lobby`}
-                            </div>
-                        )}
-
-                        <h2 className="mt-5 text-3xl font-black uppercase tracking-[0.08em] text-white sm:mt-6 sm:text-5xl">
-                            Waiting For
-                            <br />
-                            {isTournament ? (opponentName ?? `Opponent`) : `Another Player`}
-                        </h2>
-
-                        <p className="mt-4 text-sm leading-6 text-slate-200 sm:text-base sm:leading-7">
-                            {isTournament
-                                ? `Your opponent has been notified. The match will start automatically once they join.`
-                                : gameOptions.visibility === `private`
-                                    ? `Keep this session open and share the invite link with the player you want to join. The match will launch automatically once they arrive.`
-                                    : `Keep this session open. As soon as the second player joins, the match will launch automatically.`}
-                        </p>
-
-                        <div className="mt-6 grid gap-3 sm:mt-8 sm:gap-4 sm:grid-cols-2">
-                            {isTournament ? (
-                                <>
-                                    <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
-                                        <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                            Tournament
-                                        </div>
-                                        <div className="mt-2 break-words text-lg font-bold leading-tight text-white">
-                                            {tournament.tournamentName}
-                                        </div>
+                            <>
+                                <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
+                                    <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
+                                        Session ID
                                     </div>
-                                    <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
-                                        <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                            Time Control
-                                        </div>
-                                        <div className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">
-                                            {formatTimeControl(gameOptions.timeControl)}
-                                        </div>
-                                        <div className="mt-1 whitespace-nowrap text-sm tabular-nums text-slate-400">
-                                            {tournament.bracket.replace(/-/g, ` `)} R{tournament.round} · BO{tournament.bestOf} · Game {tournament.currentGameNumber} · Score {tournament.leftWins}‑{tournament.rightWins}
-                                        </div>
+                                    <div className="mt-2 break-all text-2xl font-bold text-amber-200 sm:text-3xl">
+                                        {sessionId}
                                     </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
-                                        <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                            Session ID
-                                        </div>
-                                        <div className="mt-2 break-all text-2xl font-bold text-amber-200 sm:text-3xl">
-                                            {sessionId}
-                                        </div>
-                                    </div>
-                                    <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
-                                        <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                            Time Control
-                                        </div>
-                                        <div className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">
-                                            {formatTimeControl(gameOptions.timeControl)}
-                                        </div>
-                                    </div>
-                                </>
-                            )}
-
-                            <div className="min-w-0 rounded-3xl border border-white/10 bg-slate-950/35 p-4 sm:col-span-2 sm:rounded-3xl sm:p-5">
-                                <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                    {isTournament ? `Playing As` : `Hosting As`}
                                 </div>
-
-                                <div className="mt-2 wrap-break-word text-xl font-bold leading-tight text-white sm:text-2xl">
-                                    {localPlayerName}
+                                <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
+                                    <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
+                                        Visibility
+                                    </div>
+                                    <div className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">
+                                        {gameOptions.visibility === `private` ? `Private Lobby` : `Public Lobby`}
+                                    </div>
                                 </div>
-
-                                <div className="mt-1 text-sm text-slate-400">
-                                    Players ready: {playerCount}/2
+                                <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
+                                    <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
+                                        Time Control
+                                    </div>
+                                    <div className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">
+                                        {formatTimeControl(gameOptions.timeControl)}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        {isTournament && playerCount < 2 && (
-                            <TournamentTimerSection
-                                tournament={tournament}
-                                claimWinState={claimWinState}
-                                opponentName={opponentName}
-                            />
-                        )}
-
-                        {!isTournament && (
-                            <div className="mt-6 grid gap-3 sm:mt-8 sm:flex sm:flex-wrap sm:justify-center">
-                                <Button
-                                    onClick={onInviteFriend}
-                                    variant="default" size="lg"
-                                >
-                                    Invite Friend
-                                </Button>
-
-                                <Button
-                                    onClick={onCancel}
-                                    variant="destructive" size="lg"
-                                >
-                                    Cancel Lobby
-                                </Button>
-
-                                {showOfflinePlayButton && (
-                                    <Button
-                                        onClick={onPlayOffline}
-                                        variant="success-soft" size="lg"
-                                    >
-                                        Play Offline Vs Bot
-                                    </Button>
-                                )}
-                            </div>
+                            </>
                         )}
                     </div>
-                </section>
+
+                    {isTournament && playerCount < 2 && (
+                        <TournamentTimerSection
+                            tournament={tournament}
+                            claimWinState={claimWinState}
+                            opponentName={opponentName}
+                        />
+                    )}
+
+                    {!isTournament && (
+                        <div className="mt-6 gap-4 flex flex-col md:flex-row">
+                            <Button
+                                onClick={onInviteFriend}
+                                variant="default" size="lg"
+                                className={"w-full"}
+                            >
+                                Invite Friend
+                            </Button>
+
+                            <Button
+                                onClick={onCancel}
+                                variant="destructive" size="lg"
+                                className={"w-full"}
+                            >
+                                Cancel Lobby
+                            </Button>
+
+                            {showOfflinePlayButton && (
+                                <Button
+                                    onClick={onPlayOffline}
+                                    variant="success-soft" size="lg"
+                                    className={"w-full"}
+                                >
+                                    Play Offline Vs Bot
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
             <ScreenFooter />
