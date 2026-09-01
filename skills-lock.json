@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "i18next-localization": {
+      "source": "i18next/i18next-cli",
+      "sourceType": "github",
+      "skillPath": "skills/i18next-localization/SKILL.md",
+      "computedHash": "0f030d6c97e7e7f56f4f2ac41c62e0b80ca47fe28c9817615dc58a076e2d3ade"
+    }
+  }
+}

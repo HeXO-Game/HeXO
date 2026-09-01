@@ -31,3 +31,6 @@ dist-ssr
 # Ignore this file as it will be automatically generated.
 # The initial file is a placeholder.
 packages/shared/src/generatedChangelog.ts
+
+.agents
+skills-lock.json
