@@ -6,7 +6,7 @@ import {
     playChatMessageSound,
     playGameLossSound,
     playGameWinSound,
-    playMatchStartSound,
+    playMatchStartAlert,
 } from '../soundEffects';
 
 function LiveGameRuntime() {
@@ -28,7 +28,7 @@ function LiveGameRuntime() {
     useEffect(() => {
         const previousState = previousSessionStateRef.current ?? `none`;
         if (activeSession?.state.status === `in-game` && (previousState === `lobby` || previousState === `finished`)) {
-            playMatchStartSound();
+            playMatchStartAlert();
         }
 
         if (previousState === `in-game` && activeSession?.state.status === `finished` && activeSession.localParticipantRole === `player`) {

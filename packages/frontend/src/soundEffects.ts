@@ -14,6 +14,7 @@ type ToneOptions = {
 let audioContext: AudioContext | null = null;
 let audioUnlockInstalled = false;
 let audioPlaybackUnlocked = false;
+let notificationPermissionRequested = false;
 const lastPlayedAtByKey = new Map<string, number>();
 const audioTemplateBySource = new Map<string, HTMLAudioElement>();
 
@@ -130,6 +131,11 @@ export function installSoundEffects() {
     const unlockAudio = () => {
         audioPlaybackUnlocked = true;
         void resumeAudioContext();
+
+        if (!notificationPermissionRequested && typeof window.Notification !== `undefined` && window.Notification.permission === `default`) {
+            notificationPermissionRequested = true;
+            void window.Notification.requestPermission().catch(() => undefined);
+        }
     };
 
     getAudioTemplate(kSoundChatMessage);
@@ -145,6 +151,28 @@ export function playMatchStartSound() {
     playSoundWithCooldown(`match-start`, 400, () => {
         void playAudioAsset(kSoundGameStart, 0.4);
     });
+}
+
+export function playMatchStartAlert() {
+    playMatchStartSound();
+
+    if (typeof document === `undefined` || document.hasFocus()) {
+        return;
+    }
+
+    window.navigator.vibrate?.([200, 100, 200]);
+
+    if (typeof window.Notification !== `undefined` && window.Notification.permission === `granted`) {
+        try {
+            new window.Notification(`Game started`, {
+                body: `Your game has started.`,
+                icon: `/favicon.png`,
+                tag: `game-start`,
+            });
+        } catch {
+            // Mobile browsers may only support notifications through a service worker.
+        }
+    }
 }
 
 export function playChatMessageSound() {
