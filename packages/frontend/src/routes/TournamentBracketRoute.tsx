@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import type { TournamentFormat, TournamentMatch } from '@ih3t/shared';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -414,38 +415,38 @@ function TournamentBracketRoute() {
                                 {Math.round(scale * 100)}%
                             </span>
 
-                            <button
+                            <Button
                                 type="button"
                                 onClick={() => setZoomIndex((current) => Math.max(current - 1, 0))}
                                 disabled={zoomIndex <= 0}
-                                className="rounded-md bg-white/6 px-2.5 py-1 text-[10px] font-medium text-slate-400 transition enabled:hover:bg-white/10 enabled:hover:text-white disabled:cursor-default disabled:opacity-50"
+                                variant="outline" size="xs"
                             >
                                 -
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
                                 type="button"
                                 onClick={() => setZoomIndex((current) => Math.min(current + 1, BRACKET_ZOOM_LEVELS.length - 1))}
                                 disabled={zoomIndex >= BRACKET_ZOOM_LEVELS.length - 1}
-                                className="rounded-md bg-white/6 px-2.5 py-1 text-[10px] font-medium text-slate-400 transition enabled:hover:bg-white/10 enabled:hover:text-white disabled:cursor-default disabled:opacity-50"
+                                variant="outline" size="xs"
                             >
                                 +
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
                                 type="button"
                                 onClick={() => setZoomIndex(DEFAULT_BRACKET_ZOOM_INDEX)}
                                 disabled={scale === 1}
-                                className="rounded-md bg-white/6 px-2.5 py-1 text-[10px] font-medium text-slate-400 transition enabled:hover:bg-white/10 enabled:hover:text-white disabled:cursor-default disabled:opacity-50"
+                                variant="outline" size="xs"
                             >
                                 Reset
-                            </button>
+                            </Button>
                         </div>
 
-                        <button onClick={() => void tQ.refetch()}
-                            className="rounded-md bg-white/6 px-2.5 py-1 text-[10px] font-medium text-slate-400 transition hover:bg-white/10 hover:text-white">
+                        <Button onClick={() => void tQ.refetch()}
+                            variant="outline" size="xs">
                             Refresh
-                        </button>
+                        </Button>
                     </div>
                 </div>
 

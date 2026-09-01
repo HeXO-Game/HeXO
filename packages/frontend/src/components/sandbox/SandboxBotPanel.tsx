@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { BotEngineCapabilities, SandboxPlayerSlot } from '@ih3t/shared';
 
 import { SandboxBotEngineInfo } from '../../sandbox/botLoader';
@@ -117,16 +118,16 @@ function SandboxBotPanel({
                     </div>
                 </div>
 
-                <button
+                <Button
                     type="button"
                     onClick={onChangeBotEngine}
-                    className="rounded-full ml-3 border border-white/12 bg-white/8 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/12"
+                    variant="outline" size="sm" className="ml-3"
                 >
                     Change
-                </button>
+                </Button>
 
                 <div className="col-span-2 text-xs leading-5 text-slate-300">
-                    {selectedFactory?.description()} 
+                    {selectedFactory?.description()}
                     {` `}
                     {capabilityLabel}
                 </div>

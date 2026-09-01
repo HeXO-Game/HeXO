@@ -1,4 +1,6 @@
+import { Button } from '@/components/ui/button';
 import { type RatedFilter, ratedFilterOptions } from '../utils/ratedFilter';
+import { ButtonGroup } from './ui/button-group';
 
 type RatedFilterTabsProps = {
     value: RatedFilter
@@ -10,27 +12,22 @@ export default function RatedFilterTabs({
     onChange,
 }: Readonly<RatedFilterTabsProps>) {
     return (
-        <div className="inline-flex w-full max-w-max rounded-full border border-white/10 bg-slate-900 p-1">
+        <ButtonGroup>
             {ratedFilterOptions.map((filterOption) => {
                 const isActive = value === filterOption.value;
                 return (
-                    <button
+                    <Button
                         key={filterOption.value}
                         type="button"
+                        variant="filter"
+                        size="sm"
                         aria-pressed={isActive}
                         onClick={() => onChange(filterOption.value)}
-                        className={
-                            `rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition sm:px-5 ${
-                                isActive
-                                    ? `bg-sky-300 text-slate-950`
-                                    : `cursor-pointer text-slate-300 hover:bg-slate-800 hover:text-white`
-                            }`
-                        }
                     >
                         {filterOption.label}
-                    </button>
+                    </Button>
                 );
             })}
-        </div>
+        </ButtonGroup>
     );
 }

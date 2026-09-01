@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { LobbyOptions, MatchClaimWinState, SessionTournamentInfo } from '@ih3t/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -152,23 +153,23 @@ function TournamentTimerSection({
                     </p>
                 </div>
 
-                <button
+                <Button
                     type="button"
                     onClick={() => void handleClaimWin()}
                     disabled={isClaimPending}
-                    className="w-full rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-emerald-400 disabled:cursor-wait disabled:opacity-60"
+                    variant="success" size="lg" className="w-full"
                 >
                     {isClaimPending ? `Claiming...` : `Claim Win`}
-                </button>
+                </Button>
 
-                <button
+                <Button
                     type="button"
                     onClick={() => void handleRequestExtension()}
                     disabled={isExtensionPending}
-                    className="w-full rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/12 disabled:cursor-wait disabled:opacity-60"
+                    variant="outline" size="lg" className="w-full"
                 >
                     {isExtensionPending ? `Requesting...` : `Request Extension (+${extensionMinutes} min)`}
-                </button>
+                </Button>
             </div>
         );
     }
@@ -184,14 +185,14 @@ function TournamentTimerSection({
                 </div>
             </div>
 
-            <button
+            <Button
                 type="button"
                 onClick={() => void handleRequestExtension()}
                 disabled={isExtensionPending}
-                className="w-full rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-200 transition hover:bg-white/12 disabled:cursor-wait disabled:opacity-60"
+                variant="outline" size="lg" className="w-full"
             >
                 {isExtensionPending ? `Requesting...` : `Request Extension`}
-            </button>
+            </Button>
         </div>
     );
 }
@@ -338,27 +339,27 @@ function WaitingScreen({
 
                         {!isTournament && (
                             <div className="mt-6 grid gap-3 sm:mt-8 sm:flex sm:flex-wrap sm:justify-center">
-                                <button
+                                <Button
                                     onClick={onInviteFriend}
-                                    className="rounded-full bg-sky-400 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-300"
+                                    variant="default" size="lg"
                                 >
                                     Invite Friend
-                                </button>
+                                </Button>
 
-                                <button
+                                <Button
                                     onClick={onCancel}
-                                    className="rounded-full bg-rose-500 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-rose-400"
+                                    variant="destructive" size="lg"
                                 >
                                     Cancel Lobby
-                                </button>
+                                </Button>
 
                                 {showOfflinePlayButton && (
-                                    <button
+                                    <Button
                                         onClick={onPlayOffline}
-                                        className="rounded-full border border-emerald-300/35 bg-emerald-400/12 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-emerald-50 transition hover:-translate-y-0.5 hover:bg-emerald-400/20"
+                                        variant="success-soft" size="lg"
                                     >
                                         Play Offline Vs Bot
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                         )}

@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { AccountPreferences, AccountProfile } from '@ih3t/shared';
 import { useState } from 'react';
 import React from 'react';
@@ -72,23 +73,22 @@ function PreferenceSwitchCard({
                     </div>
                 </div>
 
-                <button
+                <Button
                     type="button"
+                    variant="switch"
+                    size="switch"
                     role="switch"
                     aria-checked={checked}
                     aria-label={label}
                     disabled={disabled}
                     onClick={() => onToggle(!checked)}
-                    className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full border transition ${checked
-                        ? `border-sky-300/50 bg-sky-400/80`
-                        : `border-white/10 bg-slate-800/90`
-                    } ${disabled ? `cursor-wait opacity-70` : `cursor-pointer`}`}
+                    className="relative"
                 >
                     <span
                         className={`inline-block h-6 w-6 rounded-full bg-white shadow-[0_6px_16px_rgba(15,23,42,0.25)] transition ${checked ? `translate-x-7` : `translate-x-1`
                         }`}
                     />
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -170,12 +170,12 @@ function AccountPreferencesScreen({
                                 Sign in with Discord to manage your account preferences.
                             </p>
 
-                            <button
+                            <Button
                                 onClick={() => void handleSignIn()}
-                                className="mt-6 rounded-full bg-[#5865F2] px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:-translate-y-0.5 hover:bg-[#6f7cff]"
+                                variant="discord" size="lg" className="mt-6"
                             >
                                 Sign In With Discord
-                            </button>
+                            </Button>
                         </section>
                     </div>
                 ) : (

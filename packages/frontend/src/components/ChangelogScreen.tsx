@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { AccountPreferences, AccountProfile, ChangelogDay, ChangelogEntryKind } from '@ih3t/shared';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
@@ -126,17 +127,15 @@ function ChangelogScreen({
                                     </p>
                                 </div>
 
-                                <button
+                                <Button
                                     type="button"
+                                    variant="secondary"
+                                    size="lg"
                                     disabled={!hasNewEntries || isMarkingRead}
                                     onClick={() => void handleMarkNewChangesAsRead()}
-                                    className={`rounded-full px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] transition ${!hasNewEntries || isMarkingRead
-                                        ? `cursor-default border border-white/10 bg-white/6 text-slate-400`
-                                        : `bg-amber-300 text-slate-950 hover:-translate-y-0.5 hover:bg-amber-200`
-                                        }`}
                                 >
                                     {isMarkingRead ? `Saving...` : `Mark New Changes As Read`}
-                                </button>
+                                </Button>
                             </div>
                         </section>
                     ) : null

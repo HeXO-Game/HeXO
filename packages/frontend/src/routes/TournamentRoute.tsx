@@ -1,3 +1,4 @@
+import { Button, buttonVariants, type ButtonProps } from '@/components/ui/button';
 import type { TournamentDetail, TournamentExtensionRequest, TournamentMatch, TournamentParticipant, TournamentStanding } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -53,9 +54,9 @@ function Modal({ open, onClose, title, children }: {
                         {title}
                     </h3>
 
-                    <button onClick={onClose} className="text-slate-500 transition hover:text-white">
+                    <Button onClick={onClose} variant="ghost" size="bare">
                         &times;
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="mt-4 min-h-0 overflow-y-auto pr-1">
@@ -90,22 +91,34 @@ function Chip({ children, color = `default` }: { children: React.ReactNode; colo
     </span>);
 }
 
-function Confirm({ label, onConfirm, className }: { label: string; onConfirm: () => void; className: string }) {
+function Confirm({
+    label,
+    onConfirm,
+    variant = `destructive-soft`,
+    size = `xxs`,
+    className,
+}: {
+    label: string
+    onConfirm: () => void
+    variant?: ButtonProps[`variant`]
+    size?: ButtonProps[`size`]
+    className?: string
+}) {
     const [ask, setAsk] = useState(false);
     if (ask) return (
         <span className="inline-flex items-center gap-1">
-            <button onClick={() => { setAsk(false); onConfirm(); }} className="rounded-md bg-rose-500/60 px-2 py-1 text-[10px] font-semibold text-white transition hover:bg-rose-500">
+            <Button onClick={() => { setAsk(false); onConfirm(); }} variant="destructive" size="xs">
                 Yes
-            </button>
+            </Button>
 
-            <button onClick={() => setAsk(false)} className="rounded-md bg-white/8 px-2 py-1 text-[10px] text-slate-300 transition hover:bg-white/14">
+            <Button onClick={() => setAsk(false)} variant="outline" size="xs">
                 No
-            </button>
+            </Button>
         </span>
     );
-    return (<button onClick={() => setAsk(true)} className={className}>
+    return (<Button variant={variant} size={size} onClick={() => setAsk(true)} className={className}>
         {label}
-    </button>);
+    </Button>);
 }
 
 /* ── Waitlist banner ────────────────────────────────── */
@@ -324,16 +337,17 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
 
                 {canManage && isActive && (
                     <span className="flex shrink-0 gap-1">
-                        <button
+                        <Button
+                            variant={swapTarget === p.profileId ? `default` : `ghost`}
+                            size="xxs"
+                            aria-pressed={swapTarget === p.profileId}
                             onClick={() => onSwapSelect(swapTarget === p.profileId ? null : p.profileId)}
-                            className={`rounded px-1.5 py-0.5 text-[9px] font-semibold transition ${swapTarget === p.profileId ? `bg-sky-400 text-slate-950` : `bg-white/6 text-slate-400 hover:text-white`}`}
                         >
                             {swapTarget === p.profileId ? `×` : `Swap`}
-                        </button>
+                        </Button>
 
                         <Confirm
                             label={isLive ? `DQ` : `×`} onConfirm={() => onRemove(p.profileId)}
-                            className="rounded bg-white/6 px-1.5 py-0.5 text-[9px] font-semibold text-rose-300 transition hover:bg-rose-500/20"
                         />
                     </span>
                 )}
@@ -342,12 +356,14 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
     };
 
     const sortBtn = (mode: ParticipantSortMode, label: string) => (
-        <button
+        <Button
+            variant="tab"
+            size="xxs"
+            aria-pressed={sortMode === mode}
             onClick={() => setSortMode(mode)}
-            className={`rounded px-1.5 py-0.5 text-[9px] font-semibold transition ${sortMode === mode ? `bg-white/10 text-white` : `text-slate-500 hover:text-slate-300`}`}
         >
             {label}
-        </button>
+        </Button>
     );
 
     if (seedMode) {
@@ -355,14 +371,14 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
             <div className="space-y-1">
                 <div className="flex items-center gap-2 pb-1">
                     <span className="text-[10px] font-medium text-amber-300">Drag to reorder seeds</span>
-                    <button onClick={saveSeedOrder} disabled={savingSeeds}
-                        className="rounded bg-amber-300/20 px-2 py-0.5 text-[9px] font-semibold text-amber-200 transition hover:bg-amber-300/30 disabled:opacity-40">
+                    <Button onClick={saveSeedOrder} disabled={savingSeeds}
+                        variant="warning" size="xs">
                         {savingSeeds ? `Saving...` : `Save`}
-                    </button>
-                    <button onClick={() => setSeedMode(false)}
-                        className="rounded bg-white/6 px-2 py-0.5 text-[9px] font-semibold text-slate-400 transition hover:text-white">
+                    </Button>
+                    <Button onClick={() => setSeedMode(false)}
+                        variant="outline" size="xs">
                         Cancel
-                    </button>
+                    </Button>
                 </div>
                 {seedOrder.map((id, i) => seedRow(id, i))}
             </div>
@@ -378,10 +394,10 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
                     {sortBtn(`name`, `Name`)}
                     {sortBtn(`record`, `W/L`)}
                     {canSeed && (
-                        <button onClick={enterSeedMode}
-                            className="ml-auto rounded bg-amber-300/15 px-2 py-0.5 text-[9px] font-semibold text-amber-200 transition hover:bg-amber-300/25">
+                        <Button onClick={enterSeedMode}
+                            variant="warning" size="xs" className="ml-auto">
                             Seed
-                        </button>
+                        </Button>
                     )}
                 </div>
             )}
@@ -393,13 +409,13 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
             {visible.map(row)}
 
             {removed.length > 0 && (
-                <button onClick={() => setShowRemoved(!showRemoved)} className="text-[10px] text-slate-600 transition hover:text-slate-400">
+                <Button onClick={() => setShowRemoved(!showRemoved)} variant="ghost" size="bare">
                     {showRemoved ? `Hide` : `Show`}
                     {` `}
                     {removed.length}
                     {` `}
                     removed
-                </button>
+                </Button>
             )}
 
             {showRemoved && removed.map(row)}
@@ -592,28 +608,29 @@ function PodiumMatchPath({ profileId, matches }: { profileId: string; matches: T
 
     return (
         <div className="mt-2 w-full">
-            <button
+            <Button
+                variant="tab"
+                size="xs"
+                aria-pressed={show}
                 onClick={() => setShow(!show)}
-                className={`mx-auto block rounded px-2 py-0.5 text-[10px] font-medium transition ${show ? `bg-white/8 text-slate-300` : `text-slate-600 hover:text-slate-400`}`}
+                className="mx-auto block"
             >
                 {show ? `Hide Matches` : `Matches`}
-            </button>
+            </Button>
 
             {show && (
                 <div className="mt-1.5 flex flex-wrap justify-center gap-1">
                     {path.map((step, i) => (
-                        <button
+                        <Button
                             key={i}
+                            variant={step.resultType === `bye` ? `muted` : step.won ? `success-soft` : `destructive-soft`}
+                            size="xxs"
                             onClick={() => scrollToMatch(step.matchId)}
-                            className={`inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-medium transition hover:brightness-125 ${
-                                step.resultType === `bye` ? `bg-slate-700/50 text-slate-500`
-                                    : step.won ? `bg-emerald-400/8 text-emerald-400` : `bg-rose-400/8 text-rose-300`
-                            }`}
                         >
                             <span className="font-semibold">{step.won ? `W` : step.resultType === `bye` ? `B` : `L`}</span>
                             <span className="text-white/50">vs</span>
                             <span className="max-w-[6rem] truncate">{step.opponent}</span>
-                        </button>
+                        </Button>
                     ))}
                 </div>
             )}
@@ -630,18 +647,16 @@ function MatchPath({ profileId, matches }: { profileId: string; matches: Tournam
     return (
         <div className="mt-1.5 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
             {path.map((step, i) => (
-                <button
+                <Button
                     key={i}
+                    variant={step.resultType === `bye` ? `muted` : step.won ? `success-soft` : `destructive-soft`}
+                    size="xxs"
                     onClick={() => scrollToMatch(step.matchId)}
-                    className={`inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-medium transition hover:brightness-125 ${
-                        step.resultType === `bye` ? `bg-slate-700/50 text-slate-500`
-                            : step.won ? `bg-emerald-400/8 text-emerald-400` : `bg-rose-400/8 text-rose-300`
-                    }`}
                 >
                     <span className="font-semibold">{step.won ? `W` : step.resultType === `bye` ? `B` : `L`}</span>
                     <span className="text-white/50">vs</span>
                     <span className="max-w-[8rem] truncate">{step.opponent}</span>
-                </button>
+                </Button>
             ))}
         </div>
     );
@@ -767,12 +782,12 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
                     </span>
                 </div>
 
-                <button
+                <Button
                     onClick={() => exportStandingsCsv(standings, participants, matches, format, tournamentName)}
-                    className="rounded-md bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-400 transition hover:bg-white/8 hover:text-white"
+                    variant="outline" size="xs"
                 >
                     Export CSV
-                </button>
+                </Button>
             </div>
 
             {/* Podium — top 3 */}
@@ -918,12 +933,12 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 </Chip>
 
                 {canJoin && (
-                    <button
+                    <Button
                         onClick={() => onOpen(match.sessionId!)}
-                        className="ml-auto rounded bg-amber-300 px-2 py-0.5 text-[9px] font-bold uppercase text-slate-950 shadow-[0_2px_8px_rgba(251,191,36,0.3)] transition hover:bg-amber-200"
+                        variant="secondary" size="xs" className="ml-auto"
                     >
                         Join
-                    </button>
+                    </Button>
                 )}
 
                 {canSpectate && (
@@ -955,12 +970,12 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                     </div>
 
                     {isParticipant && !pendingExtension && (
-                        <button
+                        <Button
                             onClick={() => onRequestExtension(match.id)}
-                            className="rounded bg-amber-300/15 px-2 py-0.5 text-[9px] font-semibold text-amber-200 transition hover:bg-amber-300/25"
+                            variant="warning" size="xs"
                         >
                             Request Extension (+{extensionMinutes} min)
-                        </button>
+                        </Button>
                     )}
                 </div>
             )}
@@ -979,19 +994,19 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
 
                         {canManage && (
                             <span className="inline-flex shrink-0 gap-1">
-                                <button
+                                <Button
                                     onClick={() => onResolveExtension(pendingExtension.id, true)}
-                                    className="rounded bg-emerald-400/20 px-2 py-0.5 text-[9px] font-semibold text-emerald-200 transition hover:bg-emerald-400/30"
+                                    variant="success-soft" size="xs"
                                 >
                                     Approve
-                                </button>
+                                </Button>
 
-                                <button
+                                <Button
                                     onClick={() => onResolveExtension(pendingExtension.id, false)}
-                                    className="rounded bg-rose-400/20 px-2 py-0.5 text-[9px] font-semibold text-rose-200 transition hover:bg-rose-400/30"
+                                    variant="destructive-soft" size="xs"
                                 >
                                     Deny
-                                </button>
+                                </Button>
                             </span>
                         )}
 
@@ -1028,12 +1043,12 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         </span>
 
                         {isParticipant && (
-                        <button
+                        <Button
                             onClick={() => onRequestExtension(match.id)}
-                            className="rounded bg-amber-300/20 px-2 py-0.5 text-[9px] font-semibold text-amber-100 transition hover:bg-amber-300/30"
+                            variant="warning" size="xs"
                         >
                             Request Extension (+{extensionMinutes} min)
-                        </button>
+                        </Button>
                     )}
                 </div>
                 </div>
@@ -1053,7 +1068,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                     {match.gameIds.length === 1 && (
                         <Link
                             to={`/games/${match.gameIds[0]}`}
-                            className="rounded bg-white/6 px-2 py-0.5 text-[9px] text-slate-400 transition hover:text-white"
+                            className={buttonVariants({ variant: `ghost`, size: `xxs` })}
                         >
                             Review
                         </Link>
@@ -1066,7 +1081,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                     )}
 
                     {match.gameIds.length > 1 && match.gameIds.map((gid, i) => (
-                        <Link key={gid} to={`/games/${gid}`} className="rounded bg-white/4 px-1.5 py-0.5 text-[9px] text-slate-500 transition hover:text-white">
+                        <Link key={gid} to={`/games/${gid}`} className={buttonVariants({ variant: `ghost`, size: `xxs` })}>
                             G
                             {i + 1}
                         </Link>
@@ -1079,13 +1094,13 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                     {match.slots.filter((s): s is typeof s & { profileId: string } => Boolean(s.profileId) && !s.isBye).map((s) => (
                         <Confirm
                             key={s.profileId} label={`Award ${s.displayName}`} onConfirm={() => onWalkover(match.id, s.profileId)}
-                            className="rounded bg-sky-400/10 px-2 py-0.5 text-[9px] text-sky-200 transition hover:bg-sky-400/20"
+                            variant="info"
                         />
                     ))}
 
                     <Confirm
                         label="Reopen" onConfirm={() => onReopen(match.id)}
-                        className="rounded bg-white/6 px-2 py-0.5 text-[9px] text-slate-400 transition hover:text-white"
+                        variant="ghost"
                     />
                 </div>
             )}
@@ -1233,12 +1248,12 @@ function TournamentRoute() {
                                             ·
                                         </span>
 
-                                        <button
+                                        <Button
                                             onClick={() => void nav(`/tournaments/${t.id}/bracket`)}
-                                            className="font-semibold text-sky-300 transition hover:text-sky-200"
+                                            variant="link" size="bare"
                                         >
                                             View Bracket
-                                        </button>
+                                        </Button>
                                     </>
                                 )}
                             </div>
@@ -1251,7 +1266,7 @@ function TournamentRoute() {
 
                                 <div className="flex-1">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/70">
-                                        Your Match · 
+                                        Your Match ·
                                         {` `}
                                         {t.viewer.nextMatch.bracket.replace(/-/g, ` `)}
                                         {` `}
@@ -1277,7 +1292,7 @@ function TournamentRoute() {
                                     </div>
                                 </div>
 
-                                <button
+                                <Button
                                     onClick={() => {
                                         const el = document.getElementById(`match-${t.viewer.nextMatch!.matchId}`);
                                         if (el) {
@@ -1286,10 +1301,10 @@ function TournamentRoute() {
                                             setTimeout(() => el.classList.remove(`ring-2`, `ring-amber-400/60`, `shadow-[0_0_16px_rgba(251,191,36,0.25)]`), 2500);
                                         }
                                     }}
-                                    className="shrink-0 rounded-full bg-amber-300 px-5 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-950 shadow-[0_4px_16px_rgba(251,191,36,0.35)] transition hover:-translate-y-0.5 hover:bg-amber-200"
+                                    variant="secondary" size="lg"
                                 >
                                     Go to Match
-                                </button>
+                                </Button>
                             </div>
                         )}
 
@@ -1301,53 +1316,54 @@ function TournamentRoute() {
                         {/* ── Actions ── */}
                         <div className="flex flex-wrap items-center gap-2">
                             {t.viewer.canRegister && (
-                                <button
+                                <Button
                                     onClick={() => void run(() => registerForTournament(t.id), `Registered.`)} disabled={busy}
-                                    className="rounded-full bg-amber-300 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-950 shadow-[0_4px_14px_rgba(251,191,36,0.3)] transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:opacity-50"
+                                    variant="secondary" size="sm"
                                 >
                                     Register
-                                </button>
+                                </Button>
                             )}
 
                             {t.viewer.canJoinWaitlist && (
-                                <button
+                                <Button
                                     onClick={() => void run(() => registerForTournament(t.id), `Joined waitlist.`)} disabled={busy}
-                                    className="rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-amber-200 transition hover:-translate-y-0.5 hover:bg-amber-300/20 disabled:opacity-50"
+                                    variant="warning" size="sm"
                                 >
                                     Join Waitlist
-                                </button>
+                                </Button>
                             )}
 
                             {t.viewer.canCheckIn && (
-                                <button
+                                <Button
                                     onClick={() => void run(() => checkInTournament(t.id), t.status === `waitlist-open` ? `Checked in from waitlist!` : `Checked in.`)} disabled={busy}
-                                    className="rounded-full bg-sky-400 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-300 disabled:opacity-50"
+                                    variant="default" size="sm"
                                 >
                                     {t.status === `waitlist-open` ? `Claim Spot` : `Check In`}
-                                </button>
+                                </Button>
                             )}
 
                             {t.viewer.canWithdraw && (
                                 <Confirm
                                     label="Withdraw" onConfirm={() => void run(() => withdrawFromTournament(t.id), `Withdrawn.`)}
-                                    className="rounded-full border border-white/10 bg-white/6 px-4 py-1.5 text-[11px] font-semibold text-white transition hover:bg-white/12 disabled:opacity-50"
+                                    variant="outline"
+                                    size="sm"
                                 />
                             )}
 
-                            <button
+                            <Button
                                 onClick={() => {
                                     void navigator.clipboard.writeText(`${window.location.origin}/tournaments/${t.id}`);
                                     toast.success(`Link copied!`, { toastId: `copy-link` });
                                 }}
-                                className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[10px] font-semibold text-slate-400 transition hover:bg-white/12 hover:text-white"
+                                variant="outline" size="sm"
                             >
                                 Copy Link
-                            </button>
+                            </Button>
 
                             {t.status === `live` && (
                                 <Link
                                     to={`/tournaments/${t.id}/multiview`}
-                                    className="rounded-full border border-sky-300/20 bg-sky-300/12 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-sky-100 transition hover:-translate-y-0.5 hover:bg-sky-300/18"
+                                    className={buttonVariants({ variant: `info`, size: `xs` })}
                                 >
                                     Multiview (Beta)
                                 </Link>
@@ -1357,34 +1373,34 @@ function TournamentRoute() {
                             {t.viewer.canManage && (
                                 <div className="ml-auto flex items-center gap-2">
                                     {t.status === `check-in-open` && (
-                                        <button
+                                        <Button
                                             onClick={() => void run(() => startTournament(t.id), `Started.`)} disabled={busy}
-                                            className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1.5 text-[10px] font-semibold uppercase text-amber-200 transition hover:bg-amber-300/20 disabled:opacity-50"
+                                            variant="warning" size="sm"
                                         >
                                             Start
-                                        </button>
+                                        </Button>
                                     )}
 
                                     {t.status !== `live` && t.status !== `completed` && t.status !== `cancelled` && (
-                                        <button
+                                        <Button
                                             onClick={() => setEditOpen(true)}
-                                            className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[10px] font-semibold text-slate-300 transition hover:bg-white/12"
+                                            variant="outline" size="sm"
                                         >
                                             Edit
-                                        </button>
+                                        </Button>
                                     )}
 
-                                    <button
+                                    <Button
                                         onClick={() => setManageOpen(true)}
-                                        className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[10px] font-semibold text-slate-300 transition hover:bg-white/12"
+                                        variant="outline" size="sm"
                                     >
                                         Manage
-                                    </button>
+                                    </Button>
 
                                     {t.status !== `completed` && t.status !== `cancelled` && (
                                         <Confirm
                                             label="Cancel" onConfirm={() => void run(() => cancelTournament(t.id), `Cancelled.`)}
-                                            className="rounded-full border border-rose-400/15 bg-rose-400/8 px-3 py-1.5 text-[10px] font-semibold text-rose-200 transition hover:bg-rose-400/15"
+                                            size="sm"
                                         />
                                     )}
                                 </div>
@@ -1572,17 +1588,17 @@ function TournamentRoute() {
                                 placeholder="Search Discord username..."
                             />
 
-                            <button
+                            <Button
                                 onClick={() => void doSearch()}
-                                className="rounded-lg bg-sky-400 px-4 py-2 text-[11px] font-bold text-slate-950 transition hover:bg-sky-300"
+                                variant="default" size="sm"
                             >
                                 Search
-                            </button>
+                            </Button>
                         </div>
 
                         {swapTarget && (
                             <div className="rounded-lg border border-amber-300/20 bg-amber-300/8 px-3 py-2 text-[11px] text-amber-200">
-                                Swapping 
+                                Swapping
                                 {` `}
 
                                 <strong>
@@ -1603,20 +1619,20 @@ function TournamentRoute() {
                                         </span>
 
                                         <div className="flex gap-1.5">
-                                            <button
+                                            <Button
                                                 onClick={() => void run(() => addTournamentParticipant(t.id, u.id), `Added ${u.username}.`)}
-                                                className="rounded bg-emerald-400/12 px-2 py-1 text-[10px] font-semibold text-emerald-200 transition hover:bg-emerald-400/20"
+                                                variant="success-soft" size="xs"
                                             >
                                                 Add
-                                            </button>
+                                            </Button>
 
                                             {swapTarget && (
-                                                <button
+                                                <Button
                                                     onClick={() => void run(() => swapTournamentParticipant(t.id, { profileId: swapTarget, replacementProfileId: u.id }), `Swapped.`).then(() => setSwapTarget(null))}
-                                                    className="rounded bg-sky-400/12 px-2 py-1 text-[10px] font-semibold text-sky-200 transition hover:bg-sky-400/20"
+                                                    variant="info" size="xs"
                                                 >
                                                     Swap In
-                                                </button>
+                                                </Button>
                                             )}
                                         </div>
                                     </div>
@@ -1649,7 +1665,6 @@ function TournamentRoute() {
 
                                                 <Confirm
                                                     label="Remove" onConfirm={() => void run(() => revokeTournamentOrganizer(t.id, org.profileId), `Removed organizer.`)}
-                                                    className="rounded bg-rose-400/12 px-2 py-0.5 text-[9px] font-semibold text-rose-200 transition hover:bg-rose-400/20"
                                                 />
                                             </div>
                                         ))}
@@ -1668,12 +1683,12 @@ function TournamentRoute() {
                                                     {u.username}
                                                 </span>
 
-                                                <button
+                                                <Button
                                                     onClick={() => void run(() => grantTournamentOrganizer(t.id, u.id), `Granted organizer.`)}
-                                                    className="rounded bg-amber-300/12 px-2 py-0.5 text-[9px] font-semibold text-amber-200 transition hover:bg-amber-300/20"
+                                                    variant="warning" size="xs"
                                                 >
                                                     Grant
-                                                </button>
+                                                </Button>
                                             </div>
                                         ))}
                                     </div>
@@ -1698,7 +1713,6 @@ function TournamentRoute() {
                                         <span className="text-[13px] font-medium text-white">{entry.displayName}</span>
                                         <Confirm
                                             label="Remove" onConfirm={() => void run(() => removeFromAccessList(t.id, `whitelist`, entry.profileId), `Removed.`)}
-                                            className="rounded bg-rose-400/12 px-2 py-0.5 text-[9px] font-semibold text-rose-200 transition hover:bg-rose-400/20"
                                         />
                                     </div>
                                 ))}
@@ -1708,7 +1722,7 @@ function TournamentRoute() {
                                     rows={3} placeholder="Paste usernames, one per line"
                                     className="mt-2 w-full rounded-md border border-white/8 bg-slate-950/60 px-2.5 py-1.5 text-[12px] text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400/30"
                                 />
-                                <button
+                                <Button
                                     disabled={busy || !wlText.trim()}
                                     onClick={async () => {
                                         const names = wlText.split(`\n`).map((n) => n.trim()).filter(Boolean);
@@ -1724,10 +1738,10 @@ function TournamentRoute() {
                                             toast.error(e instanceof Error ? e.message : `Failed.`, { toastId: `wl-bulk-err` });
                                         } finally { setBusy(false); }
                                     }}
-                                    className="mt-1 rounded bg-emerald-400/12 px-2.5 py-1 text-[10px] font-semibold text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-40"
+                                    variant="success-soft" size="xs" className="mt-1"
                                 >
                                     + Add Whitelist
-                                </button>
+                                </Button>
 
                                 {wlResult && (
                                     <div className="mt-2 space-y-1 text-[11px]">
@@ -1749,12 +1763,12 @@ function TournamentRoute() {
                                         {searchRes.filter((u) => !t.whitelist.some((e) => e.profileId === u.id)).map((u) => (
                                             <div key={`wl-${u.id}`} className="flex items-center justify-between gap-2 rounded-lg bg-white/3 px-3 py-1.5">
                                                 <span className="text-[12px] text-slate-300">{u.username}</span>
-                                                <button
+                                                <Button
                                                     onClick={() => void run(() => addToAccessList(t.id, `whitelist`, u.id), `Added to whitelist.`)}
-                                                    className="rounded bg-emerald-400/12 px-2 py-0.5 text-[9px] font-semibold text-emerald-200 transition hover:bg-emerald-400/20"
+                                                    variant="success-soft" size="xs"
                                                 >
                                                     + Whitelist
-                                                </button>
+                                                </Button>
                                             </div>
                                         ))}
                                     </div>
@@ -1779,7 +1793,6 @@ function TournamentRoute() {
                                         <span className="text-[13px] font-medium text-white">{entry.displayName}</span>
                                         <Confirm
                                             label="Remove" onConfirm={() => void run(() => removeFromAccessList(t.id, `blacklist`, entry.profileId), `Removed.`)}
-                                            className="rounded bg-rose-400/12 px-2 py-0.5 text-[9px] font-semibold text-rose-200 transition hover:bg-rose-400/20"
                                         />
                                     </div>
                                 ))}
@@ -1789,7 +1802,7 @@ function TournamentRoute() {
                                     rows={3} placeholder="Paste usernames, one per line"
                                     className="mt-2 w-full rounded-md border border-white/8 bg-slate-950/60 px-2.5 py-1.5 text-[12px] text-white outline-none transition placeholder:text-slate-600 focus:border-rose-400/30"
                                 />
-                                <button
+                                <Button
                                     disabled={busy || !blText.trim()}
                                     onClick={async () => {
                                         const names = blText.split(`\n`).map((n) => n.trim()).filter(Boolean);
@@ -1805,10 +1818,10 @@ function TournamentRoute() {
                                             toast.error(e instanceof Error ? e.message : `Failed.`, { toastId: `bl-bulk-err` });
                                         } finally { setBusy(false); }
                                     }}
-                                    className="mt-1 rounded bg-rose-400/12 px-2.5 py-1 text-[10px] font-semibold text-rose-200 transition hover:bg-rose-400/20 disabled:cursor-not-allowed disabled:opacity-40"
+                                    variant="destructive-soft" size="xs" className="mt-1"
                                 >
                                     + Add Blacklist
-                                </button>
+                                </Button>
 
                                 {blResult && (
                                     <div className="mt-2 space-y-1 text-[11px]">
@@ -1830,12 +1843,12 @@ function TournamentRoute() {
                                         {searchRes.filter((u) => !t.blacklist.some((e) => e.profileId === u.id)).map((u) => (
                                             <div key={`bl-${u.id}`} className="flex items-center justify-between gap-2 rounded-lg bg-white/3 px-3 py-1.5">
                                                 <span className="text-[12px] text-slate-300">{u.username}</span>
-                                                <button
+                                                <Button
                                                     onClick={() => void run(() => addToAccessList(t.id, `blacklist`, u.id), `Added to blacklist.`)}
-                                                    className="rounded bg-rose-400/12 px-2 py-0.5 text-[9px] font-semibold text-rose-200 transition hover:bg-rose-400/20"
+                                                    variant="destructive-soft" size="xs"
                                                 >
                                                     + Blacklist
-                                                </button>
+                                                </Button>
                                             </div>
                                         ))}
                                     </div>
@@ -1863,7 +1876,8 @@ function TournamentRoute() {
                                                 () => unsubscribeFromTournament(t.id, org.profileId),
                                                 `Ownership transferred to ${org.displayName}.`,
                                             )}
-                                            className="block w-full rounded-lg border border-rose-300/15 bg-rose-400/6 px-3 py-2 text-left text-[12px] font-medium text-rose-200 transition hover:bg-rose-400/12"
+                                            size="sm"
+                                            className="block w-full text-left"
                                         />
                                     ))}
                                 </div>
@@ -1897,13 +1911,13 @@ function TournamentRoute() {
                                         </option>
                                     </select>
 
-                                    <button
+                                    <Button
                                         onClick={() => void run(() => seedTournamentWithDevUsers(t.id, { count: Math.max(1, Math.min(devCount, t.maxPlayers)), state: devState }), `Seeded.`)}
                                         disabled={busy}
-                                        className="rounded bg-emerald-400 px-3 py-1 text-[11px] font-bold text-slate-950 transition hover:bg-emerald-300 disabled:opacity-50"
+                                        variant="success" size="xs"
                                     >
                                         Seed
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -1915,37 +1929,37 @@ function TournamentRoute() {
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                    <button
+                                    <Button
                                         onClick={() => void run(() => devResolveN(t.id, 1), `Resolved 1 match.`)}
                                         disabled={busy}
-                                        className="rounded bg-amber-400 px-3 py-1 text-[11px] font-bold text-slate-950 transition hover:bg-amber-300 disabled:opacity-50"
+                                        variant="secondary" size="xs"
                                     >
                                         Resolve 1
-                                    </button>
+                                    </Button>
 
-                                    <button
+                                    <Button
                                         onClick={() => void run(() => devResolveN(t.id, 5), `Resolved up to 5.`)}
                                         disabled={busy}
-                                        className="rounded bg-amber-400 px-3 py-1 text-[11px] font-bold text-slate-950 transition hover:bg-amber-300 disabled:opacity-50"
+                                        variant="secondary" size="xs"
                                     >
                                         Resolve 5
-                                    </button>
+                                    </Button>
 
-                                    <button
+                                    <Button
                                         onClick={() => void run(() => devResolveCurrentRound(t.id), `Round resolved.`)}
                                         disabled={busy}
-                                        className="rounded bg-amber-400 px-3 py-1 text-[11px] font-bold text-slate-950 transition hover:bg-amber-300 disabled:opacity-50"
+                                        variant="secondary" size="xs"
                                     >
                                         Resolve Round
-                                    </button>
+                                    </Button>
 
-                                    <button
+                                    <Button
                                         onClick={() => void run(() => devResolveAll(t.id), `All resolved.`)}
                                         disabled={busy}
-                                        className="rounded bg-rose-400 px-3 py-1 text-[11px] font-bold text-slate-950 transition hover:bg-rose-300 disabled:opacity-50"
+                                        variant="destructive" size="xs"
                                     >
                                         Resolve All
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}

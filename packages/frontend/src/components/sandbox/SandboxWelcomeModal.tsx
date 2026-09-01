@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 type SandboxWelcomeModalProps = {
     isOpen: boolean
     onStartCleanBoard: () => void
@@ -30,19 +31,19 @@ function SandboxWelcomeModal({
                 </p>
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <button
+                    <Button
                         onClick={onImportPosition}
-                        className="w-full rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                        variant="outline" size="lg" className="w-full"
                     >
                         Import Position
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         onClick={onStartCleanBoard}
-                        className="w-full rounded-full bg-emerald-400 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-emerald-300"
+                        variant="success" size="lg" className="w-full"
                     >
                         New Board
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

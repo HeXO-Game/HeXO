@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { useEffect, useMemo, useState } from 'react';
 
 type SandboxShareModalProps = {
@@ -108,29 +109,29 @@ function SandboxShareModal({
                 )}
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <button
+                    <Button
                         onClick={onClose}
-                        className="rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                        variant="outline" size="lg"
                     >
                         Close
-                    </button>
+                    </Button>
 
                     {isLinkReady ? (
-                        <button
+                        <Button
                             onClick={onCopy}
                             disabled={isCopying}
-                            className="rounded-full bg-violet-400 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-70"
+                            variant="violet" size="lg"
                         >
                             {isCopying ? `Copying...` : `Copy Link`}
-                        </button>
+                        </Button>
                     ) : (
-                        <button
+                        <Button
                             onClick={() => onCreate(trimmedName)}
                             disabled={Boolean(validationMessage) || isCreating}
-                            className="rounded-full bg-violet-400 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-70"
+                            variant="violet" size="lg"
                         >
                             {isCreating ? `Creating...` : `Create Link`}
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>

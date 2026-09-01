@@ -22,6 +22,7 @@ import TournamentListRoute from './routes/TournamentListRoute';
 import TournamentMultiviewRoute from './routes/TournamentMultiviewRoute';
 import TournamentRoute from './routes/TournamentRoute';
 import { useRenderMode } from './ssrState';
+import DebugButtonsRoute from './routes/DebugButtons';
 
 function AppShell() {
     const renderMode = useRenderMode();
@@ -75,6 +76,8 @@ function createAppRoutesInternal(trackPageViews: boolean) {
                     <Route path="/sandbox" element={<SandboxRoute />} />
                     <Route path="/sandbox/:positionId" element={<SandboxRoute />} />
                     <Route path="/session/:sessionId" element={<SessionRoute />} />
+
+                    <Route path="/debug/buttons" element={<DebugButtonsRoute />} />
                 </Route>
 
                 <Route element={<CommonPageLayout limitWidth={false} />}>

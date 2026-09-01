@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { AccountProfile, CreateSessionRequest, LobbyInfo, ShutdownState } from '@ih3t/shared';
 import { useState } from 'react';
 
@@ -82,38 +83,37 @@ function LobbyScreen({
                         </p>
 
                         <div className="mt-6 flex flex-col gap-4">
-                            <button
+                            <Button
+                                variant="secondary"
+                                size="lg"
                                 onClick={() => setIsCreateLobbyDialogOpen(true)}
                                 disabled={isPlayingDisabled}
-                                className={`sm:col-span-2 rounded-full px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] transition sm:px-7 sm:text-base sm:tracking-[0.18em] ${!isPlayingDisabled
-                                    ? `cursor-pointer bg-amber-300 text-slate-900 shadow-[0_10px_35px_rgba(251,191,36,0.35)] hover:-translate-y-0.5 hover:bg-amber-200`
-                                    : `cursor-not-allowed bg-slate-500/60 text-slate-200`
-                                    }`}
+                                className="sm:col-span-2"
                             >
                                 {shutdown ? `Restart Pending` : `Host Match`}
-                            </button>
+                            </Button>
 
                             <div className="grid gap-4 sm:grid-cols-2">
-                                <button
+                                <Button
                                     onClick={onOpenSandbox}
-                                    className="w-full cursor-pointer rounded-full border border-emerald-300/25 bg-emerald-400/10 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-emerald-100 transition hover:-translate-y-0.5 hover:bg-emerald-400/18 sm:px-7 sm:text-base sm:tracking-[0.18em]"
+                                    variant="success-soft" size="lg" className="w-full"
                                 >
                                     Sandbox Mode
-                                </button>
+                                </Button>
 
-                                <button
+                                <Button
                                     onClick={onViewLeaderboard}
-                                    className="w-full cursor-pointer block rounded-full border border-sky-300/25 bg-sky-400/10 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-sky-100 transition hover:-translate-y-0.5 hover:bg-sky-400/20 sm:px-7 sm:text-base sm:tracking-[0.18em]"
+                                    variant="info" size="lg" className="w-full block"
                                 >
                                     Leaderboard
-                                </button>
+                                </Button>
 
-                                <button
+                                <Button
                                     onClick={onViewTournaments}
-                                    className="w-full cursor-pointer block rounded-full border border-amber-300/25 bg-amber-300/10 px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-amber-100 transition hover:-translate-y-0.5 hover:bg-amber-300/20 sm:px-7 sm:text-base sm:tracking-[0.18em]"
+                                    variant="warning" size="lg" className="w-full block"
                                 >
                                     Tournaments
-                                </button>
+                                </Button>
                             </div>
 
                             {showClientBadges && !isConnected && (
@@ -139,10 +139,10 @@ function LobbyScreen({
                         </div>
 
                         {unreadChangelogEntries > 0 && (
-                            <button
+                            <Button
                                 type="button"
                                 onClick={onViewChangelog}
-                                className="mt-5 self-start inline-flex items-center gap-3 rounded-2xl border border-sky-300/25 bg-sky-400/10 px-4 py-3 text-left text-sm text-sky-100 transition hover:-translate-y-0.5 hover:border-sky-200/35 hover:bg-sky-400/18 hover:text-white"
+                                variant="info" size="default" className="mt-5 self-start gap-3 text-left"
                             >
                                 <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.6)]" />
 
@@ -163,7 +163,7 @@ function LobbyScreen({
                                 <span className="ml-1 shrink-0 text-sky-200/85">
                                     <ChangelogLinkIcon />
                                 </span>
-                            </button>
+                            </Button>
                         )}
                     </div>
 

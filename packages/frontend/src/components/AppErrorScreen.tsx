@@ -1,3 +1,4 @@
+import { Button, buttonVariants } from '@/components/ui/button';
 type AppErrorScreenProps = {
     badge?: string
     title: string
@@ -45,26 +46,26 @@ function AppErrorScreen({
 
                         <div className="mt-8 flex flex-wrap gap-3">
                             {onRetry && (
-                                <button
+                                <Button
                                     type="button"
                                     onClick={onRetry}
-                                    className="inline-flex items-center justify-center rounded-full bg-amber-300 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-amber-200"
+                                    variant="secondary" size="lg"
                                 >
                                     {retryLabel}
-                                </button>
+                                </Button>
                             )}
 
-                            <button
+                            <Button
                                 type="button"
                                 onClick={() => window.location.reload()}
-                                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/8 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                                variant="outline" size="lg"
                             >
                                 Reload App
-                            </button>
+                            </Button>
 
                             <a
                                 href={homeHref}
-                                className="inline-flex items-center justify-center rounded-full border border-sky-300/20 bg-sky-400/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-sky-100 transition hover:-translate-y-0.5 hover:bg-sky-400/16"
+                                className={buttonVariants({ variant: `info`, size: `lg` })}
                             >
                                 Go To Lobby
                             </a>

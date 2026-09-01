@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { GameState, SessionPlayer } from '@ih3t/shared';
 
 import { getPlayerLabel, getPlayerTileColor } from '../../utils/gameBoard';
@@ -46,19 +47,19 @@ function SandboxWinnerBanner({
                     </div>
 
                     <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                        <button
+                        <Button
                             onClick={onExploreBoard}
-                            className="rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                            variant="outline" size="lg"
                         >
                             Explore Board
-                        </button>
+                        </Button>
 
-                        <button
+                        <Button
                             onClick={onResetBoard}
-                            className="rounded-full bg-amber-300 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-amber-200"
+                            variant="secondary" size="lg"
                         >
                             Reset Board
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

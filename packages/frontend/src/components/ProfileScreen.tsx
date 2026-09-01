@@ -1,3 +1,4 @@
+import { Button, buttonVariants } from '@/components/ui/button';
 import type { AccountEloHistory, AccountStatistics, FinishedGamesPage, FinishedGameSummary, LobbyInfo, PublicAccountProfile } from '@ih3t/shared';
 import { type ReactNode, useMemo } from 'react';
 import React from 'react';
@@ -236,7 +237,7 @@ function LiveGameSection({
 
                 <Link
                     to={buildSessionPath(liveGame.id)}
-                    className="inline-flex items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-400/12 px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-emerald-50 transition hover:-translate-y-0.5 hover:bg-emerald-400/20 lg:shrink-0"
+                    className={`${buttonVariants({ variant: `success-soft`, size: `lg` })} lg:shrink-0`}
                 >
                     Watch Live Game
                 </Link>
@@ -664,12 +665,12 @@ function ProfileScreen({
                                     Sign in with Discord to view your account details and competitive standing.
                                 </p>
 
-                                <button
+                                <Button
                                     onClick={() => void handleSignIn()}
-                                    className="mt-6 rounded-full bg-[#5865F2] px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:-translate-y-0.5 hover:bg-[#6f7cff]"
+                                    variant="discord" size="lg" className="mt-6"
                                 >
                                     Sign In With Discord
-                                </button>
+                                </Button>
                             </section>
                         </div>
                     )

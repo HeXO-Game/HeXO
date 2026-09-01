@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { LobbyOptions, PlayerRatingAdjustment, SessionTournamentInfo, ShutdownState } from '@ih3t/shared';
 import { DRAW_REQUEST_MIN_TURNS } from '@ih3t/shared';
 import { useState } from 'react';
@@ -140,30 +141,30 @@ function GameScreenHud({
     if (!isSpectator && localPlayerId && !tournament) {
         if (requestedByLocalPlayer) {
             drawActionArea = (
-                <button
+                <Button
                     disabled
-                    className="min-w-36 flex-1 rounded-full border border-white/15 bg-white/8 px-4 py-2 font-medium text-slate-300 md:flex-none"
+                    variant="outline" size="sm" className="min-w-36"
                 >
                     Waiting For Reply
-                </button>
+                </Button>
             );
         } else if (requestedByOpponent) {
             hideSurrenderButton = true;
             drawActionArea = (
                 <React.Fragment>
-                    <button
+                    <Button
                         onClick={onDeclineDraw}
-                        className="min-w-36 flex-1 rounded-full border border-amber-300/25 bg-amber-400/10 px-4 py-2 font-medium text-amber-50 shadow-lg hover:bg-amber-400/20 md:flex-none"
+                        variant="warning" size="sm" className="min-w-36"
                     >
                         Decline Draw
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         onClick={onAcceptDraw}
-                        className="min-w-36 flex-1 rounded-full bg-emerald-500 px-4 py-2 font-medium shadow-lg hover:bg-emerald-400 md:flex-none"
+                        variant="success" size="sm" className="min-w-36"
                     >
                         Accept Draw
-                    </button>
+                    </Button>
                 </React.Fragment>
             );
         } else if (turnsUntilDrawRequest > 0) {
@@ -173,16 +174,16 @@ function GameScreenHud({
 
             drawActionArea = (
                 <div className="group relative min-w-36 flex-1 md:flex-none">
-                    <button
+                    <Button
                         onClick={() => {
                             if (isMobilePointer()) {
                                 showDrawUnavailableToast(turnsUntilDrawRequest);
                             }
                         }}
-                        className="w-full rounded-full border border-white/15 bg-white/8 px-4 py-2 font-medium text-slate-300 md:flex-none"
+                        variant="outline" size="sm" className="w-full"
                     >
                         Draw
-                    </button>
+                    </Button>
 
                     <div className="pointer-events-none absolute bottom-full left-1/2 z-20 hidden w-60 -translate-x-1/2 pb-2 group-hover:block">
                         <div className="rounded-2xl border border-slate-200/15 bg-slate-950/95 px-3 py-2 text-xs leading-5 text-slate-200 shadow-[0_14px_40px_rgba(2,6,23,0.55)] backdrop-blur">
@@ -201,12 +202,12 @@ function GameScreenHud({
             );
         } else {
             drawActionArea = (
-                <button
+                <Button
                     onClick={onRequestDraw}
-                    className="min-w-36 flex-1 rounded-full bg-white/12 px-4 py-2 font-medium text-white shadow-lg hover:bg-white/18 md:flex-none"
+                    variant="outline" size="sm" className="min-w-36"
                 >
                     Draw
-                </button>
+                </Button>
             );
         }
     }
@@ -431,23 +432,23 @@ function GameScreenHud({
 
                 <div className="pointer-events-auto mt-4 gap-2 grid grid-cols-2 items-end">
                     {!hideSurrenderButton && (
-                        <button
+                        <Button
                             onClick={onLeave}
-                            className="min-w-36 flex-1 rounded-full bg-red-500 px-4 py-2 font-medium shadow-lg hover:bg-red-400 md:flex-none"
+                            variant="destructive" size="sm" className="min-w-36"
                         >
                             {leaveLabel}
-                        </button>
+                        </Button>
                     )}
 
                     {drawActionArea}
                     {drawActionArea && (<div />)}
 
-                    <button
+                    <Button
                         onClick={onResetView}
-                        className="min-w-36 flex-1 rounded-full bg-sky-600 px-4 py-2 font-medium shadow-lg hover:bg-sky-500 md:flex-none"
+                        variant="default" size="sm" className="min-w-36"
                     >
                         Reset View
-                    </button>
+                    </Button>
                 </div>
             </GameHudShell>
         </React.Fragment>

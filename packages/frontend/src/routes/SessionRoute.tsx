@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { createEmptyGameState, SessionId } from '@ih3t/shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useBeforeUnload, useBlocker, useNavigate, useParams } from 'react-router';
@@ -65,12 +66,12 @@ function SessionConnectingScreen({ sessionId, isConnected, onBack }: Readonly<{
                         : `Reconnecting to the server so this session can be restored.`}
                 </p>
 
-                <button
+                <Button
                     onClick={onBack}
-                    className="mt-8 rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                    variant="outline" size="lg" className="mt-8"
                 >
                     Back To Lobby
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -111,19 +112,19 @@ function SessionUnavailableScreen({
                 </p>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <button
+                    <Button
                         onClick={onPrimaryAction}
-                        className="rounded-full bg-amber-300 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-900 transition hover:-translate-y-0.5 hover:bg-amber-200"
+                        variant="secondary" size="lg"
                     >
                         {primaryActionLabel}
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         onClick={onBack}
-                        className="rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                        variant="outline" size="lg"
                     >
                         Back To Lobby
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -155,23 +156,23 @@ function ConfirmLeaveSessionModal({ onStay, onLeave }: Readonly<{
                 </p>
 
                 <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                    <button
+                    <Button
                         onClick={onStay}
-                        className="rounded-full cursor-pointer border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                        variant="outline" size="lg"
                     >
                         Stay In Match
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         onClick={onLeave}
-                        className="rounded-full cursor-pointer bg-rose-500 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-rose-400"
+                        variant="destructive" size="lg"
                     >
                         {`Surrender `}
 
                         <span className="hidden sm:inline">
                             And Leave
                         </span>
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -440,12 +441,12 @@ function SessionRoute() {
                         /2
                     </div>
 
-                    <button
+                    <Button
                         onClick={leaveSessionAndNavigate}
-                        className="mt-6 text-sm text-slate-500 transition hover:text-white"
+                        variant="ghost" size="bare" className="mt-6"
                     >
                         Leave
-                    </button>
+                    </Button>
                 </div>
             );
         } else {
@@ -506,8 +507,8 @@ function SessionRoute() {
         }
 
         /*
-         * Game state can be null if not yet received and game has finished. 
-         * Opting in to show the finish overlay already with an empty game in the background 
+         * Game state can be null if not yet received and game has finished.
+         * Opting in to show the finish overlay already with an empty game in the background
          */
         const gameState = session.gameState ?? kEmptyGameState;
 

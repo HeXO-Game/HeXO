@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type {
     CreateTournamentRequest,
     TournamentDetail,
@@ -55,19 +56,17 @@ function Pill<T extends string>({ value, options, onChange, disabled }: {
     return (
         <div className="inline-flex rounded-lg border border-white/8 bg-slate-950/60 p-0.5">
             {options.map((o) => (
-                <button
+                <Button
                     key={o.value}
                     type="button"
+                    variant="tab"
+                    size="xs"
+                    aria-pressed={value === o.value}
                     disabled={disabled}
                     onClick={() => onChange(o.value)}
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
-                        value === o.value
-                            ? `bg-white/12 text-white shadow-sm`
-                            : `text-slate-400 hover:text-slate-200`
-                    } disabled:cursor-not-allowed disabled:opacity-40`}
                 >
                     {o.label}
-                </button>
+                </Button>
             ))}
         </div>
     );
@@ -341,11 +340,10 @@ function TournamentEditorCard({
                 ) : (
                     <div className="inline-flex rounded-lg border border-white/8 bg-slate-950/60 p-0.5">
                         {[4, 8, 16, 32, 64, 128, 256].map((n) => (
-                            <button key={n} type="button" onClick={() => set(`maxPlayers`, String(n))}
-                                className={`rounded-md px-2 py-1 text-[11px] font-medium tabular-nums transition ${
-                                    f.maxPlayers === String(n) ? `bg-white/12 text-white shadow-sm` : `text-slate-400 hover:text-slate-200`}`}>
+                            <Button key={n} type="button" variant="tab" size="xs"
+                                aria-pressed={f.maxPlayers === String(n)} onClick={() => set(`maxPlayers`, String(n))}>
                                 {n}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 )}
@@ -492,10 +490,10 @@ function TournamentEditorCard({
 
             {/* Submit */}
             <div className="flex justify-end border-t border-white/6 pt-3">
-                <button type="button" onClick={submit} disabled={submitting || f.name.trim().length < 3}
-                    className="rounded-full bg-amber-300 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-slate-950 shadow-[0_4px_14px_rgba(251,191,36,0.3)] transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none">
+                <Button type="button" onClick={submit} disabled={submitting || f.name.trim().length < 3}
+                    variant="secondary" size="sm">
                     {submitting ? `Saving...` : submitLabel}
-                </button>
+                </Button>
             </div>
         </div>
     );

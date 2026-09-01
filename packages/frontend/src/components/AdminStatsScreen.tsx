@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type {
     AdminActiveGamesTimeline,
     AdminLongestGameInDuration,
@@ -116,12 +117,12 @@ function LongestGameCard({
                         {formatDateTime(intlFormatProvider, game.finishedAt)}
                     </div>
 
-                    <button
+                    <Button
                         onClick={() => onOpenGame(game.gameId)}
-                        className="mt-3 rounded-full border border-sky-300/25 bg-sky-400/10 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.15em] text-sky-100 transition hover:bg-sky-400/20"
+                        variant="info" size="sm" className="mt-3"
                     >
                         Open Replay
-                    </button>
+                    </Button>
                 </>
             ) : (
                 <div className="mt-2 text-sm leading-5 text-slate-400">

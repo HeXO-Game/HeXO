@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { CreateTournamentRequest, TournamentSummary, TournamentUpcomingMatch } from '@ih3t/shared';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -126,21 +127,21 @@ function WeeklyCalendar({ tournaments, upcomingMatches, onNavigate }: {
         <div className="rounded-2xl border border-white/8 bg-slate-950/50">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/6 px-4 py-3">
-                <button type="button" onClick={() => setWeekOffset((w) => w - 1)}
-                    className="rounded-lg px-2 py-1 text-[11px] text-slate-400 transition hover:bg-white/6 hover:text-white">
+                <Button type="button" onClick={() => setWeekOffset((w) => w - 1)}
+                    variant="outline" size="xs">
                     &larr;
-                </button>
+                </Button>
                 <div className="text-center">
                     <div className="text-[13px] font-bold text-white">{weekLabel}</div>
                     {!isCurrentWeek && (
-                        <button type="button" onClick={() => setWeekOffset(0)}
-                            className="text-[9px] text-sky-400 transition hover:text-sky-300">Return to This Week</button>
+                        <Button type="button" onClick={() => setWeekOffset(0)}
+                            variant="link" size="bare">Return to This Week</Button>
                     )}
                 </div>
-                <button type="button" onClick={() => setWeekOffset((w) => w + 1)}
-                    className="rounded-lg px-2 py-1 text-[11px] text-slate-400 transition hover:bg-white/6 hover:text-white">
+                <Button type="button" onClick={() => setWeekOffset((w) => w + 1)}
+                    variant="outline" size="xs">
                     &rarr;
-                </button>
+                </Button>
             </div>
 
             {/* Day headers */}
@@ -241,17 +242,17 @@ function TournamentCard({ tournament, onClick, onUnsubscribe }: {
 
             {/* Unsubscribe */}
             {onUnsubscribe && !confirmUnsub && (
-                <button type="button" onClick={(e) => { e.stopPropagation(); setConfirmUnsub(true); }}
-                    className="absolute right-2.5 top-2.5 rounded-md bg-white/4 px-2 py-0.5 text-[9px] font-semibold text-slate-500 opacity-0 transition hover:bg-white/8 hover:text-slate-300 group-hover:opacity-100">
+                <Button type="button" onClick={(e) => { e.stopPropagation(); setConfirmUnsub(true); }}
+                    variant="ghost" size="xs" className="absolute right-2.5 top-2.5 opacity-0 group-hover:opacity-100">
                     &times;
-                </button>
+                </Button>
             )}
             {onUnsubscribe && confirmUnsub && (
                 <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <button type="button" onClick={() => { setConfirmUnsub(false); onUnsubscribe(); }}
-                        className="rounded-md bg-rose-500/60 px-2 py-1 text-[10px] font-semibold text-white transition hover:bg-rose-500">Yes</button>
-                    <button type="button" onClick={() => setConfirmUnsub(false)}
-                        className="rounded-md bg-white/8 px-2 py-1 text-[10px] text-slate-300 transition hover:bg-white/14">No</button>
+                    <Button type="button" onClick={() => { setConfirmUnsub(false); onUnsubscribe(); }}
+                        variant="destructive" size="xs">Yes</Button>
+                    <Button type="button" onClick={() => setConfirmUnsub(false)}
+                        variant="outline" size="xs">No</Button>
                 </span>
             )}
         </div>
@@ -426,13 +427,13 @@ function TournamentListRoute() {
 
                             {pastPageCount > 1 && (
                                 <div className="mt-3 flex items-center justify-center gap-3 text-[10px] text-slate-500">
-                                    <button type="button" disabled={pastPage <= 1}
+                                    <Button type="button" disabled={pastPage <= 1}
                                         onClick={() => setPastPage((p) => Math.max(1, p - 1))}
-                                        className="rounded px-2 py-0.5 transition hover:text-white disabled:opacity-30">Prev</button>
+                                        variant="ghost" size="xs">Prev</Button>
                                     <span className="tabular-nums">{pastPage} / {pastPageCount}</span>
-                                    <button type="button" disabled={pastPage >= pastPageCount}
+                                    <Button type="button" disabled={pastPage >= pastPageCount}
                                         onClick={() => setPastPage((p) => p + 1)}
-                                        className="rounded px-2 py-0.5 transition hover:text-white disabled:opacity-30">Next</button>
+                                        variant="ghost" size="xs">Next</Button>
                                 </div>
                             )}
                         </div>}
@@ -449,59 +450,59 @@ function TournamentListRoute() {
                         {import.meta.env.DEV && acct && (
                             <div className="grid gap-2">
                                 <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">16-Player Seal Bot Tests</div>
-                                <button
+                                <Button
                                     type="button"
                                     onClick={() => void handleQuickSealBot16Create(`swiss`)}
                                     disabled={quickSealBot16Creating !== null}
-                                    className="w-full rounded-lg border border-dashed border-violet-400/30 bg-violet-400/6 px-3 py-2 text-[11px] font-semibold text-violet-300 transition hover:bg-violet-400/12 disabled:opacity-40"
+                                    variant="info" size="sm" className="w-full"
                                 >
                                     {quickSealBot16Creating === `swiss` ? `Creating...` : `Swiss 16P — Seal Bots`}
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="button"
                                     onClick={() => void handleQuickSealBot16Create(`single-elimination`)}
                                     disabled={quickSealBot16Creating !== null}
-                                    className="w-full rounded-lg border border-dashed border-teal-400/30 bg-teal-400/6 px-3 py-2 text-[11px] font-semibold text-teal-300 transition hover:bg-teal-400/12 disabled:opacity-40"
+                                    variant="success-soft" size="sm" className="w-full"
                                 >
                                     {quickSealBot16Creating === `single-elimination` ? `Creating...` : `Single Elim 16P — Seal Bots`}
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="button"
                                     onClick={() => void handleQuickSealBot16Create(`double-elimination`)}
                                     disabled={quickSealBot16Creating !== null}
-                                    className="w-full rounded-lg border border-dashed border-sky-400/30 bg-sky-400/6 px-3 py-2 text-[11px] font-semibold text-sky-300 transition hover:bg-sky-400/12 disabled:opacity-40"
+                                    variant="info" size="sm" className="w-full"
                                 >
                                     {quickSealBot16Creating === `double-elimination` ? `Creating...` : `Double Elim 16P — Seal Bots`}
-                                </button>
+                                </Button>
 
                                 <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mt-1">Other</div>
-                                <button
+                                <Button
                                     type="button"
                                     onClick={() => void handleQuickSealBotCreate()}
                                     disabled={quickSealBotCreating}
-                                    className="w-full rounded-lg border border-dashed border-sky-300/30 bg-sky-300/6 px-3 py-2 text-[11px] font-semibold text-sky-200 transition hover:bg-sky-300/12 disabled:opacity-40"
+                                    variant="info" size="sm" className="w-full"
                                 >
                                     {quickSealBotCreating ? `Creating...` : `Double Elim 8P — Seal Bots`}
-                                </button>
+                                </Button>
 
-                                <button
+                                <Button
                                     type="button" onClick={() => void handleQuickCreate()} disabled={quickCreating}
-                                    className="w-full rounded-lg border border-dashed border-amber-400/30 bg-amber-400/5 px-3 py-2 text-[11px] font-semibold text-amber-300 transition hover:bg-amber-400/10 disabled:opacity-40"
+                                    variant="warning" size="sm" className="w-full"
                                 >
                                     {quickCreating ? `Creating...` : `Quick Create 256-Player Tournament`}
-                                </button>
+                                </Button>
                             </div>
                         )}
 
                         {acct ? (
                             <>
                                 {!showCreateForm && (
-                                    <button
+                                    <Button
                                         type="button" onClick={() => setShowCreateForm(true)}
-                                        className="w-full rounded-xl border border-dashed border-white/10 bg-slate-900/40 px-4 py-4 text-center text-[12px] font-semibold text-slate-400 transition hover:border-white/20 hover:bg-slate-900/60 hover:text-white"
+                                        variant="outline" size="sm" className="w-full text-center"
                                     >
                                         + Create Tournament
-                                    </button>
+                                    </Button>
                                 )}
                                 {showCreateForm && (
                                     <div>
@@ -512,12 +513,12 @@ function TournamentListRoute() {
                                             submitLabel="Create" submitting={submitting}
                                             onSubmit={(request) => void handleCreate(request)}
                                         />
-                                        <button
+                                        <Button
                                             type="button" onClick={() => setShowCreateForm(false)}
-                                            className="mt-2 w-full text-center text-[10px] text-slate-600 transition hover:text-slate-400"
+                                            variant="ghost" size="bare" className="mt-2 w-full text-center"
                                         >
                                             Cancel
-                                        </button>
+                                        </Button>
                                     </div>
                                 )}
                             </>

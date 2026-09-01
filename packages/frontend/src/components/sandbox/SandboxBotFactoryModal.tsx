@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { SandboxBotEngineInfo } from "../../sandbox/botLoader";
 
 type SandboxBotFactoryModalProps = {
@@ -51,18 +52,18 @@ function SandboxBotFactoryModal({
                         </div>
                     </div>
 
-                    <button
+                    <Button
                         type="button"
                         onClick={onClose}
                         aria-label="Close bot engine picker"
                         title="Close bot engine picker"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-700/95 shadow-lg transition hover:bg-slate-600"
+                        variant="muted" size="icon"
                     >
                         <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                             <path d="M6 6 18 18" />
                             <path d="M18 6 6 18" />
                         </svg>
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="mt-5 grid gap-3">
@@ -104,13 +105,13 @@ function SandboxBotFactoryModal({
                 </div>
 
                 {selectedEngine && (
-                    <button
+                    <Button
                         type="button"
                         onClick={() => onSelectBotFactory(null)}
-                        className="rounded-full mt-6 cursor-pointer bg-rose-500/75 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-rose-400 ml-auto"
+                        variant="destructive" size="lg" className="mt-6 ml-auto"
                     >
                         Disable Bot Engine
-                    </button>
+                    </Button>
                 )}
 
             </section>

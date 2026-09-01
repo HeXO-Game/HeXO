@@ -1,3 +1,4 @@
+import { buttonVariants } from '@/components/ui/button';
 import { Link } from 'react-router';
 
 import PageCorpus from './PageCorpus';
@@ -138,14 +139,14 @@ function RulesScreen() {
                         <div className="flex flex-col gap-3 sm:flex-row">
                             <Link
                                 to="/sandbox"
-                                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/8 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                                className={buttonVariants({ variant: `outline`, size: `lg` })}
                             >
                                 Open Sandbox
                             </Link>
 
                             <Link
                                 to="/"
-                                className="inline-flex items-center justify-center rounded-full bg-amber-300 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-amber-200"
+                                className={buttonVariants({ variant: `secondary`, size: `lg` })}
                             >
                                 Find a game
                             </Link>

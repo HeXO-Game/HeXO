@@ -1,3 +1,4 @@
+import { Button, buttonVariants } from '@/components/ui/button';
 import type { SessionPlayer, SessionStateFinished } from '@ih3t/shared';
 import { NavLink } from 'react-router';
 
@@ -71,18 +72,18 @@ function GameOverlayFinishedSpectator({
                         <div className="mt-6 flex flex-col gap-3">
                             <NavLink
                                 to={buildFinishedGamePath(state.gameId)}
-                                className="block w-full rounded-2xl border border-sky-200/25 bg-sky-950/55 px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-sky-950/80"
+                                className={`${buttonVariants({ variant: `info`, size: `xl` })} w-full`}
                                 target="_blank"
                             >
                                 Review Game
                             </NavLink>
 
-                            <button
+                            <Button
                                 onClick={onReturnToLobby}
-                                className="w-full rounded-2xl border border-white/15 px-5 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/10"
+                                variant="outline" size="xl" className="w-full"
                             >
                                 Return To Lobby
-                            </button>
+                            </Button>
                         </div>
                     </aside>
                 </div>

@@ -1,3 +1,4 @@
+import { Button, buttonVariants } from '@/components/ui/button';
 import type { GameState, LobbyOptions, SessionPlayer } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
@@ -288,32 +289,32 @@ function TournamentMultiviewTile({
                 </div>
 
                 <div className="flex flex-wrap items-center justify-end gap-2">
-                    <button
+                    <Button
                         onClick={() => onMove(tile.sessionId, -1)}
                         disabled={!tile.canMoveLeft}
-                        className="rounded-full border border-white/10 bg-white/6 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-300 transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-35"
+                        variant="outline" size="xs"
                     >
                         Move Left
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         onClick={() => onMove(tile.sessionId, 1)}
                         disabled={!tile.canMoveRight}
-                        className="rounded-full border border-white/10 bg-white/6 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-300 transition hover:bg-white/12 disabled:cursor-not-allowed disabled:opacity-35"
+                        variant="outline" size="xs"
                     >
                         Move Right
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         onClick={() => onRemove(tile.sessionId)}
-                        className="rounded-full border border-rose-300/15 bg-rose-300/8 px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-rose-100 transition hover:bg-rose-300/14"
+                        variant="destructive-soft" size="xs"
                     >
                         Remove
-                    </button>
+                    </Button>
 
                     <Link
                         to={`/session/${tile.sessionId}`}
-                        className="rounded-full bg-sky-300 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-200"
+                        className={buttonVariants({ variant: `default`, size: `xxs` })}
                     >
                         Open Full View
                     </Link>
@@ -333,12 +334,12 @@ function TournamentMultiviewTile({
                         {({ resetView }) => (
                             <>
                                 <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-end gap-3 p-3">
-                                    <button
+                                    <Button
                                         onClick={resetView}
-                                        className="pointer-events-auto rounded-full border border-white/10 bg-slate-950/78 px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:bg-slate-900"
+                                        variant="outline" size="xs" className="pointer-events-auto"
                                     >
                                         Reset View
-                                    </button>
+                                    </Button>
                                 </div>
 
                                 {tile.status === `finished` && (
@@ -360,7 +361,7 @@ function TournamentMultiviewTile({
                                                 {tile.reviewPath && (
                                                     <Link
                                                         to={tile.reviewPath}
-                                                        className="rounded-full border border-sky-200/22 bg-sky-950/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-sky-950/80"
+                                                        className={buttonVariants({ variant: `info`, size: `xs` })}
                                                     >
                                                         Review Game
                                                     </Link>
@@ -368,17 +369,17 @@ function TournamentMultiviewTile({
 
                                                 <Link
                                                     to={`/session/${tile.sessionId}`}
-                                                    className="rounded-full border border-white/12 bg-white/7 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white transition hover:bg-white/12"
+                                                    className={buttonVariants({ variant: `outline`, size: `xs` })}
                                                 >
                                                     Open Full View
                                                 </Link>
 
-                                                <button
+                                                <Button
                                                     onClick={resetView}
-                                                    className="rounded-full border border-white/12 bg-white/7 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-200 transition hover:bg-white/12"
+                                                    variant="outline" size="sm"
                                                 >
                                                     Reset View
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
@@ -459,12 +460,12 @@ function TournamentMultiviewScreen({
                         <span>Desktop only</span>
                     </div>
 
-                    <button
+                    <Button
                         onClick={onRefresh}
-                        className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-300 transition hover:bg-white/12 hover:text-white"
+                        variant="outline" size="sm"
                     >
                         Refresh
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -500,30 +501,28 @@ function TournamentMultiviewScreen({
                                     /4 selected
                                 </div>
 
-                                <button
+                                <Button
                                     onClick={() => setIsSelectorCollapsed(currentState => !currentState)}
-                                    className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/12 hover:text-white"
+                                    variant="outline" size="xs"
                                 >
                                     {isSelectorCollapsed ? `Show Selector` : `Hide Selector`}
-                                </button>
+                                </Button>
                             </div>
                         </div>
 
                         {!isSelectorCollapsed && (
                             <div className="mt-4 flex flex-wrap gap-1.5">
                                 {availableMatches.length > 0 ? availableMatches.map((match) => (
-                                    <button
+                                    <Button
                                         key={match.sessionId}
+                                        variant={match.isSelected ? `success-soft` : `info`}
+                                        size="xs"
+                                        aria-pressed={match.isSelected}
                                         onClick={() => onAddMatch(match.sessionId)}
                                         disabled={match.isDisabled}
-                                        className={`rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] transition ${match.isSelected
-                                            ? `border-emerald-300/20 bg-emerald-300/10 text-emerald-100`
-                                            : match.isDisabled
-                                                ? `border-white/8 bg-white/4 text-slate-600`
-                                                : `border-sky-300/20 bg-sky-300/10 text-sky-100 hover:bg-sky-300/18`}`}
                                     >
                                         {match.isSelected ? `${match.matchLabel} added` : `Add ${match.matchLabel}`}
-                                    </button>
+                                    </Button>
                                 )) : (
                                     <div className="rounded-full border border-dashed border-white/10 px-4 py-2 text-[11px] text-slate-500">
                                         No live matches are available right now.

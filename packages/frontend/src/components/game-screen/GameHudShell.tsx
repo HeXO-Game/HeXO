@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { ReactNode, Ref } from 'react';
 
 import { cn } from '../../utils/cn';
@@ -39,15 +40,15 @@ function GameHudShell({
     if (!isOpen) {
         /* just render as icon */
         return (
-            <button
+            <Button
                 type="button"
                 onClick={onOpen}
                 title={openTitle}
-                className="relative cursor-pointer pointer-events-auto self-end flex mr-3 mb-3 h-10 w-10 items-center justify-center rounded-full bg-slate-700/95 text-white shadow-lg transition hover:bg-slate-600"
+                variant="muted" size="icon" className="relative pointer-events-auto self-end mr-3 mb-3"
             >
                 {openIcon}
                 {openButtonBadge}
-            </button>
+            </Button>
         );
     }
 
@@ -72,14 +73,14 @@ function GameHudShell({
             )}
         >
             <div className="pointer-events-auto absolute right-3 top-3 z-10">
-                <button
+                <Button
                     type="button"
                     onClick={onClose}
                     title={closeTitle}
-                    className="flex cursor-pointer h-10 w-10 items-center justify-center rounded-full bg-slate-700/95 shadow-lg transition hover:bg-slate-600"
+                    variant="muted" size="icon"
                 >
                     <CloseIcon />
-                </button>
+                </Button>
             </div>
 
             {children}

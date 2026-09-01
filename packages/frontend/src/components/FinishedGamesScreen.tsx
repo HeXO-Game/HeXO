@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { FinishedGamesPage, FinishedGameSummary } from '@ih3t/shared';
 
 import type { FinishedGamesArchiveView, FinishedGamesRatedFilter } from '../query/queryDefinitions';
@@ -267,38 +268,36 @@ function FinishedGamesScreen({
 
                             <div className="@container shrink-0">
                                 <div className="grid grid-cols-2 @min-[25em]:flex items-center justify-between gap-2 overflow-visible pb-1 sm:gap-3">
-                                    <button
+                                    <Button
                                         onClick={() => onChangePage(currentPage - 1)}
                                         disabled={currentPage <= 1}
-                                        className="shrink-0 w-[10em] rounded-full border border-white/15 bg-white/8 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:-translate-y-0.5 hover:bg-white/14 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 sm:px-5 sm:py-3 sm:text-sm sm:tracking-[0.18em]"
+                                        variant="outline" size="sm" className="w-[10em]"
                                     >
                                         Previous
-                                    </button>
+                                    </Button>
 
                                     <div className="row-start-2 col-span-2 flex flex-1 flex-nowrap justify-center gap-1 sm:gap-2">
                                         {visiblePageNumbers.map((pageNumber) => (
-                                            <button
+                                            <Button
                                                 key={pageNumber}
+                                                variant={pageNumber === currentPage ? `secondary` : `outline`}
+                                                size="sm"
                                                 onClick={() => onChangePage(pageNumber)}
                                                 aria-current={pageNumber === currentPage ? `page` : undefined}
-                                                className={
-                                                    `cursor-pointer min-w-8 shrink-0 rounded-full px-2.5 py-2.5 text-[11px] font-semibold transition sm:min-w-11 sm:px-4 sm:py-3 sm:text-sm ${pageNumber === currentPage
-                                                        ? `bg-amber-300 text-slate-950`
-                                                        : `border border-white/15 bg-white/8 text-white hover:-translate-y-0.5 hover:bg-white/14`}`
-                                                }
+                                                className="min-w-8 sm:min-w-11"
                                             >
                                                 {pageNumber}
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
 
-                                    <button
+                                    <Button
                                         onClick={() => onChangePage(currentPage + 1)}
                                         disabled={currentPage >= totalPages}
-                                        className="ml-auto shrink-0 w-[10em] rounded-full border border-white/15 bg-white/8 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-white transition hover:-translate-y-0.5 hover:bg-white/14 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 sm:px-5 sm:py-3 sm:text-sm sm:tracking-[0.18em]"
+                                        variant="outline" size="sm" className="ml-auto w-[10em]"
                                     >
                                         Next
-                                    </button>
+                                    </Button>
                                 </div>
 
                                 <div className="mt-3 text-xs text-slate-400 sm:text-right sm:text-sm">

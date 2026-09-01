@@ -1,3 +1,4 @@
+import { Button, buttonVariants } from '@/components/ui/button';
 import { CSSProperties, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { toast } from 'react-toastify';
@@ -89,7 +90,7 @@ function DiscordLink({
             target="_blank"
             rel="noreferrer"
             aria-label="Open the official Discord server in a new tab"
-            className={`inline-flex items-center justify-center gap-2 rounded-lg border border-sky-300/20 bg-slate-900/70 px-3 py-2 text-xs font-medium text-sky-100 transition hover:border-sky-300/40 hover:bg-sky-400/10 hover:text-white sm:px-4 sm:text-sm ${className}`.trim()}
+            className={cn(buttonVariants({ variant: `info`, size: `sm` }), className)}
         >
             <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 shrink-0 stroke-current sm:h-4.5 sm:w-4.5">
                 <path
@@ -233,12 +234,12 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                             </div>
                         ) : account ? (
                             <div className="self-start lg:relative lg:self-auto">
-                                <button
+                                <Button
                                     type="button"
                                     aria-haspopup="menu"
                                     aria-expanded={isAccountMenuOpen}
                                     onClick={() => { setIsAccountMenuOpen((open) => !open); setIsMobileMenuOpen(false); }}
-                                    className="inline-flex items-center gap-3 rounded-lg p-3 text-left transition cursor-pointer hover:bg-sky-400/8"
+                                    variant="ghost" size="default" className="gap-3 text-left"
                                 >
                                     <AccountPicture username={account.username} image={account.image} />
 
@@ -266,7 +267,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                             strokeWidth="1.8"
                                         />
                                     </svg>
-                                </button>
+                                </Button>
 
                                 {isAccountMenuOpen && (
                                     <div className="border-t mt-2 lg:mt-4 border-white/10 px-4 py-4 sm:px-6 absolute bg-slate-950 lg:p-0 lg:border-none lg:bg-transparent right-0 left-0 lg:left-auto lg:w-[18em] lg:text-right z-50">
@@ -289,38 +290,38 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                             )}
 
                                             <div className="mt-2 border-t border-amber-300/10 pt-2">
-                                                <button
+                                                <Button
                                                     type="button"
                                                     onClick={() => {
                                                         setIsAccountMenuOpen(false);
                                                         void handleSignOut();
                                                     }}
-                                                    className="block cursor-pointer w-full rounded-xl px-3 py-2.5 text-left lg:text-right text-sm text-rose-100 transition hover:bg-rose-500/10"
+                                                    variant="destructive-soft" size="sm" className="block w-full text-left lg:text-right"
                                                 >
                                                     Logout
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <button
+                            <Button
                                 type="button"
                                 aria-label="Sign In With Discord"
                                 onClick={() => void handleSignIn()}
-                                className="inline-flex self-start items-center gap-2 rounded-lg bg-[#5865F2] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#6f7cff] sm:px-4 sm:text-sm lg:self-auto"
+                                variant="discord" size="sm" className="self-start lg:self-auto"
                             >
                                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-current sm:h-4.5 sm:w-4.5">
                                     <path d="M20.32 4.37A18.13 18.13 0 0 0 15.8 3a12.2 12.2 0 0 0-.58 1.18 16.56 16.56 0 0 0-6.43 0A12.2 12.2 0 0 0 8.21 3a18.05 18.05 0 0 0-4.53 1.37C.81 8.65.03 12.83.42 16.96A18.24 18.24 0 0 0 5.98 19.8c.45-.61.85-1.26 1.2-1.95-.66-.25-1.3-.56-1.9-.92.16-.12.31-.25.46-.38 3.67 1.69 7.65 1.69 11.27 0 .15.13.3.26.46.38-.61.36-1.25.67-1.91.92.35.69.75 1.34 1.2 1.95a18.17 18.17 0 0 0 5.57-2.84c.45-4.79-.77-8.93-3.66-12.59ZM8.68 14.46c-1.1 0-2-.99-2-2.21s.88-2.21 2-2.21c1.11 0 2.01 1 2 2.21 0 1.22-.89 2.21-2 2.21Zm6.64 0c-1.1 0-2-.99-2-2.21s.88-2.21 2-2.21c1.11 0 2.01 1 2 2.21 0 1.22-.89 2.21-2 2.21Z" />
                                 </svg>
 
                                 Sign In
-                            </button>
+                            </Button>
                         )}
                     </div>
 
-                    <button
+                    <Button
                         type="button"
                         aria-label={isMobileMenuOpen ? `Close navigation menu` : `Open navigation menu`}
                         aria-expanded={isMobileMenuOpen}
@@ -328,7 +329,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                             setIsAccountMenuOpen(false);
                             setIsMobileMenuOpen((open) => !open);
                         }}
-                        className="xl:hidden cursor-pointer h-15 w-15 inline-flex items-center justify-center rounded-lg text-amber-50 transition hover:bg-sky-400/8"
+                        variant="ghost" size="icon-xl" className="xl:hidden"
                     >
                         <svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5">
                             {isMobileMenuOpen ? (
@@ -349,7 +350,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                 />
                             )}
                         </svg>
-                    </button>
+                    </Button>
                 </div>
 
                 {isMobileMenuOpen && (

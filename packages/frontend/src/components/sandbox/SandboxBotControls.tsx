@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { BotEngineCapabilities, SandboxPlayerSlot } from '@ih3t/shared';
 import React, { useEffect, useState } from 'react';
 
@@ -111,33 +112,27 @@ function SandboxBotControls({
                             </div>
 
                             <div className="mt-3 grid grid-cols-2 gap-2">
-                                <button
+                                <Button
                                     type="button"
+                                    variant="card"
+                                    size="sm"
+                                    aria-pressed={selectedMode === `human`}
                                     disabled={controlsDisabled}
                                     onClick={() => onPlayerModeChange(playerOption.slot, `human`)}
-                                    className={`rounded-[0.9rem] border px-3 py-2 text-sm font-medium transition ${selectedMode === `human`
-                                        ? controlsDisabled
-                                            ? `border-white/10 bg-white/6 text-slate-200`
-                                            : `border-emerald-300/35 bg-emerald-300/10 text-white`
-                                        : `border-white/10 bg-white/6 text-slate-200 hover:bg-white/10`
-                                    }`}
                                 >
                                     Human
-                                </button>
+                                </Button>
 
-                                <button
+                                <Button
                                     type="button"
+                                    variant="card"
+                                    size="sm"
+                                    aria-pressed={selectedMode === `bot`}
                                     onClick={() => onPlayerModeChange(playerOption.slot, `bot`)}
                                     disabled={botButtonDisabled}
-                                    className={`rounded-[0.9rem] border px-3 py-2 text-sm font-medium transition ${selectedMode === `bot`
-                                        ? `border-sky-300/35 bg-sky-300/10 text-white`
-                                        : botButtonDisabled
-                                            ? `cursor-not-allowed border-white/8 bg-white/4 text-slate-500`
-                                            : `border-white/10 bg-white/6 text-slate-200 hover:bg-white/10`
-                                    }`}
                                 >
                                     Bot
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     );

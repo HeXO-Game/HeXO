@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { AccountProfile } from '@ih3t/shared';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
@@ -95,13 +96,13 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
 
     return (
         <div className="relative self-start lg:self-auto">
-            <button
+            <Button
                 type="button"
                 onClick={handleToggle}
-                className="inline-flex items-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100 transition hover:bg-emerald-400/18 sm:text-[11px]"
+                variant="success-soft" size="sm"
             >
                 {account ? `Switch Mock User` : `Mock Sign In`}
-            </button>
+            </Button>
 
             {isOpen && (
                 <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[22rem] max-w-[calc(100vw-2rem)] rounded-[1.5rem] border border-emerald-300/18 bg-slate-950/95 p-4 shadow-[0_20px_60px_rgba(2,6,23,0.5)] backdrop-blur-xl">
@@ -157,14 +158,14 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
                     </div>
 
                     {account && (
-                        <button
+                        <Button
                             type="button"
                             onClick={() => void handleSignOut()}
                             disabled={pendingUserId === `logout`}
-                            className="mt-4 w-full rounded-full border border-rose-300/25 bg-rose-500/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-rose-100 transition hover:bg-rose-500/18 disabled:cursor-wait disabled:opacity-60"
+                            variant="destructive-soft" size="default" className="mt-4 w-full"
                         >
                             Clear Mock Session
-                        </button>
+                        </Button>
                     )}
                 </div>
             )}

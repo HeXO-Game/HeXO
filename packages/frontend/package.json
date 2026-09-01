@@ -17,6 +17,7 @@
         "test-ct": "playwright test"
     },
     "dependencies": {
+        "@base-ui/react": "^1.7.0",
         "@ih3t/bot-worker": "workspace:*",
         "@ih3t/shared": "workspace:*",
         "@openreplay/tracker": "^18.0.6",

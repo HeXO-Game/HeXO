@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { ReactNode } from 'react';
 
 function RefreshIcon() {
@@ -48,23 +49,23 @@ const PageCorpus = ({ category, title, description, children, back, onBack, onRe
 
                             <div className="flex items-center gap-2 lg:hidden">
                                 {onBack && (
-                                    <button
+                                    <Button
                                         onClick={onBack}
                                         aria-label="Back"
-                                        className="inline-flex items-center justify-center rounded-full bg-amber-300 p-2.5 text-slate-950 transition hover:-translate-y-0.5 hover:bg-amber-200"
+                                        variant="secondary" size="icon"
                                     >
                                         <BackIcon />
-                                    </button>
+                                    </Button>
                                 )}
 
                                 {onRefresh && (
-                                    <button
+                                    <Button
                                         onClick={onRefresh}
                                         aria-label="Refresh"
-                                        className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/8 p-2.5 text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                                        variant="outline" size="icon"
                                     >
                                         <RefreshIcon />
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                         </div>
@@ -78,22 +79,22 @@ const PageCorpus = ({ category, title, description, children, back, onBack, onRe
 
                     <div className="hidden items-center justify-end gap-3 lg:flex">
                         {onRefresh && (
-                            <button
+                            <Button
                                 onClick={onRefresh}
                                 aria-label="Refresh archive"
-                                className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/8 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14"
+                                variant="outline" size="lg"
                             >
                                 {`Refresh\r`}
-                            </button>
+                            </Button>
                         )}
 
                         {onBack && (
-                            <button
+                            <Button
                                 onClick={onBack}
-                                className="hidden rounded-full bg-amber-300 px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-amber-200 sm:inline-flex"
+                                variant="secondary" size="lg" className="hidden sm:inline-flex"
                             >
                                 {back ?? `Back To Lobby`}
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </div>

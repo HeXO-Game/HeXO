@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -133,13 +134,13 @@ function BoardHelpOverlay({
                         </p>
                     </div>
 
-                    <button
+                    <Button
                         type="button"
                         onClick={() => onClose()}
-                        className="rounded-full border border-white/10 bg-white/6 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-200 transition hover:bg-white/10"
+                        variant="outline" size="sm"
                     >
                         Close
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -285,13 +286,13 @@ function BoardHelpOverlay({
                 </div>
 
                 <div className="mt-5 flex justify-end">
-                    <button
+                    <Button
                         type="button"
                         onClick={() => onClose()}
-                        className="rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold shadow-lg transition hover:bg-sky-500"
+                        variant="default" size="default"
                     >
                         Continue Game
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>
@@ -304,8 +305,8 @@ function HelpButton({
     onClick: () => void
 }>) {
     return (
-        <button
-            className="absolute bottom-0 left-0 p-5 cursor-pointer"
+        <Button
+            variant="ghost" size="bare" className="absolute bottom-0 left-0"
             title="Board help"
             onClick={(event) => {
                 onClick();
@@ -313,7 +314,7 @@ function HelpButton({
             }}
         >
             <InfoIcon />
-        </button>
+        </Button>
     );
 }
 

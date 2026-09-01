@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 
 type SandboxImportModalProps = {
@@ -72,25 +73,25 @@ function SandboxImportModal({
                 )}
 
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <button
+                    <Button
                         onClick={onClose}
                         disabled={isLoading}
-                        className="rounded-full border border-white/15 bg-white/8 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition hover:-translate-y-0.5 hover:bg-white/14 disabled:cursor-not-allowed disabled:opacity-70"
+                        variant="outline" size="lg"
                     >
                         Cancel
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button
                         onClick={() => {
                             if (parsedPositionId) {
                                 onImport(parsedPositionId);
                             }
                         }}
                         disabled={isLoading || !parsedPositionId}
-                        className="rounded-full bg-sky-400 px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-70"
+                        variant="default" size="lg"
                     >
                         {isLoading ? `Loading...` : `Import`}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

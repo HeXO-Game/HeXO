@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { AccountProfile, CreateSessionRequest, GameTimeControl, LobbyFirstPlayer, LobbyVisibility } from '@ih3t/shared';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -189,14 +190,14 @@ function CreateLobbyDialog({
                                 </h2>
                             </div>
 
-                            <button
+                            <Button
                                 type="button"
                                 aria-expanded={showAdvancedOptions}
                                 onClick={() => setShowAdvancedOptions((value) => !value)}
-                                className="cursor-pointer inline-flex items-center justify-center rounded-full border border-sky-300/25 bg-sky-400/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-100 transition hover:-translate-y-0.5 hover:bg-sky-400/18"
+                                variant="info" size="sm"
                             >
                                 {showAdvancedOptions ? `Simple Settings` : `Advanced Settings`}
-                            </button>
+                            </Button>
                         </div>
 
                         <div className="mt-3 flex flex-col gap-4 sm:gap-6">
@@ -360,19 +361,19 @@ function CreateLobbyDialog({
                         </div>
 
                         <div className="mt-2.5 flex items-center justify-between gap-3">
-                            <button
+                            <Button
                                 onClick={onClose}
-                                className="rounded-full border border-white/10 bg-white/6 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-200 transition hover:bg-white/12"
+                                variant="outline" size="sm"
                             >
                                 Cancel
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
                                 onClick={handleCreate}
-                                className="rounded-full bg-amber-300 px-5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-amber-200"
+                                variant="secondary" size="default"
                             >
                                 Create Lobby
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </section>

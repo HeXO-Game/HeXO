@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { AccountProfile, LobbyInfo } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 
@@ -284,18 +285,15 @@ export default function PublicMatchesList({
                                                     </div>
                                                 </div>
 
-                                                <button
+                                                <Button
+                                                    variant={canJoin ? `default` : `outline`}
+                                                    size="lg"
                                                     onClick={() => onJoinGame(session.id)}
                                                     disabled={joinDisabled}
-                                                    className={`sm:w-[15em] rounded-full px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] transition lg:shrink-0 ${joinDisabled
-                                                        ? `cursor-not-allowed bg-slate-500/60 text-slate-200`
-                                                        : canJoin
-                                                            ? `cursor-pointer bg-sky-400 text-slate-950 shadow-[0_10px_30px_rgba(56,189,248,0.28)] hover:-translate-y-0.5 hover:bg-sky-300`
-                                                            : `cursor-pointer border border-white/15 bg-white/8 text-white hover:-translate-y-0.5 hover:bg-white/14`
-                                                    }`}
+                                                    className="sm:w-[15em] lg:shrink-0"
                                                 >
                                                     {joinButtonLabel}
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>

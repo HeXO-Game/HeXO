@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { SessionChat } from '@ih3t/shared';
 import { useEffect, useRef, useState } from 'react';
 
@@ -203,13 +204,13 @@ function GameChatBox({
                     disabled={!onSendMessage}
                 />
 
-                <button
+                <Button
                     type="submit"
                     disabled={!onSendMessage || draft.trim().length === 0}
-                    className="min-w-28 rounded-full bg-sky-600 px-4 py-2.5 font-medium shadow-lg transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-45"
+                    variant="default" size="default" className="min-w-28"
                 >
                     Send
-                </button>
+                </Button>
             </form>
         </GameHudShell>
     );

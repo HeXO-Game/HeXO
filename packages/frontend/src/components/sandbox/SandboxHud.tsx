@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 
 import GameHudShell from '../game-screen/GameHudShell';
@@ -31,8 +32,6 @@ function SandboxHud({
 }: Readonly<SandboxHudProps>) {
     const [isHudOpen, setIsHudOpen] = useState(true);
     const resetBoardLabel = positionName ? `Restore Position` : `Clear Board`;
-    const enabledButtonClassName = `bg-slate-700 text-white hover:bg-slate-600`;
-    const disabledButtonClassName = `cursor-not-allowed bg-slate-700/60 text-slate-400`;
     const description = positionName
         ? `Play from this saved position locally with no clock. Assign either side to a bot or control both players yourself.`
         : `Local sandbox with no clock. Control both players yourself or let a bot take either side.`;
@@ -72,18 +71,18 @@ function SandboxHud({
             closeTitle="Close"
         >
             <div className="pointer-events-auto absolute right-3 top-3 z-10">
-                <button
+                <Button
                     onClick={() => setIsHudOpen(false)}
                     aria-expanded={isHudOpen}
                     aria-label="Close sandbox HUD"
                     title="Close sandbox HUD"
-                    className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-700/95 shadow-lg transition hover:bg-slate-600"
+                    variant="muted" size="icon"
                 >
                     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <path d="M6 6 18 18" />
                         <path d="M18 6 6 18" />
                     </svg>
-                </button>
+                </Button>
             </div>
 
             <div className="text-sm uppercase tracking-[0.25em] text-emerald-300">
@@ -147,51 +146,55 @@ function SandboxHud({
             </div>
 
             <div className="pointer-events-auto mt-4 grid grid-cols-2 gap-2">
-                <button
+                <Button
+                    variant="muted"
+                    size="sm"
                     onClick={onResetView}
-                    className={`min-w-[9rem] flex-1 rounded-full px-4 py-2 font-medium shadow-lg transition md:flex-none ${enabledButtonClassName}`}
+                    className="min-w-[9rem] flex-1 md:flex-none"
                 >
                     Reset View
-                </button>
+                </Button>
 
-                <button
+                <Button
+                    variant="muted"
+                    size="sm"
                     onClick={onResetBoard}
-                    className={`min-w-[9rem] flex-1 rounded-full px-4 py-2 font-medium shadow-lg transition md:flex-none ${enabledButtonClassName}`}
+                    className="min-w-[9rem] flex-1 md:flex-none"
                 >
                     {resetBoardLabel}
-                </button>
+                </Button>
 
-                <button
+                <Button
+                    variant="muted"
+                    size="sm"
                     onClick={onSharePosition}
                     disabled={!canSharePosition || isSharingPosition}
-                    className={`min-w-[9rem] flex-1 rounded-full px-4 py-2 font-medium shadow-lg transition md:flex-none ${canSharePosition && !isSharingPosition
-                        ? enabledButtonClassName
-                        : disabledButtonClassName
-                    }`}
+                    className="min-w-[9rem] flex-1 md:flex-none"
                 >
                     {isSharingPosition ? `Sharing...` : `Share Link`}
-                </button>
+                </Button>
             </div>
 
             <div className="pointer-events-auto mt-4 grid grid-cols-2 gap-2">
-                <button
+                <Button
+                    variant="muted"
+                    size="sm"
                     onClick={onUndo}
                     disabled={!canUndo}
-                    className={`min-w-[9rem] flex-1 rounded-full px-4 py-2 font-medium shadow-lg transition md:flex-none ${canUndo ? enabledButtonClassName : disabledButtonClassName}`}
+                    className="min-w-[9rem] flex-1 md:flex-none"
                 >
                     Undo
-                </button>
+                </Button>
 
-                <button
+                <Button
+                    variant="muted"
+                    size="sm"
                     onClick={onRedo}
                     disabled={!canRedo}
-                    className={`min-w-[9rem] flex-1 rounded-full px-4 py-2 font-medium shadow-lg transition md:flex-none ${canRedo
-                        ? enabledButtonClassName
-                        : disabledButtonClassName
-                    }`}
+                    className="min-w-[9rem] flex-1 md:flex-none"
                 >
                     Redo
-                </button>
+                </Button>
             </div>
 
             {!isAuthenticated && (

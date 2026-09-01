@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { LobbyInfo, ShutdownState } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 
@@ -191,13 +192,13 @@ function AdminControlsScreen({
                                 />
                             </label>
 
-                            <button
+                            <Button
                                 onClick={onSaveServerSettings}
                                 disabled={isSavingServerSettings || isLoadingServerSettings}
-                                className="rounded-full bg-emerald-300 px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                variant="success" size="lg"
                             >
                                 {isSavingServerSettings ? `Saving...` : `Save Limit`}
-                            </button>
+                            </Button>
                         </div>
                     </section>
 
@@ -234,21 +235,21 @@ function AdminControlsScreen({
                                 />
                             </label>
 
-                            <button
+                            <Button
                                 onClick={onSchedule}
                                 disabled={isScheduling}
-                                className="rounded-full bg-amber-300 px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-900 transition hover:-translate-y-0.5 hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
+                                variant="secondary" size="lg"
                             >
                                 {isScheduling ? `Scheduling...` : `Schedule`}
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
                                 onClick={onCancel}
                                 disabled={!shutdown || isCancelling}
-                                className="rounded-full border border-rose-300/25 bg-rose-500/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                variant="destructive-soft" size="lg"
                             >
                                 {isCancelling ? `Cancelling...` : `Cancel`}
-                            </button>
+                            </Button>
                         </div>
                     </section>
 
@@ -286,13 +287,13 @@ function AdminControlsScreen({
                                 /280 characters
                             </div>
 
-                            <button
+                            <Button
                                 onClick={onSendMessage}
                                 disabled={isSendingMessage || messageDraft.trim().length === 0}
-                                className="rounded-full bg-sky-400 px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-slate-950 transition hover:-translate-y-0.5 hover:bg-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+                                variant="default" size="lg"
                             >
                                 {isSendingMessage ? `Sending...` : `Send Message`}
-                            </button>
+                            </Button>
                         </div>
                     </section>
 
@@ -376,13 +377,13 @@ function AdminControlsScreen({
                                                 )}
                                             </div>
 
-                                            <button
+                                            <Button
                                                 onClick={() => onTerminateGame(session.id)}
                                                 disabled={terminatingSessionId !== null}
-                                                className="rounded-full border border-rose-300/25 bg-rose-500/10 px-5 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-rose-100 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50 lg:shrink-0"
+                                                variant="destructive-soft" size="lg" className="lg:shrink-0"
                                             >
                                                 {terminatingSessionId === session.id ? `Terminating...` : `Terminate Game`}
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
                                 </div>

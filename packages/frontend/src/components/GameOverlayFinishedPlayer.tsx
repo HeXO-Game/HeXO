@@ -1,3 +1,4 @@
+import { Button, buttonVariants } from '@/components/ui/button';
 import type { SessionPlayer, SessionStateFinished } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router';
@@ -153,9 +154,6 @@ function GameOverlayFinishedPlayer({
         accent: `from-sky-300/90 via-sky-200/40 to-amber-200/0`,
         eloValue: `text-sky-50`,
         eloChangeValue: `text-sky-200`,
-        primaryButton: `bg-sky-300 text-slate-950 hover:bg-sky-200`,
-        secondaryButton: `border-sky-200/25 bg-sky-950/55 text-white hover:bg-sky-950/80`,
-        subtleButton: `border-white/12 bg-white/7 text-white hover:bg-white/15`,
     } : isWin ? {
         shell: `bg-[radial-gradient(circle_at_top,_rgba(52,211,153,0.22),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.16),_transparent_28%),rgba(2,6,23,0.72)]`,
         card: `border-emerald-200/20 bg-slate-950/80 shadow-[0_28px_120px_rgba(5,46,22,0.52)]`,
@@ -163,9 +161,6 @@ function GameOverlayFinishedPlayer({
         accent: `from-emerald-300/90 via-emerald-200/40 to-amber-200/0`,
         eloValue: `text-emerald-50`,
         eloChangeValue: `text-emerald-200`,
-        primaryButton: `bg-emerald-300 text-slate-950 hover:bg-emerald-200`,
-        secondaryButton: `border-emerald-200/25 bg-emerald-950/55 text-white hover:bg-emerald-950/80`,
-        subtleButton: `border-white/12 bg-white/7 text-white hover:bg-white/15`,
     } : {
         shell: `bg-[radial-gradient(circle_at_top,_rgba(251,113,133,0.24),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.14),_transparent_28%),rgba(2,6,23,0.74)]`,
         card: `border-rose-200/20 bg-slate-950/80 shadow-[0_28px_120px_rgba(76,5,25,0.54)]`,
@@ -173,9 +168,6 @@ function GameOverlayFinishedPlayer({
         accent: `from-rose-300/90 via-rose-200/40 to-amber-200/0`,
         eloValue: `text-rose-50`,
         eloChangeValue: `text-rose-200`,
-        primaryButton: `bg-rose-300 text-slate-950 hover:bg-rose-200`,
-        secondaryButton: `border-rose-200/25 bg-rose-950/55 text-white hover:bg-rose-950/80`,
-        subtleButton: `border-white/12 bg-white/7 text-white hover:bg-white/15`,
     };
 
     return (
@@ -239,29 +231,33 @@ function GameOverlayFinishedPlayer({
 
                         <div className="mt-6 flex flex-col gap-3">
                             {onRequestRematch && (
-                                <button
+                                <Button
+                                    variant={isDraw ? `default` : isWin ? `success` : `destructive`}
+                                    size="xl"
                                     onClick={onRequestRematch}
                                     disabled={!rematch.enabled}
-                                    className={`w-full rounded-2xl px-5 py-4 text-sm font-semibold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-60 ${theme.primaryButton}`}
+                                    className="w-full"
                                 >
                                     {rematch.label}
-                                </button>
+                                </Button>
                             )}
 
                             <NavLink
                                 to={buildFinishedGamePath(state.gameId)}
-                                className={`block w-full rounded-2xl border px-5 py-4 text-center text-sm font-semibold uppercase tracking-[0.16em] transition ${theme.secondaryButton}`}
+                                className={`${buttonVariants({ variant: isDraw ? `info` : isWin ? `success-soft` : `destructive-soft`, size: `xl` })} w-full`}
                                 target="_blank"
                             >
                                 Review Game
                             </NavLink>
 
-                            <button
+                            <Button
+                                variant="outline"
+                                size="xl"
                                 onClick={onReturnToLobby}
-                                className={`w-full rounded-2xl border px-5 py-4 text-sm font-semibold uppercase tracking-[0.16em] transition ${theme.subtleButton}`}
+                                className="w-full"
                             >
                                 {isTournament ? `Return To Tournament` : `Return To Lobby`}
-                            </button>
+                            </Button>
                         </div>
                     </aside>
                 </div>
