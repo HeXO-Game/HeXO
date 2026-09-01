@@ -7,6 +7,7 @@ import AppErrorBoundary from './components/AppErrorBoundary';
 import { trackOpenReplayUser } from './openReplay';
 import { useQueryAccount } from './query/accountClient';
 import { clearHydrationRenderPassFlag, useRenderMode } from './ssrState';
+import { TooltipProvider } from './components/ui/tooltip';
 
 type AppProps = {
     router: Parameters<typeof RouterProvider>[0][`router`]
@@ -51,12 +52,14 @@ function App({ router, queryClient, dehydratedState }: Readonly<AppProps>) {
             <meta property="og:site_name" content="HeXO: The infinite hexagonal tic-tac-toe game" />
 
             <QueryClientProvider client={queryClient}>
-                {renderMode === `normal` && <ReactQueryDevtools />}
-                <OpenReplayUserSync />
+                <TooltipProvider>
+                    {renderMode === `normal` && <ReactQueryDevtools />}
+                    <OpenReplayUserSync />
 
-                <HydrationBoundary state={dehydratedState}>
-                    <RouterProvider router={router} />
-                </HydrationBoundary>
+                    <HydrationBoundary state={dehydratedState}>
+                        <RouterProvider router={router} />
+                    </HydrationBoundary>
+                </TooltipProvider>
             </QueryClientProvider>
         </AppErrorBoundary>
     );

@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react';
 import { cn } from '@/utils/cn';
 
 const buttonVariants = cva(
-    `inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 border border-transparent text-sm font-semibold whitespace-nowrap transition outline-none select-none focus-visible:border-sky-200 focus-visible:ring-2 focus-visible:ring-sky-300/40 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 aria-invalid:border-rose-300 aria-invalid:ring-2 aria-invalid:ring-rose-400/30 [&_svg]:pointer-events-none [&_svg]:shrink-0`,
+    `inline-flex shrink cursor-pointer items-center justify-center gap-2 border border-transparent text-sm font-semibold whitespace-nowrap transition outline-none select-none focus-visible:border-sky-200 focus-visible:ring-2 focus-visible:ring-sky-300/40 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 aria-invalid:border-rose-300 aria-invalid:ring-2 aria-invalid:ring-rose-400/30 [&_svg]:pointer-events-none [&_svg]:shrink-0`,
     {
         variants: {
             variant: {

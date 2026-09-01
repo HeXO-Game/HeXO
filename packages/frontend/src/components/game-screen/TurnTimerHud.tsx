@@ -93,8 +93,8 @@ function TurnTimerHud({
 
     return (
         <div className="absolute left-3 right-3 top-3 flex justify-center md:left-0 md:right-0">
-            <div className="pointer-events-none shadow-xxl w-full max-w-xl rounded-md bg-slate-800/95 px-3 py-2.5 sm:px-4">
-                <div className="min-w-0">
+            <div className="pointer-events-none min-w-0 w-110">
+                <div className="shadow-xxl w-full max-w-xl border rounded-md bg-slate-800/60 px-3 py-2.5 sm:px-4">
                     <TurnIndicator
                         playerIds={playerIds}
                         playerNames={playerNames}
@@ -104,31 +104,31 @@ function TurnTimerHud({
                         isSpectator={isSpectator}
                         canPlaceCell={canPlaceCell}
                     />
-
-                    {effectiveTimeControl.mode !== `unlimited` && (
-                        <div className="mt-2 grid gap-1.5 sm:gap-2 grid-cols-2">
-                            {clockPlayers.map((player) => {
-                                const isActivePlayer = player.id === currentTurnPlayerId;
-                                const isLocalPlayer = player.id === localPlayerId;
-
-                                return (
-                                    <ClockCard
-                                        key={player.id}
-                                        label={getPlayerLabel(playerIds, player.id, playerNames)}
-                                        timeMs={getDisplayedPlayerClockMs(player.id)}
-                                        markerColor={getPlayerTileColor(gameState.playerTiles, player.id)}
-                                        isHighlighted={isActivePlayer}
-                                        trailingBadge={isLocalPlayer && !isSpectator ? (
-                                            <div className="rounded bg-white/10 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-200 sm:text-[9px]">
-                                                You
-                                            </div>
-                                        ) : undefined}
-                                    />
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
+
+                {effectiveTimeControl.mode !== `unlimited` && (
+                    <div className="mt-2 grid gap-1.5 sm:gap-2 grid-cols-2">
+                        {clockPlayers.map((player) => {
+                            const isActivePlayer = player.id === currentTurnPlayerId;
+                            const isLocalPlayer = player.id === localPlayerId;
+
+                            return (
+                                <ClockCard
+                                    key={player.id}
+                                    label={getPlayerLabel(playerIds, player.id, playerNames)}
+                                    timeMs={getDisplayedPlayerClockMs(player.id)}
+                                    markerColor={getPlayerTileColor(gameState.playerTiles, player.id)}
+                                    isHighlighted={isActivePlayer}
+                                    trailingBadge={isLocalPlayer && !isSpectator ? (
+                                        <div className="rounded bg-white/10 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-200 sm:text-[9px]">
+                                            You
+                                        </div>
+                                    ) : undefined}
+                                />
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

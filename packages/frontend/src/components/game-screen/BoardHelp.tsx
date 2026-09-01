@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { InfoIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 
@@ -18,18 +19,6 @@ function isEditableEventTarget(target: EventTarget | null): boolean {
         || target instanceof HTMLSelectElement;
 }
 
-function InfoIcon() {
-    return (
-        <svg
-            aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        >
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 10v5" />
-            <path d="M12 7.5h.01" />
-        </svg>
-    );
-}
 
 function KeyboardIcon() {
     return (
@@ -306,7 +295,7 @@ function HelpButton({
 }>) {
     return (
         <Button
-            variant="ghost" size="bare" className="absolute bottom-0 left-0"
+            variant="ghost" size="icon" className="absolute bottom-2 left-2"
             title="Board help"
             onClick={(event) => {
                 onClick();

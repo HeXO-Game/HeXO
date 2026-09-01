@@ -10,6 +10,7 @@ import { formatTimeControl } from '../../utils/gameTimeControl';
 import GameHudShell from './GameHudShell';
 import HudInfoBlock from './HudInfoBlock';
 import { ShutdownTimer } from './ShutdownTimer';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 export type HudPlayerInfo = {
     playerId: string,
@@ -173,32 +174,23 @@ function GameScreenHud({
                 : `A new draw request can be made after ${turnsUntilDrawRequest} more completed turns.`;
 
             drawActionArea = (
-                <div className="group relative min-w-36 flex-1 md:flex-none">
-                    <Button
-                        onClick={() => {
-                            if (isMobilePointer()) {
-                                showDrawUnavailableToast(turnsUntilDrawRequest);
-                            }
-                        }}
-                        variant="outline" size="sm" className="w-full"
-                    >
-                        Draw
-                    </Button>
-
-                    <div className="pointer-events-none absolute bottom-full left-1/2 z-20 hidden w-60 -translate-x-1/2 pb-2 group-hover:block">
-                        <div className="rounded-2xl border border-slate-200/15 bg-slate-950/95 px-3 py-2 text-xs leading-5 text-slate-200 shadow-[0_14px_40px_rgba(2,6,23,0.55)] backdrop-blur">
-                            <div className="flex items-start gap-2">
-                                <span className="mt-0.5 shrink-0 text-sky-200">
-                                    <InfoIcon />
-                                </span>
-
-                                <span>
-                                    {drawHint}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <Tooltip>
+                    <TooltipTrigger render={(
+                        <Button
+                            onClick={() => {
+                                if (isMobilePointer()) {
+                                    showDrawUnavailableToast(turnsUntilDrawRequest);
+                                }
+                            }}
+                            variant="outline" size="sm" className="w-full"
+                        >
+                            Draw
+                        </Button>
+                    )} />
+                    <TooltipContent>
+                        {drawHint}
+                    </TooltipContent>
+                </Tooltip>
             );
         } else {
             drawActionArea = (

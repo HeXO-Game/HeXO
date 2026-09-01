@@ -1,5 +1,5 @@
-import type { CorsOptions } from 'cors';
-import { injectable } from 'tsyringe';
+import type { CorsOptions } from "cors";
+import { injectable } from "tsyringe";
 
 @injectable()
 export class CorsConfiguration {
@@ -18,11 +18,11 @@ export class CorsConfiguration {
         const allowedOrigins = new Set(configuredOrigins);
 
         if (process.env.NODE_ENV !== `production`) {
-            allowedOrigins.add(`http://localhost:3001`);
-            allowedOrigins.add(`http://localhost:5173`);
-            allowedOrigins.add(`http://localhost:5174`);
-            allowedOrigins.add(`http://127.0.0.1:5173`);
-            allowedOrigins.add(`http://127.0.0.1:5174`);
+            allowedOrigins.add(`https://localhost:3001`);
+            allowedOrigins.add(`https://localhost:5173`);
+            allowedOrigins.add(`https://localhost:5174`);
+            allowedOrigins.add(`https://127.0.0.1:5173`);
+            allowedOrigins.add(`https://127.0.0.1:5174`);
         }
 
         return allowedOrigins;
@@ -43,10 +43,12 @@ export class CorsConfiguration {
 
                 callback(new Error(`Origin ${origin} is not allowed by CORS`));
             },
-            methods: [
-                `GET`, `POST`, `PATCH`, `PUT`, `OPTIONS`, `DELETE`,
+            methods: [`GET`, `POST`, `PATCH`, `PUT`, `OPTIONS`, `DELETE`],
+            allowedHeaders: [
+                `Content-Type`,
+                `X-Device-Id`,
+                `X-OpenReplay-SessionId`,
             ],
-            allowedHeaders: [`Content-Type`, `X-Device-Id`, `X-OpenReplay-SessionId`],
             credentials: true,
         };
     }
