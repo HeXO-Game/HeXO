@@ -1,0 +1,155 @@
+import type { BoardCellRenderOptions } from "../themes";
+import { traceHexPath } from "../utils";
+
+type MarkerStyle = {
+    shadow?: string;
+    outline: string;
+    fill: string;
+    accent?: string;
+};
+
+export function drawMarker(
+    { context, cell, centerX, centerY, radius }: BoardCellRenderOptions,
+    style: MarkerStyle,
+) {
+    const markerRadius = Math.max(5, radius * 0.36);
+    const lineWidth = Math.max(2.25, radius * 0.16);
+    const traceMarker = cell.marker === `X` ? traceX : traceO;
+
+    context.save();
+    traceHexPath(context, centerX, centerY, Math.max(4, radius - 4));
+    context.clip();
+    context.lineCap = `round`;
+    context.lineJoin = `round`;
+
+    if (style.shadow) {
+        context.save();
+        context.translate(lineWidth * 0.14, lineWidth * 0.18);
+        traceMarker(context, centerX, centerY, markerRadius);
+        context.strokeStyle = style.shadow;
+        context.lineWidth = lineWidth + Math.max(1.5, radius * 0.04);
+        context.stroke();
+        context.restore();
+    }
+
+    traceMarker(context, centerX, centerY, markerRadius);
+    context.strokeStyle = style.outline;
+    context.lineWidth = lineWidth + Math.max(0.75, radius * 0.02);
+    context.stroke();
+    traceMarker(context, centerX, centerY, markerRadius);
+    context.strokeStyle = style.fill;
+    context.lineWidth = Math.max(1.5, lineWidth * 0.7);
+    context.stroke();
+
+    if (style.accent) {
+        traceMarker(context, centerX, centerY, markerRadius);
+        context.strokeStyle = style.accent;
+        context.lineWidth = Math.max(1, lineWidth * 0.34);
+        context.stroke();
+    }
+    context.restore();
+}
+
+function traceX(
+    context: CanvasRenderingContext2D,
+    centerX: number,
+    centerY: number,
+    radius: number,
+) {
+    context.beginPath();
+    context.moveTo(centerX - radius, centerY - radius);
+    context.lineTo(centerX + radius, centerY + radius);
+    context.moveTo(centerX + radius, centerY - radius);
+    context.lineTo(centerX - radius, centerY + radius);
+}
+
+function traceO(
+    context: CanvasRenderingContext2D,
+    centerX: number,
+    centerY: number,
+    radius: number,
+) {
+    context.beginPath();
+    context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+}
+
+type RgbColor = { r: number; g: number; b: number };
+
+export function getMarkerPalette(colorValue: string) {
+    const color = parseHexColor(colorValue);
+    if (!color) {
+        return {
+            tileTint: `rgba(255, 255, 255, 0.04)`,
+            tileShadow: `rgba(15, 23, 42, 0.38)`,
+            tileOutline: `rgba(226, 232, 240, 0.92)`,
+            markerShadow: `rgba(15, 23, 42, 0.26)`,
+            markerOutline: `rgba(15, 23, 42, 0.96)`,
+            markerFill: `rgba(226, 232, 240, 0.98)`,
+            accent: `rgba(255, 255, 255, 0.18)`,
+        };
+    }
+
+    const slate900 = { r: 15, g: 23, b: 42 };
+    const slate950 = { r: 2, g: 6, b: 23 };
+    const white = { r: 255, g: 255, b: 255 };
+    const luminance =
+        (0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b) / 255;
+    return {
+        tileTint: withAlpha(mixColor(color, white, 0.2), 0.08),
+        tileShadow: withAlpha(mixColor(color, slate950, 0.8), 0.42),
+        tileOutline: withAlpha(
+            luminance > 0.72
+                ? mixColor(color, slate900, 0.12)
+                : mixColor(color, white, 0.06),
+            0.98,
+        ),
+        markerOutline: withAlpha(
+            mixColor(color, slate950, luminance > 0.62 ? 0.82 : 0.74),
+            0.98,
+        ),
+        markerShadow: withAlpha(mixColor(color, slate950, 0.72), 0.28),
+        markerFill: withAlpha(color, 0.98),
+        accent: withAlpha(
+            mixColor(color, white, luminance > 0.62 ? 0.22 : 0.38),
+            luminance > 0.62 ? 0.18 : 0.22,
+        ),
+    };
+}
+
+function parseHexColor(color: string): RgbColor | null {
+    const match = /^#([\da-f]{3}|[\da-f]{6})$/i.exec(color.trim());
+    if (!match) return null;
+
+    const value = match[1];
+    if (value.length === 3) {
+        return {
+            r: Number.parseInt(`${value[0]}${value[0]}`, 16),
+            g: Number.parseInt(`${value[1]}${value[1]}`, 16),
+            b: Number.parseInt(`${value[2]}${value[2]}`, 16),
+        };
+    }
+    return {
+        r: Number.parseInt(value.slice(0, 2), 16),
+        g: Number.parseInt(value.slice(2, 4), 16),
+        b: Number.parseInt(value.slice(4, 6), 16),
+    };
+}
+
+function mixColor(base: RgbColor, target: RgbColor, amount: number): RgbColor {
+    return {
+        r: mixChannel(base.r, target.r, amount),
+        g: mixChannel(base.g, target.g, amount),
+        b: mixChannel(base.b, target.b, amount),
+    };
+}
+
+function mixChannel(base: number, target: number, amount: number) {
+    return Math.max(
+        0,
+        Math.min(255, Math.round(base + (target - base) * amount)),
+    );
+}
+
+function withAlpha(color: RgbColor, alpha: number) {
+    return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+}
