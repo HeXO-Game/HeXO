@@ -1,20 +1,25 @@
-import type { GameState } from '@ih3t/shared';
+import {
+    BoardController,
+    GameBoardRenderer,
+    getRenderableCellCount,
+} from '@ih3t/board-renderer';
+import type { GameState, HexCoordinate } from '@ih3t/shared';
 import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-import type { HexCell } from '../../utils/gameBoard';
-import GameBoardCanvas from './GameBoardCanvas';
-import useGameBoard from './useGameBoard';
+import { toRendererBoardState } from '../../utils/gameBoard';
 
 type GameBoardViewProps = {
     className?: string
     gameState: GameState
-    highlightedCells: `last` | `turn` | HexCell[]
+    highlightedCells: `last` | `turn` | HexCoordinate[]
     localPlayerId: string | null
     interactionEnabled: boolean
     viewInteractionEnabled?: boolean
     focusRecentMovesOnNumberKeys?: boolean
     onPlaceCell?: (x: number, y: number) => void
     showTilePieceMarkers?: boolean
+    controller?: BoardController
     children?: (context: {
         renderableCellCount: number
         resetView: () => void
@@ -31,38 +36,116 @@ function GameBoardView({
     focusRecentMovesOnNumberKeys = false,
     onPlaceCell,
     showTilePieceMarkers = false,
+    controller: suppliedController,
     children,
 }: Readonly<GameBoardViewProps>) {
-    const {
-        canvasRef,
-        canvasClassName,
-        canvasHandlers,
-        renderableCellCount,
-        resetView,
-    } = useGameBoard({
-        gameState,
-        highlightedCells,
-        localPlayerId,
-        interactionEnabled,
-        viewInteractionEnabled,
-        focusRecentMovesOnNumberKeys,
-        onPlaceCell,
-        showTilePieceMarkers,
-    });
+    const [ownedController] = useState(() => new BoardController());
+    const controller = suppliedController ?? ownedController;
+    const [inspectedRecentMoveDistance, setInspectedRecentMoveDistance] = useState<number | null>(null);
+    const canPlaceCell = interactionEnabled
+        && Boolean(onPlaceCell)
+        && localPlayerId !== null
+        && gameState.currentTurnPlayerId === localPlayerId;
+
+    const boardState = useMemo(
+        () => toRendererBoardState(gameState, showTilePieceMarkers),
+        [gameState, showTilePieceMarkers],
+    );
+
+    const emphasizedCells = useMemo(() => {
+        if (inspectedRecentMoveDistance !== null) {
+            const cell = gameState.cells.at(-inspectedRecentMoveDistance);
+            return cell ? [{ x: cell.x, y: cell.y }] : [];
+        }
+        if (highlightedCells === `last`) {
+            const cell = gameState.cells.at(-1);
+            return cell ? [{ x: cell.x, y: cell.y }] : [];
+        }
+        if (highlightedCells === `turn`) {
+            const cells: HexCoordinate[] = [];
+            const playerId = gameState.cells.at(-1)?.occupiedBy;
+            for (let index = gameState.cells.length - 1; index >= 0; index -= 1) {
+                const cell = gameState.cells[index];
+                if (cell.occupiedBy !== playerId) {
+                    break;
+                }
+                cells.push({ x: cell.x, y: cell.y });
+            }
+            return cells;
+        }
+        return highlightedCells;
+    }, [gameState.cells, highlightedCells, inspectedRecentMoveDistance]);
+
+    useEffect(() => {
+        controller.setEmphasizedCells(emphasizedCells);
+    }, [controller, emphasizedCells]);
+
+    useEffect(() => {
+        setInspectedRecentMoveDistance(null);
+    }, [gameState.cells.length]);
+
+    useEffect(() => {
+        if (!focusRecentMovesOnNumberKeys) {
+            return;
+        }
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (
+                event.defaultPrevented
+                || event.altKey
+                || event.ctrlKey
+                || event.metaKey
+                || isEditableEventTarget(event.target)
+                || !/^[1-9]$/.test(event.key)
+            ) {
+                return;
+            }
+
+            const distance = Number.parseInt(event.key, 10);
+            const cell = gameState.cells.at(-distance);
+            if (!cell) {
+                return;
+            }
+
+            event.preventDefault();
+            setInspectedRecentMoveDistance(distance);
+            controller.centerOnCell(cell);
+        };
+
+        document.addEventListener(`keydown`, handleKeyDown);
+        return () => document.removeEventListener(`keydown`, handleKeyDown);
+    }, [controller, focusRecentMovesOnNumberKeys, gameState.cells]);
+
+    const renderableCellCount = useMemo(
+        () => getRenderableCellCount(boardState),
+        [boardState],
+    );
 
     return (
         <div className={className}>
-            <GameBoardCanvas
-                canvasRef={canvasRef}
-                className={canvasClassName}
-                handlers={canvasHandlers}
+            <GameBoardRenderer
+                state={boardState}
+                controller={controller}
+                className="absolute inset-0 h-full w-full"
+                viewInteractionEnabled={viewInteractionEnabled ?? interactionEnabled}
+                cellInteractionEnabled={canPlaceCell}
+                onPlaceCell={cell => onPlaceCell?.(cell.x, cell.y)}
             />
 
             {children?.({
                 renderableCellCount,
-                resetView,
+                resetView: controller.resetView,
             })}
         </div>
+    );
+}
+
+function isEditableEventTarget(target: EventTarget | null): boolean {
+    return target instanceof HTMLElement && (
+        target.isContentEditable
+        || target instanceof HTMLInputElement
+        || target instanceof HTMLTextAreaElement
+        || target instanceof HTMLSelectElement
     );
 }
 

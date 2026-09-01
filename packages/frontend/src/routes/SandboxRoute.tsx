@@ -1,3 +1,4 @@
+import { BoardController, getRenderableCellCount } from '@ih3t/board-renderer';
 import {
     applyGameMove,
     cloneGameState,
@@ -12,12 +13,11 @@ import {
     type SessionPlayer,
 } from '@ih3t/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'react-toastify';
 
-import GameBoardCanvas from '../components/game-screen/GameBoardCanvas';
-import useGameBoard from '../components/game-screen/useGameBoard';
+import GameBoardView from '../components/game-screen/GameBoardView';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import SandboxBotFactoryModal from '../components/sandbox/SandboxBotFactoryModal';
 import SandboxBotPanel from '../components/sandbox/SandboxBotPanel';
@@ -39,6 +39,7 @@ import {
 } from '../sandbox/sandboxBotSettings';
 import { useSandboxBotController } from '../sandbox/useSandboxBotController';
 import { playTilePlacedSound } from '../soundEffects';
+import { toRendererBoardState } from '../utils/gameBoard';
 import { formatPlacementSummary, formatSandboxPlayerLabel } from '../utils/routeMetadata';
 import type { SandboxRouteState } from './sandboxRouteState';
 import BoardHelp from "../components/game-screen/BoardHelp.tsx";
@@ -269,20 +270,19 @@ function SandboxRoute() {
     });
     const isBotBusy = sandboxBotController.isThinking;
 
-    const {
-        canvasRef,
-        canvasClassName,
-        canvasHandlers,
-        renderableCellCount,
-        resetView,
-    } = useGameBoard({
-        gameState: currentGameState,
-        highlightedCells: currentGameState.winner?.cells ?? `turn`,
-        localPlayerId,
-        interactionEnabled: isSandboxInteractionEnabled,
-        onPlaceCell: currentGameState.winner === null ? handlePlaceCell : undefined,
-        showTilePieceMarkers: accountPreferences?.preferences.tilePieceMarkers ?? false,
-    });
+    const [boardController] = useState(() => new BoardController());
+    const resetView = boardController.resetView;
+    const rendererBoardState = useMemo(
+        () => toRendererBoardState(
+            currentGameState,
+            accountPreferences?.preferences.tilePieceMarkers ?? false,
+        ),
+        [accountPreferences?.preferences.tilePieceMarkers, currentGameState],
+    );
+    const renderableCellCount = useMemo(
+        () => getRenderableCellCount(rendererBoardState),
+        [rendererBoardState],
+    );
 
     function applyBotMoves(moves: readonly HexCoordinate[]) {
         if (moves.length === 0) {
@@ -689,10 +689,14 @@ function SandboxRoute() {
 
             <div className="relative h-full w-full overflow-hidden text-white">
                 {!isWelcomeModalVisible && !isImportModalOpen && (
-                    <GameBoardCanvas
-                        canvasRef={canvasRef}
-                        className={canvasClassName}
-                        handlers={canvasHandlers}
+                    <GameBoardView
+                        gameState={currentGameState}
+                        highlightedCells={currentGameState.winner?.cells ?? `turn`}
+                        localPlayerId={localPlayerId}
+                        interactionEnabled={isSandboxInteractionEnabled}
+                        onPlaceCell={currentGameState.winner === null ? handlePlaceCell : undefined}
+                        showTilePieceMarkers={accountPreferences?.preferences.tilePieceMarkers ?? false}
+                        controller={boardController}
                     />
                 )}
 

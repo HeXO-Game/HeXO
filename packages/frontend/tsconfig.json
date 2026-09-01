@@ -14,5 +14,8 @@
         "playwright.config.ts",
         "vite.config.ts"
     ],
-    "references": [{ "path": "../shared" }]
+    "references": [
+        { "path": "../board-renderer" },
+        { "path": "../shared" }
+    ]
 }

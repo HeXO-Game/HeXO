@@ -18,8 +18,7 @@ import { formatEloChange } from '../../utils/elo';
 import { getPlayerLabel, getPlayerTileColor } from '../../utils/gameBoard';
 import { formatTimeControl } from '../../utils/gameTimeControl';
 import { getSessionFinishReasonSentenceLabel } from '../../utils/sessionResult';
-import GameBoardCanvas from '../game-screen/GameBoardCanvas';
-import useGameBoard from '../game-screen/useGameBoard';
+import GameBoardView from '../game-screen/GameBoardView';
 import FinishedGameReviewLayout from './FinishedGameReviewLayout';
 
 type FinishedGameReplayViewProps = {
@@ -284,20 +283,6 @@ function FinishedGameReplayView({
         [activeMove],
     );
 
-    const {
-        canvasRef,
-        canvasClassName,
-        canvasHandlers,
-        renderableCellCount,
-        resetView,
-    } = useGameBoard({
-        gameState: boardState,
-        highlightedCells: boardState.winner?.cells ?? highlightedCells,
-        localPlayerId: null,
-        interactionEnabled: true,
-        showTilePieceMarkers,
-    });
-
     const startPlayback = () => {
         if (visibleMoveCount >= totalMoveCount) {
             setVisibleMoveCount(0);
@@ -310,14 +295,16 @@ function FinishedGameReplayView({
         <FinishedGameReviewLayout onRetry={onRetry}>
             <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,1.5fr)_24rem]">
                 <section className="min-h-[75dvh] flex min-w-0 flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950/75 shadow-[0_20px_80px_rgba(15,23,42,0.45)] sm:rounded-4xl xl:min-h-136">
-                    <div className="relative h-full min-h-0 overflow-hidden bg-slate-950 sm:max-h-none xl:min-h-0 xl:flex-1 xl:h-auto">
-                        <GameBoardCanvas
-                            canvasRef={canvasRef}
-                            className={canvasClassName}
-                            handlers={canvasHandlers}
-                        />
-
-                        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between gap-2 p-2.5 sm:gap-3 sm:p-4">
+                    <GameBoardView
+                        className="relative h-full min-h-0 overflow-hidden bg-slate-950 sm:max-h-none xl:min-h-0 xl:flex-1 xl:h-auto"
+                        gameState={boardState}
+                        highlightedCells={boardState.winner?.cells ?? highlightedCells}
+                        localPlayerId={null}
+                        interactionEnabled
+                        showTilePieceMarkers={showTilePieceMarkers}
+                    >
+                        {({ renderableCellCount, resetView }) => (
+                            <div className="pointer-events-none absolute inset-0 flex flex-col justify-between gap-2 p-2.5 sm:gap-3 sm:p-4">
                             <div className="pointer-events-auto flex items-start justify-between gap-2">
                                 <div className="rounded-full border border-white/10 bg-slate-950/72 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.18em]">
                                     {`Move `}
@@ -468,8 +455,9 @@ function FinishedGameReplayView({
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+                            </div>
+                        )}
+                    </GameBoardView>
                 </section>
 
                 <aside className="flex min-w-0 flex-col gap-4 xl:min-h-136 xl:overflow-hidden">

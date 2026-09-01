@@ -1,0 +1,28 @@
+{
+    "name": "@ih3t/board-renderer",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "type-check": "tsc --noEmit",
+        "test": "tsx --test src/utils.spec.ts"
+    },
+    "dependencies": {
+        "@ih3t/shared": "workspace:*"
+    },
+    "peerDependencies": {
+        "react": "^19.0.0"
+    },
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts"
+        }
+    },
+    "devDependencies": {
+        "@types/react": "^19.2.14",
+        "react": "^19.2.4",
+        "tsx": "^4.21.0",
+        "typescript": "7.0.2"
+    }
+}

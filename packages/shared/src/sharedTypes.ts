@@ -199,7 +199,8 @@ export class GameRuleError extends Error {
     }
 }
 
-export function getCellKey(x: number, y: number): string {
+export type CellKey = `${number},${number}`;
+export function getCellKey(x: number, y: number): CellKey {
     return `${x},${y}`;
 }
 

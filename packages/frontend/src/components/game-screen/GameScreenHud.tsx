@@ -74,16 +74,6 @@ function OfflineIcon() {
     );
 }
 
-function InfoIcon() {
-    return (
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 10v5" />
-            <path d="M12 7.5h.01" />
-        </svg>
-    );
-}
-
 function showDrawUnavailableToast(remainingTurns: number) {
     const message = remainingTurns === 1
         ? `A draw can be requested in 1 more completed turn.`
