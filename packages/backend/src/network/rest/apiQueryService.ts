@@ -130,7 +130,7 @@ export class ApiQueryService {
             throw new ApiRequestError(401, `Sign in to view your own match history.`);
         }
 
-        if (options.view !== `mine` && options.page * options.pageSize >= 500 && currentUser?.role !== `admin`) {
+        if (options.view !== `mine` && options.page * options.pageSize > 500 && currentUser?.role !== `admin`) {
             throw new ApiRequestError(401, `Public match history is limited to the last 500 games`);
         }
 
