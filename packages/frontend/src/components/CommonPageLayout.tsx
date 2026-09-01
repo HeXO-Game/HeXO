@@ -196,7 +196,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                             className="h-9 w-9 shrink-0 rounded-lg"
                         />
 
-                        <span className="min-w-0 text-left leading-tight">
+                        <span className="hidden sm:block min-w-0 text-left leading-tight">
                             <span className="font-semibold text-sky-100">
                                 {t('hexo2', 'HEXO')}
                             </span>
@@ -233,11 +233,9 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                 {t('loadingAccount', 'Loading Account')}
                             </div>
                         ) : account ? (
-                            <div className="self-start lg:relative lg:self-auto">
+                            <div className="shrink-0 self-start lg:relative lg:self-auto">
                                 <Button
                                     type="button"
-                                    aria-haspopup="menu"
-                                    aria-expanded={isAccountMenuOpen}
                                     onClick={() => { setIsAccountMenuOpen((open) => !open); setIsMobileMenuOpen(false); }}
                                     variant="ghost" size="default" className="gap-3 text-left"
                                 >
