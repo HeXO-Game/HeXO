@@ -105,7 +105,7 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
             </Button>
 
             {isOpen && (
-                <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-[22rem] max-w-[calc(100vw-2rem)] rounded-[1.5rem] border border-emerald-300/18 bg-slate-950/95 p-4 shadow-[0_20px_60px_rgba(2,6,23,0.5)] backdrop-blur-xl">
+                <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-88 max-w-[calc(100vw-2rem)] rounded-[1.5rem] border border-emerald-300/18 bg-slate-950/95 p-4 shadow-[0_20px_60px_rgba(2,6,23,0.5)] backdrop-blur-xl">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/80">
                         Development Auth
                     </div>
@@ -132,7 +132,7 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
                                     className={`block w-full rounded-2xl border px-4 py-3 text-left transition ${isSelected
                                         ? `border-emerald-300/35 bg-emerald-400/12`
                                         : `border-white/10 bg-white/6 hover:bg-white/10`
-                                    } disabled:cursor-wait disabled:opacity-60`}
+                                        } disabled:cursor-wait disabled:opacity-60`}
                                 >
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">

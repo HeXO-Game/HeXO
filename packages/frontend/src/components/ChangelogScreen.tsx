@@ -74,15 +74,10 @@ function ChangelogScreen({
             return;
         }
 
-        const nextPreferences: AccountPreferences = {
-            ...preferences,
-            changelogReadAt: latestCommitAt,
-        };
-
         setIsMarkingRead(true);
 
         try {
-            await updateAccountPreferences(nextPreferences);
+            await updateAccountPreferences({ changelogReadAt: latestCommitAt });
             showSuccessToast(`Marked new changelog entries as read.`);
         } catch (error) {
             console.error(`Failed to mark changelog updates as read:`, error);

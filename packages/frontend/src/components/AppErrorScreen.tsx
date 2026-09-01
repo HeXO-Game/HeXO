@@ -21,10 +21,10 @@ function AppErrorScreen({
     const showDetail = import.meta.env.DEV && Boolean(detail);
 
     return (
-        <div className="relative min-h-dvh overflow-hidden bg-[linear-gradient(135deg,_#020617,_#0f172a_45%,_#111827)] text-white">
+        <div className="relative min-h-dvh overflow-hidden bg-[linear-gradient(135deg,#020617,#0f172a_45%,#111827)] text-white">
             <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.14),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(244,63,94,0.16),_transparent_26%),radial-gradient(circle_at_center,_rgba(56,189,248,0.12),_transparent_40%)]"
+                className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.14),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(244,63,94,0.16),transparent_26%),radial-gradient(circle_at_center,rgba(56,189,248,0.12),transparent_40%)]"
             />
 
             <div className="relative z-10 flex min-h-dvh items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
