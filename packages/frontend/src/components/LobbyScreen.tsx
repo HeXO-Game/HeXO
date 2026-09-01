@@ -7,6 +7,7 @@ import CreateLobbyDialog from './CreateLobbyDialog';
 import ShutdownTimer from './game-screen/ShutdownTimer';
 import PublicMatchesList from './PublicMatchesList';
 import ScreenFooter from './ScreenFooter';
+import { cn } from '../utils/cn';
 
 type LobbyScreenProps = {
     isConnected: boolean
@@ -38,17 +39,12 @@ function LobbyScreen({
     isConnected,
     shutdown,
     account,
-    isAccountLoading,
     liveSessions,
     unreadChangelogEntries,
     onHostGame,
     onJoinGame,
-    onOpenSandbox,
     onViewChangelog,
-    onViewLeaderboard,
-    onViewTournaments,
 }: Readonly<LobbyScreenProps>) {
-    const isPlayingDisabled = !isConnected || Boolean(shutdown);
     const [isCreateLobbyDialogOpen, setIsCreateLobbyDialogOpen] = useState(false);
     const showClientBadges = useHydratedDelay(500);
 
@@ -61,120 +57,76 @@ function LobbyScreen({
                 onCreateLobby={onHostGame}
             />
 
-            <div className="relative z-10 mt-4 xl:mt-[7vh] flex sm:min-h-230 w-full flex-1 flex-col xl:flex-row items-stretch justify-center self-center gap-5 md:gap-8">
-                <section className="relative flex max-w-xl w-full xl:w-[40%] rounded-[1.75rem] p-6 shadow-[0_24px_70px_rgba(15,23,42,0.28)] sm:rounded-4xl sm:p-5 md:p-6 xl:min-w-130">
-                    <div className="relative flex flex-1 flex-col justify-start">
-                        <div className="self-start inline-flex rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-amber-100 sm:px-4 sm:text-xs sm:tracking-[0.35em]">
-                            Two Players
-                        </div>
+            <div className={cn(
+                "relative z-10 mt-4 w-full flex flex-col flex-1 items-stretch justify-center self-center gap-5",
+                "md:gap-8",
+                "xl:flex-row xl:mt-[7vh]"
+            )}>
+                <section className="relative flex flex-col max-w-xl w-full xl:w-[40%] px-2 xl:p-6 xl:min-w-130">
+                    <h1 className="mt-5 text-3xl font-black uppercase tracking-[0.08em] text-white sm:mt-6 sm:text-5xl lg:text-6xl">
+                        HeXO
+                    </h1>
 
-                        <h1 className="mt-5 text-3xl font-black uppercase tracking-[0.08em] text-white sm:mt-6 sm:text-5xl lg:text-6xl">
-                            HeXO
-                        </h1>
+                    <h2 className="mt-1 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl lg:mt-3 lg:text-3xl">
+                        The infinite hexagonal
+                        <br />
+                        tic-tac-toe game
+                    </h2>
 
-                        <h2 className="mt-1 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl lg:mt-3 lg:text-3xl">
-                            The infinite hexagonal
-                            <br />
-                            tic-tac-toe game
-                        </h2>
+                    <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:mt-6 sm:text-base sm:leading-7 lg:text-lg">
+                        <span className={"hidden"}>HeXO</span> is a two-player strategy game played on an infinite hexagonal grid. Take turns placing your pieces, build and block lines, and be the first to connect six in a row.
+                    </p>
 
-                        <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:mt-6 sm:text-base sm:leading-7 lg:text-lg">
-                            Place your hexes on an infinite board, outmaneuver your opponent, and be the first to align six in a row.
-                        </p>
-
-                        <div className="mt-6 flex flex-col gap-4">
-                            <Button
-                                variant="secondary"
-                                size="lg"
-                                onClick={() => setIsCreateLobbyDialogOpen(true)}
-                                disabled={isPlayingDisabled}
-                                className="sm:col-span-2"
-                            >
-                                {shutdown ? `Restart Pending` : `Host Match`}
-                            </Button>
-
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <Button
-                                    onClick={onOpenSandbox}
-                                    variant="success-soft" size="lg" className="w-full"
-                                >
-                                    Sandbox Mode
-                                </Button>
-
-                                <Button
-                                    onClick={onViewLeaderboard}
-                                    variant="info" size="lg" className="w-full block"
-                                >
-                                    Leaderboard
-                                </Button>
-
-                                <Button
-                                    onClick={onViewTournaments}
-                                    variant="warning" size="lg" className="w-full block"
-                                >
-                                    Tournaments
-                                </Button>
+                    <div className="mt-6 flex flex-col gap-4">
+                        {showClientBadges && !isConnected && (
+                            <div className="inline-flex items-center rounded-md border text-left border-rose-300/40 bg-rose-300/10 px-4 py-3 text-sm font-medium text-rose-400">
+                                Not connected to server
                             </div>
+                        )}
 
-                            {showClientBadges && !isConnected && (
-                                <div className="inline-flex items-center rounded-full border text-center border-rose-300/40 bg-rose-300/10 px-4 py-3 text-sm font-medium text-rose-100">
-                                    Not connected to server
-                                </div>
-                            )}
-
-                            {showClientBadges && shutdown && (
-                                <div className="inline-flex items-center rounded-full border text-center border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-medium text-amber-100">
-                                    <span>
-                                        New matches are disabled until the restart completes.
-                                    </span>
-
-                                    <span>
-                                        &nbsp;
-                                        (
-                                        <ShutdownTimer shutdown={shutdown} />
-                                        ).
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        {unreadChangelogEntries > 0 && (
-                            <Button
-                                type="button"
-                                onClick={onViewChangelog}
-                                variant="info" size="default" className="mt-5 self-start gap-3 text-left"
-                            >
-                                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.6)]" />
-
-                                <span className="flex flex-col">
-                                    <span className="font-semibold">
-                                        {unreadChangelogEntries}
-                                        {` new feature`}
-                                        {unreadChangelogEntries === 1 ? `` : `s`}
-                                        {` `}
-                                        dropped
-                                    </span>
-
-                                    <span className="text-xs uppercase tracking-[0.18em] text-sky-200/85">
-                                        View changelog
-                                    </span>
-                                </span>
-
-                                <span className="ml-1 shrink-0 text-sky-200/85">
-                                    <ChangelogLinkIcon />
-                                </span>
-                            </Button>
+                        {showClientBadges && shutdown && (
+                            <div className="inline-flex items-center rounded-md border text-left border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-medium text-amber-400">
+                                New matches are disabled until the restart completes: <ShutdownTimer shutdown={shutdown} />
+                            </div>
                         )}
                     </div>
 
+                    {unreadChangelogEntries > 0 && (
+                        <Button
+                            type="button"
+                            onClick={onViewChangelog}
+                            variant="info" size="default" className="mt-5 self-start gap-3 text-left"
+                        >
+                            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-300 shadow-[0_0_16px_rgba(251,191,36,0.6)]" />
+
+                            <span className="flex flex-col">
+                                <span className="font-semibold">
+                                    {unreadChangelogEntries}
+                                    {` new feature`}
+                                    {unreadChangelogEntries === 1 ? `` : `s`}
+                                    {` `}
+                                    dropped
+                                </span>
+
+                                <span className="text-xs uppercase tracking-[0.18em] text-sky-200/85">
+                                    View changelog
+                                </span>
+                            </span>
+
+                            <span className="ml-1 shrink-0 text-sky-200/85">
+                                <ChangelogLinkIcon />
+                            </span>
+                        </Button>
+                    )}
                 </section>
 
                 <PublicMatchesList
                     liveSessions={liveSessions}
                     isConnected={isConnected}
-                    account={account}
-                    isAccountLoading={isAccountLoading}
+
                     onJoinGame={onJoinGame}
+                    onCreate={options => setIsCreateLobbyDialogOpen(true)}
+
                     className="lg:col-span-7"
                 />
             </div>

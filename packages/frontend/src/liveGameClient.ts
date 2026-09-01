@@ -4,19 +4,19 @@ import type {
     ServerToClientEvents,
     SessionId,
     SessionInfo,
-} from '@ih3t/shared';
-import { toast } from 'react-toastify';
-import { io, type Socket } from 'socket.io-client';
+} from "@ih3t/shared";
+import { toast } from "react-toastify";
+import { io, type Socket } from "socket.io-client";
 
-import { APP_VERSION_HASH } from './appVersion';
-import { useLiveGameStore } from './liveGameStore';
-import { getDeviceId, getSocketUrl } from './query/apiClient';
-import { queryClient } from './query/queryClient';
-import { queryKeys } from './query/queryDefinitions';
-import { buildSessionPath } from './routes/archiveRouteState';
-import { playMatchStartSound } from './soundEffects';
-import { useTournamentMultiviewStore } from './tournamentMultiviewStore';
-import { sortLobbySessions } from './utils/lobby';
+import { APP_VERSION_HASH } from "./appVersion";
+import { useLiveGameStore } from "./liveGameStore";
+import { getDeviceId, getSocketUrl } from "./query/apiClient";
+import { queryClient } from "./query/queryClient";
+import { queryKeys } from "./query/queryDefinitions";
+import { buildSessionPath } from "./routes/archiveRouteState";
+import { playMatchStartSound } from "./soundEffects";
+import { useTournamentMultiviewStore } from "./tournamentMultiviewStore";
+import { sortLobbySessions } from "./utils/lobby";
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
@@ -45,7 +45,11 @@ function showAdminMessageToast(message: string, sentAt: number) {
     });
 }
 
-function showTournamentMessageToast(message: string, tournamentId: string, kind: string) {
+function showTournamentMessageToast(
+    message: string,
+    tournamentId: string,
+    kind: string,
+) {
     toast.info(message, {
         toastId: `tournament:${tournamentId}:${kind}:${message}`,
         autoClose: 6000,
@@ -78,7 +82,10 @@ function isHeartbeatActive() {
     }
 
     const activeSession = useLiveGameStore.getState().session;
-    return activeSession?.state.status === `in-game` && document.visibilityState === `visible`;
+    return (
+        activeSession?.state.status === `in-game` &&
+        document.visibilityState === `visible`
+    );
 }
 
 function reconnectAfterHeartbeatTimeout() {
@@ -128,7 +135,9 @@ function executeHeartbeat() {
 
     const lastPongMs = now - heartbeatLastPongAt;
 
-    useLiveGameStore.getState().setConnectionUnstable(lastPongMs >= HEARTBEAT_UNSTABLE_AFTER_MS);
+    useLiveGameStore
+        .getState()
+        .setConnectionUnstable(lastPongMs >= HEARTBEAT_UNSTABLE_AFTER_MS);
     if (lastPongMs >= HEARTBEAT_RECONNECT_AFTER_MS) {
         reconnectAfterHeartbeatTimeout();
     }
@@ -139,7 +148,10 @@ function startHeartbeatMonitor() {
         return;
     }
 
-    heartbeatMonitor = window.setInterval(executeHeartbeat, HEARTBEAT_INTERVAL_MS);
+    heartbeatMonitor = window.setInterval(
+        executeHeartbeat,
+        HEARTBEAT_INTERVAL_MS,
+    );
     window.addEventListener(`focus`, executeHeartbeat);
     window.addEventListener(`blur`, executeHeartbeat);
     document.addEventListener(`visibilitychange`, executeHeartbeat);
@@ -153,7 +165,7 @@ export function startLiveGameClient() {
     const deviceId = getDeviceId();
     const socketUrl = getSocketUrl();
     shouldHandleDisconnect = true;
-    socket = io(socketUrl, {
+    socket = io({
         auth: {
             deviceId,
             ephemeralClientId: crypto.randomUUID(),
@@ -182,7 +194,9 @@ export function startLiveGameClient() {
         clearHeartbeatState();
         useLiveGameStore.getState().onSocketConnected();
     });
-    socket.on(`initialized`, () => useLiveGameStore.getState().onSocketInitialized());
+    socket.on(`initialized`, () =>
+        useLiveGameStore.getState().onSocketInitialized(),
+    );
     socket.on(`server-pong`, () => {
         heartbeatLastPongAt = Date.now();
     });
@@ -195,13 +209,15 @@ export function startLiveGameClient() {
     });
 
     socket.on(`lobby-updated`, (lobby) => {
-        const lobbies: LobbyInfo[] | undefined = queryClient.getQueryData(queryKeys.availableSessions);
+        const lobbies: LobbyInfo[] | undefined = queryClient.getQueryData(
+            queryKeys.availableSessions,
+        );
         if (!lobbies) {
             /* The lobbies query does not exist. No need to update the (non existing) data. */
             return;
         }
 
-        const newLobbies = lobbies.filter(entry => entry.id !== lobby.id);
+        const newLobbies = lobbies.filter((entry) => entry.id !== lobby.id);
         newLobbies.push(lobby);
 
         queryClient.setQueryData(
@@ -211,7 +227,9 @@ export function startLiveGameClient() {
     });
 
     socket.on(`lobby-removed`, ({ id }) => {
-        const lobbies: LobbyInfo[] | undefined = queryClient.getQueryData(queryKeys.availableSessions);
+        const lobbies: LobbyInfo[] | undefined = queryClient.getQueryData(
+            queryKeys.availableSessions,
+        );
         if (!lobbies) {
             /* The lobbies query does not exist. No need to update the (non existing) data. */
             return;
@@ -219,15 +237,12 @@ export function startLiveGameClient() {
 
         queryClient.setQueryData(
             queryKeys.availableSessions,
-            sortLobbySessions(lobbies.filter(lobby => lobby.id !== id)),
+            sortLobbySessions(lobbies.filter((lobby) => lobby.id !== id)),
         );
     });
 
     socket.on(`shutdown-updated`, (shutdown) => {
-        queryClient.setQueryData(
-            queryKeys.serverShutdown,
-            shutdown,
-        );
+        queryClient.setQueryData(queryKeys.serverShutdown, shutdown);
     });
 
     socket.on(`admin-message`, (broadcast) => {
@@ -235,12 +250,21 @@ export function startLiveGameClient() {
     });
 
     socket.on(`tournament-updated`, (event) => {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.tournament(event.tournamentId) });
+        void queryClient.invalidateQueries({
+            queryKey: queryKeys.tournament(event.tournamentId),
+        });
         void queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
 
         // Nudge user to refresh if they're viewing this tournament
-        if (window.location.pathname.includes(`/tournaments/${event.tournamentId}`)) {
-            toast.info(`Tournament updated. Refreshing...`, { toastId: `tournament-refresh:${event.tournamentId}`, autoClose: 2000 });
+        if (
+            window.location.pathname.includes(
+                `/tournaments/${event.tournamentId}`,
+            )
+        ) {
+            toast.info(`Tournament updated. Refreshing...`, {
+                toastId: `tournament-refresh:${event.tournamentId}`,
+                autoClose: 2000,
+            });
         }
     });
 
@@ -249,10 +273,19 @@ export function startLiveGameClient() {
     });
 
     socket.on(`tournament-notification`, (event) => {
-        void queryClient.invalidateQueries({ queryKey: queryKeys.tournament(event.tournamentId) });
+        void queryClient.invalidateQueries({
+            queryKey: queryKeys.tournament(event.tournamentId),
+        });
         void queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-        showTournamentMessageToast(event.message, event.tournamentId, event.kind);
-        if (event.kind === `match-ready` || event.kind === `tournament-started`) {
+        showTournamentMessageToast(
+            event.message,
+            event.tournamentId,
+            event.kind,
+        );
+        if (
+            event.kind === `match-ready` ||
+            event.kind === `tournament-started`
+        ) {
             playMatchStartSound();
         }
     });
@@ -272,7 +305,7 @@ export function startLiveGameClient() {
         showErrorToast(`Disconnected from the server.`);
     });
 
-    socket.on(`session-joined`, data => {
+    socket.on(`session-joined`, (data) => {
         queryClient.setQueryData(
             queryKeys.session(data.session.id),
             data.session,
@@ -282,39 +315,48 @@ export function startLiveGameClient() {
         executeHeartbeat();
     });
 
-    socket.on(`session-updated`, data => {
+    socket.on(`session-updated`, (data) => {
         const multiviewStore = useTournamentMultiviewStore.getState();
-        const watchedTile = multiviewStore.tilesBySessionId[data.sessionId] ?? null;
+        const watchedTile =
+            multiviewStore.tilesBySessionId[data.sessionId] ?? null;
 
         queryClient.setQueryData(
             queryKeys.session(data.sessionId),
-            (currentSession: SessionInfo | null | undefined) => currentSession
-                ? {
-                    ...currentSession,
-                    ...data.session,
-                    id: data.sessionId,
-                }
-                : currentSession ?? null,
+            (currentSession: SessionInfo | null | undefined) =>
+                currentSession
+                    ? {
+                          ...currentSession,
+                          ...data.session,
+                          id: data.sessionId,
+                      }
+                    : (currentSession ?? null),
         );
-        useLiveGameStore.getState().handleSessionUpdate({ ...data.session, id: data.sessionId });
+        useLiveGameStore
+            .getState()
+            .handleSessionUpdate({ ...data.session, id: data.sessionId });
         multiviewStore.handleSessionUpdate(data);
 
         /* When a tournament session finishes, eagerly invalidate tournament queries
          * so the match card updates immediately instead of waiting for reconciliation. */
         if (data.session.state?.status === `finished`) {
             const store = useLiveGameStore.getState();
-            const tournamentId = store.session?.tournament?.tournamentId
-                ?? data.session.tournament?.tournamentId
-                ?? watchedTile?.session?.tournament?.tournamentId
-                ?? null;
+            const tournamentId =
+                store.session?.tournament?.tournamentId ??
+                data.session.tournament?.tournamentId ??
+                watchedTile?.session?.tournament?.tournamentId ??
+                null;
             if (tournamentId) {
-                void queryClient.invalidateQueries({ queryKey: queryKeys.tournament(tournamentId) });
-                void queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
+                void queryClient.invalidateQueries({
+                    queryKey: queryKeys.tournament(tournamentId),
+                });
+                void queryClient.invalidateQueries({
+                    queryKey: queryKeys.tournaments,
+                });
             }
         }
     });
 
-    socket.on(`session-watch-started`, data => {
+    socket.on(`session-watch-started`, (data) => {
         queryClient.setQueryData(
             queryKeys.session(data.session.id),
             data.session,
@@ -322,20 +364,22 @@ export function startLiveGameClient() {
         useTournamentMultiviewStore.getState().handleWatchStarted(data);
     });
 
-    socket.on(`session-watch-error`, data => {
+    socket.on(`session-watch-error`, (data) => {
         useTournamentMultiviewStore.getState().handleWatchError(data);
     });
 
-    socket.on(`game-state`, data => {
+    socket.on(`game-state`, (data) => {
         useLiveGameStore.getState().handleGameState(data);
         useTournamentMultiviewStore.getState().handleGameState(data);
     });
-    socket.on(`game-cell-place`, data => {
+    socket.on(`game-cell-place`, (data) => {
         useLiveGameStore.getState().handleGameCellPlace(data);
         useTournamentMultiviewStore.getState().handleGameCellPlace(data);
     });
 
-    socket.on(`session-chat`, data => useLiveGameStore.getState().handleSessionChatEvent(data));
+    socket.on(`session-chat`, (data) =>
+        useLiveGameStore.getState().handleSessionChatEvent(data),
+    );
 
     socket.on(`error`, (error: string) => {
         console.error(`Socket error:`, error);
@@ -344,7 +388,9 @@ export function startLiveGameClient() {
 
         if (pendingJoin.status === `pending` && pendingJoin.sessionId) {
             currentState.failJoiningSession(pendingJoin.sessionId, error);
-            const isSessionRoute = window.location.pathname === `/session/${encodeURIComponent(pendingJoin.sessionId)}`;
+            const isSessionRoute =
+                window.location.pathname ===
+                `/session/${encodeURIComponent(pendingJoin.sessionId)}`;
             if (error === `Session not found` && isSessionRoute) {
                 return;
             }
@@ -373,7 +419,10 @@ export function joinSession(sessionId: SessionId) {
         return;
     }
 
-    if (state.pendingSessionJoin.status === `pending` && state.pendingSessionJoin.sessionId === sessionId) {
+    if (
+        state.pendingSessionJoin.status === `pending` &&
+        state.pendingSessionJoin.sessionId === sessionId
+    ) {
         return;
     }
 
@@ -400,7 +449,9 @@ export function leaveSession() {
     if (state.session) {
         socket?.emit(`leave-session`, { sessionId: state.session.id });
     } else if (state.pendingSessionJoin.sessionId) {
-        socket?.emit(`leave-session`, { sessionId: state.pendingSessionJoin.sessionId });
+        socket?.emit(`leave-session`, {
+            sessionId: state.pendingSessionJoin.sessionId,
+        });
     }
 
     state.clearSession();
@@ -459,7 +510,7 @@ export function placeCell(x: number, y: number) {
 
     socket?.emit(`place-cell`, {
         sessionId: session.id,
-        cell: { x, y }
+        cell: { x, y },
     });
 }
 
@@ -469,7 +520,10 @@ export function sendSessionChatMessage(message: string) {
         return;
     }
 
-    socket?.emit(`send-session-chat-message`, { sessionId: session.id, message });
+    socket?.emit(`send-session-chat-message`, {
+        sessionId: session.id,
+        message,
+    });
 }
 
 export function requestRematch() {
@@ -491,7 +545,7 @@ export function cancelRematch() {
 }
 
 if (typeof window !== `undefined`) {
-    /* 
+    /*
      * Instantly connect to the server and do not wait until the first render.
      * This should speed up the initial connect process.
      */

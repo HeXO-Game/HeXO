@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import path from "node:path";
 import { defineConfig, UserConfig } from "vite";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 
 export default defineConfig(
     ({ isSsrBuild, mode }) =>
@@ -13,7 +14,11 @@ export default defineConfig(
                 proxy: {
                     "/api": `http://localhost:3001`,
                     "/auth": `http://localhost:3001`,
-                    "/socket.io": { target: `http://localhost:3001`, ws: true },
+                    "/socket.io": {
+                        target: `http://localhost:3001`,
+                        rewriteWsOrigin: true,
+                        ws: true,
+                    },
                     "/dev": `http://localhost:3001`,
                 },
             },
@@ -27,12 +32,16 @@ export default defineConfig(
             define: {
                 __APP_VERSION_HASH__: JSON.stringify(resolveVersionHash()),
             },
+
             plugins: [
                 tailwindcss(),
                 react(),
                 babel({ presets: [reactCompilerPreset()] }),
+                basicSsl(),
             ],
+
             ssr: isSsrBuild ? { noExternal: true } : undefined,
+
             build: {
                 rolldownOptions: {
                     output: {

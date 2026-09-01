@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import type { AccountProfile, LobbyInfo } from '@ih3t/shared';
+import type { AccountProfile, LobbyInfo, LobbyOptions } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 
 import { useSsrCompatibleNow } from '../ssrState';
@@ -8,13 +8,20 @@ import { formatTimeControl } from '../utils/gameTimeControl';
 import { formatLobbyLiveDuration } from '../utils/lobby';
 import type { RatedFilter } from '../utils/ratedFilter';
 import RatedFilterTabs from './RatedFilterTabs';
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { useQueryAccount } from '../query/accountClient';
+import { PlusIcon, ScanSearchIcon } from 'lucide-react';
+import { useQueryServerShutdown } from '../query/serverClient';
+import { useNavigate } from 'react-router';
 
 type PublicMatchesListProps = {
     liveSessions: LobbyInfo[]
     isConnected: boolean
-    account: AccountProfile | null
-    isAccountLoading: boolean
+
     onJoinGame: (sessionId: string) => void
+    onCreate: (options: Partial<LobbyOptions>) => void
+
     className?: string
 };
 
@@ -139,22 +146,100 @@ function PlayerMatchup({ session }: { session: LobbyInfo }) {
     }
 }
 
+function LiveSessionRenderer({
+    isConnected,
+    session,
+    onJoinGame,
+}: {
+    isConnected: boolean,
+    session: LobbyInfo,
+    onJoinGame: () => void,
+}) {
+    const now = useUpdatingTimestamp(1_000);
+
+    const queryAccount = useQueryAccount();
+    const account = queryAccount.data?.user ?? null;
+
+    const canJoin = canJoinSession(session);
+    const joinDisabled = isJoinButtonDisabled(session, isConnected, queryAccount.data?.user ?? null);
+    const joinButtonLabel = getJoinButtonLabel(session, account, queryAccount.isLoading);
+    return (
+        <div
+            key={session.id}
+            className="group relative overflow-hidden py-4 sm:py-5"
+        >
+            <div className="relative flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${canJoin
+                        ? `bg-emerald-400/15 text-emerald-200`
+                        : `bg-sky-400/15 text-sky-200`
+                        }`}
+                    >
+                        {canJoin ? `Lobby` : `Game`}
+                        {` `}
+                        {session.id}
+                    </span>
+
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${session.rated
+                        ? `bg-amber-300/15 text-amber-100`
+                        : `bg-white/8 text-slate-200`
+                        }`}
+                    >
+                        <ModeBadgeIcon rated={session.rated} />
+                        {session.rated ? `Rated` : `Unrated`}
+                    </span>
+                </div>
+
+                <PlayerMatchup session={session} />
+
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0 flex flex-col gap-1">
+                        <span className="inline-flex items-center gap-1.5 text-sm text-slate-300">
+                            <ClockBadgeIcon />
+                            {formatTimeControl(session.timeControl)}
+                        </span>
+
+                        <div className="inline-flex items-center gap-1.5 text-sm text-slate-400">
+                            <SessionStateIcon startedAt={session.startedAt} />
+                            {formatSessionStatusLabel(session, now)}
+                        </div>
+                    </div>
+
+                    <Button
+                        variant={canJoin ? `default` : `outline`}
+                        size="lg"
+                        onClick={onJoinGame}
+                        disabled={joinDisabled}
+                        className="sm:w-[15em] lg:shrink-0"
+                    >
+                        {joinButtonLabel}
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const useUpdatingTimestamp = (interval?: number) => {
+    const [now, setNow] = useState(useSsrCompatibleNow());
+    useEffect(() => {
+        const id = window.setInterval(() => setNow(Date.now()), interval ?? 1000);
+        return () => window.clearInterval(id);
+    }, []);
+    return now;
+}
+
 export default function PublicMatchesList({
     liveSessions,
     isConnected,
-    account,
-    isAccountLoading,
-    onJoinGame,
-    className,
-}: Readonly<PublicMatchesListProps>) {
-    const [now, setNow] = useState(useSsrCompatibleNow());
-    useEffect(() => {
-        const interval = window.setInterval(() => {
-            setNow(Date.now());
-        }, 1000);
 
-        return () => window.clearInterval(interval);
-    }, []);
+    className,
+
+    onJoinGame,
+    onCreate,
+}: Readonly<PublicMatchesListProps>) {
+    const navigate = useNavigate();
+    const shutdown = useQueryServerShutdown().data ?? null;
 
     const [activeFilter, setActiveFilter] = useState<RatedFilter>(`all`);
     const filteredSessions = liveSessions.filter((session) => {
@@ -169,140 +254,114 @@ export default function PublicMatchesList({
         return true;
     });
 
+    const hostMatch = () => {
+        switch (activeFilter) {
+            case "all":
+                onCreate({});
+                break;
+
+            case "rated":
+                onCreate({ rated: true });
+                break;
+
+            case "unrated":
+                onCreate({ rated: false });
+                break;
+        }
+    }
+
     let filterSummaryLabel: string;
     let emptyTitle: string;
     switch (activeFilter) {
         case `all`:
             filterSummaryLabel = `Showing all public lobbies and ongoing matches`;
-            emptyTitle = `No live sessions are available right now.`;
+            emptyTitle = `No matches available right now`;
             break;
 
         case `rated`:
             filterSummaryLabel = `Showing rated public lobbies and ongoing matches only`;
-            emptyTitle = `No rated public matches are available right now.`;
+            emptyTitle = `No rated matches are available right now`;
             break;
 
         case `unrated`:
             filterSummaryLabel = `Showing casual public lobbies and ongoing matches only`;
-            emptyTitle = `No casual public matches are available right now.`;
+            emptyTitle = `No casual matches are available right now`;
             break;
     }
 
     return (
-        <section className={cn(
-            `relative shrink w-full ml-auto xl:max-w-3xl xl:w-[60%] overflow-hidden rounded-4xl border border-white/10 bg-slate-950/84 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.3)] sm:flex sm:min-h-110 sm:flex-col md:p-6 md:h-186`,
-            className,
-        )}
-        >
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
+        <Card className={cn(
+            "relative flex-1 w-full ml-auto overflow-hidden min-h-110 h-full max-h-164",
+            "sm:flex sm:flex-col",
+            //"md:p-6",
+            "xl:max-w-3xl xl:w-[60%]",
+            className
+        )}>
+            <CardHeader>
+                <CardTitle>Available Matches</CardTitle>
+                <CardDescription className={"flex flex-col gap-2"}>
+                    <div>{filterSummaryLabel}</div>
+                </CardDescription>
+                <CardAction>
+                    <Badge>
+                        {liveSessions.length} Live Now
+                    </Badge>
+                </CardAction>
+            </CardHeader>
+            <CardContent className={"flex-1 flex flex-col border-y sm:mx-4 overflow-y-auto scrollbar-gutter-stable"}>
+                {filteredSessions.length === 0 ? (
+                    <div className="my-auto px-6 text-center text-slate-300 flex flex-col gap-4">
+                        <p className="text-xl font-semibold text-white">
+                            {emptyTitle}
+                        </p>
 
-            <div className="relative flex gap-4 flex-row justify-between">
-                <div className="min-w-0">
-                    <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-                        Available Matches
-                    </h2>
-
-                    <p className="mt-2 text-sm text-slate-300">
-                        {filterSummaryLabel}
-                    </p>
-                </div>
-
-                <div className="rounded-[1.4rem] self-start border border-white/10 bg-slate-900 px-4 py-3 text-right w-38">
-                    <div className="text-3xl font-black text-white">
-                        {filteredSessions.length}
-                    </div>
-
-                    <div className="text-xs uppercase tracking-[0.2em] text-slate-300 mt-1">
-                        {activeFilter === `all` ? `Live Now` : `Shown of ${liveSessions.length}`}
-                    </div>
-                </div>
-            </div>
-
-            <div className="relative mt-5 flex flex-col min-h-0 gap-4 sm:mt-6">
-                <RatedFilterTabs
-                    value={activeFilter}
-                    onChange={setActiveFilter}
-                />
-
-                <div className="min-h-0 sm:flex-1 flex-col sm:overflow-y-auto sm:overscroll-contain sm:pr-1 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
-                    {filteredSessions.length === 0 ? (
-                        <div className="rounded-3xl mt-10 px-6 text-center text-slate-300">
-                            <p className="text-lg font-semibold text-white">
-                                {emptyTitle}
-                            </p>
-
-                            <p className="mt-2 text-sm leading-6 text-slate-400">
-                                Create a new match and the lobby list will update for everyone automatically to join you.
-                            </p>
+                        <div className={"flex flex-col gap-2 self-center justify-center w-64 sm:w-full sm:flex-row sm:gap-4"}>
+                            <Button
+                                variant={"outline"}
+                                className={"w-full sm:w-40"}
+                                onClick={() => navigate("/sandbox")}
+                            >
+                                <ScanSearchIcon className={"mr-2"} /> Open Sandbox
+                            </Button>
+                            <Button
+                                variant={"secondary"}
+                                className={"w-full sm:w-40"}
+                                onClick={hostMatch}
+                                disabled={shutdown !== null}
+                            >
+                                <PlusIcon className={"mr-2"} /> Create Match
+                            </Button>
                         </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {filteredSessions.map((session) => {
-                                const canJoin = canJoinSession(session);
-                                const joinDisabled = isJoinButtonDisabled(session, isConnected, account);
-                                const joinButtonLabel = getJoinButtonLabel(session, account, isAccountLoading);
-                                return (
-                                    <div
-                                        key={session.id}
-                                        className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-slate-900 p-4 sm:p-5"
-                                    >
-                                        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/8" />
-
-                                        <div className="relative flex flex-col gap-3">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${canJoin
-                                                    ? `bg-emerald-400/15 text-emerald-200`
-                                                    : `bg-sky-400/15 text-sky-200`
-                                                }`}
-                                                >
-                                                    {canJoin ? `Lobby` : `Game`}
-                                                    {` `}
-                                                    {session.id}
-                                                </span>
-
-                                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${session.rated
-                                                    ? `bg-amber-300/15 text-amber-100`
-                                                    : `bg-white/8 text-slate-200`
-                                                }`}
-                                                >
-                                                    <ModeBadgeIcon rated={session.rated} />
-                                                    {session.rated ? `Rated` : `Unrated`}
-                                                </span>
-                                            </div>
-
-                                            <PlayerMatchup session={session} />
-
-                                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                                <div className="min-w-0 flex flex-col gap-1">
-                                                    <span className="inline-flex items-center gap-1.5 text-sm text-slate-300">
-                                                        <ClockBadgeIcon />
-                                                        {formatTimeControl(session.timeControl)}
-                                                    </span>
-
-                                                    <div className="inline-flex items-center gap-1.5 text-sm text-slate-400">
-                                                        <SessionStateIcon startedAt={session.startedAt} />
-                                                        {formatSessionStatusLabel(session, now)}
-                                                    </div>
-                                                </div>
-
-                                                <Button
-                                                    variant={canJoin ? `default` : `outline`}
-                                                    size="lg"
-                                                    onClick={() => onJoinGame(session.id)}
-                                                    disabled={joinDisabled}
-                                                    className="sm:w-[15em] lg:shrink-0"
-                                                >
-                                                    {joinButtonLabel}
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                    </div>
+                ) : (
+                    <div className="space-y-3 divide-y">
+                        {filteredSessions.map((session) => (
+                            <LiveSessionRenderer
+                                key={session.id}
+                                isConnected={isConnected}
+                                onJoinGame={() => onJoinGame(session.id)}
+                                session={session}
+                            />
+                        ))}
+                    </div>
+                )}
+            </CardContent>
+            <CardFooter className={"flex flex-row justify-between w-full bg-transparent border-none pt-0"}>
+                <div className={"flex flex-col gap-1"}>
+                    <RatedFilterTabs
+                        value={activeFilter}
+                        onChange={setActiveFilter}
+                    />
+                    <div className={"text-foreground/50 text-xs"}>
+                        Showing {filteredSessions.length} / {liveSessions.length} matches
+                    </div>
                 </div>
-            </div>
-        </section>
+                <div className={cn("flex flex-col justify-end", filteredSessions.length === 0 && "hidden")}>
+                    <Button variant={"secondary"} onClick={hostMatch} disabled={shutdown !== null}>
+                        <PlusIcon /> <span className={"hidden sm:inline"}>Create Match</span>
+                    </Button>
+                </div>
+            </CardFooter>
+        </Card>
     );
 }

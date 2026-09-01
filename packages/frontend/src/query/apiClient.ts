@@ -1,5 +1,5 @@
-import { getOrCreateDeviceId } from '../deviceId';
-import { createTrackedHeaders } from '../openReplay';
+import { getOrCreateDeviceId } from "../deviceId";
+import { createTrackedHeaders } from "../openReplay";
 
 let cachedDeviceId: string | null = null;
 
@@ -19,11 +19,7 @@ export function getApiBaseUrl() {
         return configuredBaseUrl.replace(/\/$/, ``);
     }
 
-    if (typeof window !== `undefined`) {
-        return import.meta.env.DEV ? `http://localhost:3001` : window.location.origin;
-    }
-
-    return `http://localhost:3001`;
+    return window.location.origin;
 }
 
 export function getSocketUrl() {
@@ -39,7 +35,10 @@ export function getDeviceId() {
     return cachedDeviceId;
 }
 
-export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+export async function fetchJson<T>(
+    path: string,
+    init?: RequestInit,
+): Promise<T> {
     const deviceId = getDeviceId();
     const headers = createTrackedHeaders(init?.headers);
     headers.set(`X-Device-Id`, deviceId);
@@ -52,14 +51,23 @@ export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T>
 
     if (!response.ok) {
         const data: unknown = await response.json().catch(() => null);
-        const message = typeof data === `object` && data && `error` in data && typeof data.error === `string` ? data?.error : `Request failed: ${response.status}`;
+        const message =
+            typeof data === `object` &&
+            data &&
+            `error` in data &&
+            typeof data.error === `string`
+                ? data?.error
+                : `Request failed: ${response.status}`;
         throw new ApiError(response.status, message);
     }
 
-    return await response.json() as T;
+    return (await response.json()) as T;
 }
 
-export async function fetchOptionalJson<T>(path: string, init?: RequestInit): Promise<T | null> {
+export async function fetchOptionalJson<T>(
+    path: string,
+    init?: RequestInit,
+): Promise<T | null> {
     try {
         return await fetchJson<T>(path, init);
     } catch (error) {
