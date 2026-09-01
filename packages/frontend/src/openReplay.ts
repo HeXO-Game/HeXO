@@ -18,6 +18,7 @@ type PendingTrackedError = {
 
 let trackerSingleton: TrackerSingleton | null = null;
 let trackedUser: OpenReplayUser | null = null;
+let trackedLanguage: string | null = null;
 let openReplayConfigured = false;
 let openReplayStarting = false;
 let openReplayStarted = false;
@@ -64,18 +65,34 @@ export function createTrackedHeaders(init?: HeadersInit): Headers {
     return headers;
 }
 
-function applyTrackedUser(): void {
-    if (!trackerSingleton || !trackedUser) {
+function applyTrackedState(): void {
+    if (!trackerSingleton) {
         return;
     }
 
-    trackerSingleton.setUserID(trackedUser.id);
-    trackerSingleton.setMetadata(`username`, trackedUser.username);
+    if (trackedUser) {
+        trackerSingleton.setUserID(trackedUser.id);
+        trackerSingleton.setMetadata(`username`, trackedUser.username);
+    }
+    if (trackedLanguage) {
+        trackerSingleton.setMetadata(`language`, trackedLanguage);
+    }
 }
 
 export function trackOpenReplayUser(user: OpenReplayUser | null): void {
     trackedUser = user;
-    applyTrackedUser();
+    applyTrackedState();
+}
+
+export function trackOpenReplayLanguage(language: string, previousLanguage?: string): void {
+    trackedLanguage = language;
+    applyTrackedState();
+
+    if (previousLanguage && previousLanguage !== language) {
+        const payload = { previousLanguage, language };
+        trackerSingleton?.event(`language_change`, payload);
+        trackerSingleton?.analytics?.track(`language_change`, payload);
+    }
 }
 
 export function trackNavigation(targetUrl: string, params: Params<string>): void {
@@ -147,7 +164,7 @@ export function initializeOpenReplay(): void {
     void tracker.start().then(() => {
         openReplayStarting = false;
         openReplayStarted = true;
-        applyTrackedUser();
+        applyTrackedState();
         flushPendingTrackedErrors();
     }).catch(error => {
         trackerSingleton = null;

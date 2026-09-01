@@ -6,8 +6,10 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChevronDownIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { trackOpenReplayLanguage } from '../openReplay';
 
 const LANGUAGE_STORAGE_KEY = `language`;
 
@@ -80,6 +82,7 @@ function LanguageSelector() {
     const activeLanguage = LANGUAGES.find(({ code }) => code.toLowerCase() === i18n.resolvedLanguage?.toLowerCase()) ?? LANGUAGES[0];
 
     const [open, setOpen] = useState(false);
+    const previousLanguage = useRef<LanguageCode | undefined>(undefined);
 
     useEffect(() => {
         const savedLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -90,6 +93,8 @@ function LanguageSelector() {
 
     useEffect(() => {
         document.documentElement.lang = activeLanguage.code;
+        trackOpenReplayLanguage(activeLanguage.code, previousLanguage.current);
+        previousLanguage.current = activeLanguage.code;
     }, [activeLanguage.code]);
 
     const changeLanguage = (nextLanguage: string) => {
