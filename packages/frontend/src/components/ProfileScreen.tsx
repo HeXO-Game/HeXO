@@ -36,6 +36,8 @@ import {
 } from '../utils/profileStats';
 import AccountPicture from './AccountPicture';
 import PageCorpus from './PageCorpus';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
@@ -165,7 +167,7 @@ function StatisticsGroup({
     );
 }
 
-function StatisticsLoadingState({ message = `Loading your statistics...` }: Readonly<{ message?: string }>) {
+function StatisticsLoadingState({ message = i18next.t('loadingYourStatistics', 'Loading your statistics...') }: Readonly<{ message?: string }>) {
     return (
         <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-3xl border border-white/10 bg-slate-950/45 px-5 py-10 text-center text-sm text-slate-300 lg:col-span-2">
@@ -183,7 +185,7 @@ function StatisticsErrorState({ message }: Readonly<{ message: string }>) {
     );
 }
 
-function StatisticsEmptyState({ message = `Statistics will appear here once your profile data is ready.` }: Readonly<{ message?: string }>) {
+function StatisticsEmptyState({ message = i18next.t('statisticsWillAppearHereOnceYourProfileDataIsReady', 'Statistics will appear here once your profile data is ready.') }: Readonly<{ message?: string }>) {
     return (
         <div className="rounded-3xl border border-white/10 bg-slate-950/45 px-5 py-10 text-center text-sm text-slate-300">
             {message}
@@ -196,6 +198,7 @@ function LiveGameSection({
 }: Readonly<{
     liveGame: LobbyInfo
 }>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     return (
         <section className="rounded-[1.6rem] border border-emerald-300/20 bg-[linear-gradient(180deg,rgba(6,78,59,0.38),rgba(15,23,42,0.62))] p-5 shadow-[0_24px_80px_rgba(6,78,59,0.18)]">
@@ -203,7 +206,7 @@ function LiveGameSection({
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
-                            Live Game
+                            {t('liveGame', 'Live Game')}
                         </span>
 
                         <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${liveGame.rated
@@ -220,7 +223,7 @@ function LiveGameSection({
                     </div>
 
                     <h3 className="mt-3 text-xl font-black uppercase tracking-[0.08em] text-white">
-                        Currently Playing
+                        {t('currentlyPlaying', 'Currently Playing')}
                     </h3>
 
                     <div className="mt-2 text-sm leading-6 text-slate-300">
@@ -239,7 +242,7 @@ function LiveGameSection({
                     to={buildSessionPath(liveGame.id)}
                     className={`${buttonVariants({ variant: `success-soft`, size: `lg` })} lg:shrink-0`}
                 >
-                    Watch Live Game
+                    {t('watchLiveGame', 'Watch Live Game')}
                 </Link>
             </div>
         </section>
@@ -298,6 +301,7 @@ function RecentGamesSection({
     errorMessage: string | null
     isPublicView: boolean
 }>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const games = recentGames?.games ?? [];
     const archiveView = isPublicView ? `all` : `mine`;
@@ -306,21 +310,21 @@ function RecentGamesSection({
         <section className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.72),rgba(15,23,42,0.5))] p-5 shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
             <div>
                 <div className="text-xs uppercase tracking-[0.28em] text-violet-200/85">
-                    Match History
+                    {t('matchHistory', 'Match History')}
                 </div>
 
                 <h3 className="mt-3 text-xl font-black uppercase tracking-[0.08em] text-white">
-                    Last 10 Games
+                    {t('last10Games', 'Last 10 Games')}
                 </h3>
 
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                    The most recent finished matches played on this profile.
+                    {t('theMostRecentFinishedMatchesPlayedOnThisProfile', 'The most recent finished matches played on this profile.')}
                 </p>
             </div>
 
             {isLoading ? (
                 <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-slate-950/45 px-4 py-8 text-center text-sm text-slate-300">
-                    Loading recent games...
+                    {t('loadingRecentGames', 'Loading recent games...')}
                 </div>
             ) : errorMessage ? (
                 <div className="mt-5 rounded-[1.25rem] border border-rose-300/30 bg-rose-500/10 px-4 py-4 text-sm text-rose-100">
@@ -328,7 +332,7 @@ function RecentGamesSection({
                 </div>
             ) : games.length === 0 ? (
                 <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-slate-950/45 px-4 py-8 text-center text-sm text-slate-300">
-                    No finished games have been recorded for this profile yet.
+                    {t('noFinishedGamesHaveBeenRecordedForThisProfileYet', 'No finished games have been recorded for this profile yet.')}
                 </div>
             ) : (
                 <div className="mt-5 space-y-4">
@@ -369,7 +373,7 @@ function RecentGamesSection({
                                             )}
 
                                             <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                Moves:
+                                                {t('moves', 'Moves:')}
                                                 {` `}
                                                 {game.moveCount}
                                             </span>
@@ -425,6 +429,7 @@ function EloHistoryChartSection({
     eloHistory: AccountEloHistory
     currentElo: number
 }>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const ssrNow = useSsrCompatibleNow();
     const now = useMemo(() => ssrNow, [eloHistory]);
@@ -492,21 +497,21 @@ function EloHistoryChartSection({
             <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                     <div className="text-xs uppercase tracking-[0.28em] text-sky-200/85">
-                        Competitive Trend
+                        {t('competitiveTrend', 'Competitive Trend')}
                     </div>
 
                     <h3 className="mt-3 text-xl font-black uppercase tracking-[0.08em] text-white">
-                        ELO Rating
+                        {t('eloRating', 'ELO Rating')}
                     </h3>
 
                     <p className="mt-2 text-sm leading-6 text-slate-300">
-                        ELO rating over the last 30 days.
+                        {t('eloRatingOverTheLast30Days', 'ELO rating over the last 30 days.')}
                     </p>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-slate-950/45 px-4 py-3">
                     <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-500">
-                        Highest Rating
+                        {t('highestRating', 'Highest Rating')}
                     </div>
 
                     <div className="mt-1 text-lg font-bold leading-none text-white">
@@ -547,11 +552,11 @@ function EloHistoryChartSection({
                             cursor={{ stroke: `rgba(125,211,252,0.35)`, strokeWidth: 1 }}
                             contentStyle={{
                                 backgroundColor: `rgba(2,6,23,0.94)`,
-                                border: `1px solid rgba(148,163,184,0.2)`,
+                                border: t('1pxSolidRgba14816318402', '1px solid rgba(148,163,184,0.2)'),
                                 borderRadius: `1rem`,
                                 color: `#e2e8f0`,
                             }}
-                            formatter={(value) => [`${value as number} ELO`, `Rating`]}
+                            formatter={(value) => [t('valElo', '{{val}} ELO', { val: value as number }), `Rating`]}
                             labelFormatter={(label) => formatDateTime(intlFormatProvider, Number(label))}
                         />
 
@@ -584,6 +589,7 @@ function ProfileScreen({
     recentGamesErrorMessage,
     isPublicView,
 }: Readonly<ProfileScreenProps>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const now = useSsrCompatibleNow();
 
@@ -603,29 +609,29 @@ function ProfileScreen({
     return (
         <PageCorpus
             category={isPublicView ? `Profile` : `Account`}
-            title={isPublicView ? (account?.username ?? `Player Profile`) : `Your Account`}
+            title={isPublicView ? (account?.username ?? `Player Profile`) : t('yourAccount', 'Your Account')}
             description={isPublicView
-                ? `Public profile details and competitive standing for this HeXO player.`
-                : `Account details and competitive standing for your HeXO profile.`}
+                ? t('publicProfileDetailsAndCompetitiveStandingForThisHexoPlayer', 'Public profile details and competitive standing for this HeXO player.')
+                : t('accountDetailsAndCompetitiveStandingForYourHexoProfile', 'Account details and competitive standing for your HeXO profile.')}
         >
             <div className="flex-1 px-4 pb-4 sm:px-6 sm:pb-6">
                 {isLoading ? (
                     <div className="flex h-full items-center justify-center rounded-[1.75rem] border border-white/10 bg-white/6 px-6 py-10 text-center text-slate-300">
-                        {isPublicView ? `Loading profile...` : `Loading your account...`}
+                        {isPublicView ? t('loadingProfile', 'Loading profile...') : t('loadingYourAccount', 'Loading your account...')}
                     </div>
                 ) : isMissingPublicProfile ? (
                     <div className="flex h-full items-center justify-center">
                         <section className="w-full max-w-2xl rounded-[1.75rem] border border-white/10 bg-white/6 p-6 text-center shadow-[0_20px_80px_rgba(15,23,42,0.35)] sm:p-8">
                             <div className="text-xs uppercase tracking-[0.3em] text-sky-100/90">
-                                Profile
+                                {t('profile', 'Profile')}
                             </div>
 
                             <h2 className="mt-4 text-3xl font-black uppercase tracking-[0.08em] text-white">
-                                Profile Not Found
+                                {t('profileNotFound2', 'Profile Not Found')}
                             </h2>
 
                             <p className="mt-4 text-sm leading-6 text-slate-300 sm:text-base">
-                                This player profile is unavailable or no longer exists.
+                                {t('thisPlayerProfileIsUnavailableOrNoLongerExists', 'This player profile is unavailable or no longer exists.')}
                             </p>
                         </section>
                     </div>
@@ -638,15 +644,15 @@ function ProfileScreen({
                         <div className="flex h-full items-center justify-center">
                             <section className="w-full max-w-2xl rounded-[1.75rem] border border-white/10 bg-white/6 p-6 text-center shadow-[0_20px_80px_rgba(15,23,42,0.35)] sm:p-8">
                                 <div className="text-xs uppercase tracking-[0.3em] text-sky-100/90">
-                                    Profile
+                                    {t('profile', 'Profile')}
                                 </div>
 
                                 <h2 className="mt-4 text-3xl font-black uppercase tracking-[0.08em] text-white">
-                                    Profile Not Found
+                                    {t('profileNotFound2', 'Profile Not Found')}
                                 </h2>
 
                                 <p className="mt-4 text-sm leading-6 text-slate-300 sm:text-base">
-                                    This player profile is unavailable or no longer exists.
+                                    {t('thisPlayerProfileIsUnavailableOrNoLongerExists', 'This player profile is unavailable or no longer exists.')}
                                 </p>
                             </section>
                         </div>
@@ -654,22 +660,22 @@ function ProfileScreen({
                         <div className="flex h-full items-center justify-center">
                             <section className="w-full max-w-2xl rounded-[1.75rem] border border-amber-300/20 bg-amber-300/10 p-6 text-center shadow-[0_20px_80px_rgba(15,23,42,0.35)] sm:p-8">
                                 <div className="text-xs uppercase tracking-[0.3em] text-amber-100/90">
-                                    Profile Access
+                                    {t('profileAccess', 'Profile Access')}
                                 </div>
 
                                 <h2 className="mt-4 text-3xl font-black uppercase tracking-[0.08em] text-white">
-                                    Sign In Required
+                                    {t('signInRequired', 'Sign In Required')}
                                 </h2>
 
                                 <p className="mt-4 text-sm leading-6 text-amber-50/85 sm:text-base">
-                                    Sign in with Discord to view your account details and competitive standing.
+                                    {t('signInWithDiscordToViewYourAccountDetailsAndCompetitiveStanding', 'Sign in with Discord to view your account details and competitive standing.')}
                                 </p>
 
                                 <Button
                                     onClick={() => void handleSignIn()}
                                     variant="discord" size="lg" className="mt-6"
                                 >
-                                    Sign In With Discord
+                                    {t('signInWithDiscord', 'Sign In With Discord')}
                                 </Button>
                             </section>
                         </div>
@@ -691,7 +697,7 @@ function ProfileScreen({
                                                 </span>
 
                                                 <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-200">
-                                                    Discord Account
+                                                    {t('discordAccount', 'Discord Account')}
                                                 </span>
                                             </div>
 
@@ -700,8 +706,8 @@ function ProfileScreen({
                                             </h2>
 
                                             <div className="mt-4 flex flex-col text-slate-300">
-                                                <AccountMetaItem label="Member Since" value={memberSinceLabel ?? `Unavailable`} />
-                                                <AccountMetaItem label="Last Seen" value={lastSeenLabel ?? `Unavailable`} />
+                                                <AccountMetaItem label={t('memberSince', 'Member Since')} value={memberSinceLabel ?? `Unavailable`} />
+                                                <AccountMetaItem label={t('lastSeen', 'Last Seen')} value={lastSeenLabel ?? `Unavailable`} />
                                             </div>
                                         </div>
                                     </div>
@@ -709,20 +715,20 @@ function ProfileScreen({
 
                                 <div>
                                     {isStatisticsLoading ? (
-                                        <StatisticsLoadingState message={isPublicView ? `Loading profile statistics...` : `Loading your statistics...`} />
+                                        <StatisticsLoadingState message={isPublicView ? t('loadingProfileStatistics', 'Loading profile statistics...') : t('loadingYourStatistics', 'Loading your statistics...')} />
                                     ) : statisticsErrorMessage ? (
                                         <StatisticsErrorState message={statisticsErrorMessage} />
                                     ) : statistics ? (
                                         <div className="grid gap-4 lg:grid-cols-2">
                                             <PrimaryStatCard
-                                                label="World Rank"
+                                                label={t('worldRank', 'World Rank')}
                                                 value={formatWorldRank(statistics.worldRank)}
-                                                detail={statistics.worldRank === null ? `Finish a ranked game to enter the global standings.` : `Current global placement based on ELO.`}
+                                                detail={statistics.worldRank === null ? t('finishARankedGameToEnterTheGlobalStandings', 'Finish a ranked game to enter the global standings.') : t('currentGlobalPlacementBasedOnElo', 'Current global placement based on ELO.')}
                                                 accentClassName="text-amber-200"
                                             />
 
                                             <PrimaryStatCard
-                                                label="ELO Rating"
+                                                label={t('eloRating', 'ELO Rating')}
                                                 value={statistics.elo}
                                                 detail="Current rating from ranked play."
                                                 accentClassName="text-sky-200"
@@ -730,8 +736,8 @@ function ProfileScreen({
                                         </div>
                                     ) : (
                                         <StatisticsEmptyState message={isPublicView
-                                            ? `Statistics will appear here once this profile has competitive data ready.`
-                                            : `Statistics will appear here once your profile data is ready.`}
+                                            ? t('statisticsWillAppearHereOnceThisProfileHasCompetitiveDataReady', 'Statistics will appear here once this profile has competitive data ready.')
+                                            : t('statisticsWillAppearHereOnceYourProfileDataIsReady', 'Statistics will appear here once your profile data is ready.')}
                                         />
                                     )}
                                 </div>
@@ -745,7 +751,7 @@ function ProfileScreen({
                         <section className="">
                             {isStatisticsLoading ? (
                                 <div className="mt-6 rounded-[1.25rem] border border-white/10 bg-slate-950/45 px-4 py-8 text-center text-sm text-slate-300">
-                                    {isPublicView ? `Loading profile statistics...` : `Loading your statistics...`}
+                                    {isPublicView ? t('loadingProfileStatistics', 'Loading profile statistics...') : t('loadingYourStatistics', 'Loading your statistics...')}
                                 </div>
                             ) : statisticsErrorMessage ? (
                                 <div className="mt-6 rounded-[1.25rem] border border-rose-300/30 bg-rose-500/10 px-4 py-4 text-sm text-rose-100">
@@ -761,19 +767,19 @@ function ProfileScreen({
 
                                         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
                                             <SecondaryStatCard
-                                                label="Ranked Games"
+                                                label={t('rankedGames', 'Ranked Games')}
                                                 value={statistics.rankedGames.played}
                                                 detail={formatWinSummary(statistics.rankedGames.won, statistics.rankedGames.played)}
                                             />
 
                                             <SecondaryStatCard
-                                                label="Current Win Streak"
+                                                label={t('currentWinStreak', 'Current Win Streak')}
                                                 value={statistics.rankedGames.currentWinStreak}
                                                 detail="Current number of unbeaten rated games"
                                             />
 
                                             <SecondaryStatCard
-                                                label="Longest Win Streak"
+                                                label={t('longestWinStreak', 'Longest Win Streak')}
                                                 value={statistics.rankedGames.longestWinStreak}
                                                 detail="Longest streak of unbeaten rated games"
                                             />
@@ -783,19 +789,19 @@ function ProfileScreen({
                                     <div className="mt-4 grid gap-4 xl:grid-cols-[1.05fr_1.2fr_0.95fr]">
                                         <StatisticsGroup
                                             eyebrow="Overview"
-                                            title="Overall Games"
-                                            description={`All finished games, regardless of queue type, along with the volume of moves you've logged.`}
+                                            title={t('overallGames', 'Overall Games')}
+                                            description={t('allFinishedGamesRegardlessOfQueueTypeAlongWithTheVolumeOfMovesYouveLogged', 'All finished games, regardless of queue type, along with the volume of moves you\'ve logged.')}
                                             accentClassName="text-sky-200/85"
                                             cardGridClassName="sm:grid-cols-2 xl:grid-cols-1"
                                         >
                                             <SecondaryStatCard
-                                                label="Total Games"
+                                                label={t('totalGames', 'Total Games')}
                                                 value={statistics.totalGames.played}
                                                 detail={formatWinSummary(statistics.totalGames.won, statistics.totalGames.played)}
                                             />
 
                                             <SecondaryStatCard
-                                                label="Total Moves"
+                                                label={t('totalMoves', 'Total Moves')}
                                                 value={statistics.totalMovesMade}
                                                 detail="Moves recorded across all of your finished matches."
                                             />
@@ -803,19 +809,19 @@ function ProfileScreen({
 
                                         <StatisticsGroup
                                             eyebrow="Records"
-                                            title="Personal Highlights"
-                                            description="Personal highlights like longest match measured by time or move count."
+                                            title={t('personalHighlights', 'Personal Highlights')}
+                                            description={t('personalHighlightsLikeLongestMatchMeasuredByTimeOrMoveCount', 'Personal highlights like longest match measured by time or move count.')}
                                             accentClassName="text-emerald-200/85"
                                             cardGridClassName="sm:grid-cols-2 xl:grid-cols-1"
                                         >
                                             <SecondaryStatCard
-                                                label="Longest Game"
+                                                label={t('longestGame', 'Longest Game')}
                                                 value={formatDetailedDuration(statistics.longestGamePlayedMs)}
                                                 detail="Your longest finished game by duration."
                                             />
 
                                             <SecondaryStatCard
-                                                label="Longest By Moves"
+                                                label={t('longestByMoves', 'Longest By Moves')}
                                                 value={statistics.longestGameByMoves}
                                                 detail="Your longest finished game by move count."
                                             />
@@ -824,7 +830,7 @@ function ProfileScreen({
                                 </>
                             ) : (
                                 <div className="mt-6 rounded-[1.25rem] border border-white/10 bg-slate-950/45 px-4 py-8 text-center text-sm text-slate-300">
-                                    Statistics will appear here once your profile data is ready.
+                                    {t('statisticsWillAppearHereOnceYourProfileDataIsReady', 'Statistics will appear here once your profile data is ready.')}
                                 </div>
                             )}
                         </section>

@@ -2,6 +2,7 @@ import { SSRModule } from '@ih3t/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { renderToString } from 'react-dom/server';
 
+import './i18n';
 import App from './App';
 import { createServerRouter } from './router';
 import { SsrTimestampProvider } from "./ssrState";

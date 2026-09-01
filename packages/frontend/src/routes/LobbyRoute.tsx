@@ -12,8 +12,10 @@ import { hostGame } from '../query/sessionClient';
 import { useQueryAvailableSessions } from '../query/sessionClient';
 import { countUnreadChangelogEntries } from '../utils/changelog';
 import { buildFinishedGamesPath, buildSessionPath } from './archiveRouteState';
+import { useTranslation } from 'react-i18next'
 
 function LobbyRoute() {
+    const { t } = useTranslation()
     const navigate = useNavigate();
     const connection = useLiveGameStore(state => state.connection);
     const shutdown = useQueryServerShutdown().data ?? null;
@@ -38,7 +40,7 @@ function LobbyRoute() {
                 joinSession(sessionId);
             } catch (error) {
                 console.error(`Failed to create session:`, error);
-                const message = error instanceof Error ? error.message : `Failed to create a session.`;
+                const message = error instanceof Error ? error.message : t('failedToCreateASession', 'Failed to create a session.');
                 toast.error(message, {
                     toastId: `error:${message}`,
                 });
@@ -54,7 +56,7 @@ function LobbyRoute() {
         <>
             <PageMetadata
                 title={DEFAULT_PAGE_TITLE}
-                description="Play HeXO online, host a lobby, join live matches, and review finished games move by move."
+                description={t('playHexoOnlineHostALobbyJoinLiveMatchesAndReviewFinishedGamesMoveByMove', 'Play HeXO online, host a lobby, join live matches, and review finished games move by move.')}
             />
 
             <LobbyScreen

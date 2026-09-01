@@ -7,6 +7,7 @@ import { useSsrCompatibleNow } from '../ssrState';
 import { cn } from '../utils/cn';
 import { formatDateTime, useIntlFormatProvider } from '../utils/dateTime';
 import { formatRefreshCountdown } from '../utils/duration';
+import { useTranslation, Trans } from 'react-i18next'
 
 function LeaderboardAvatar({ player }: Readonly<{ player: LeaderboardPlayer }>) {
     if (player.image) {
@@ -73,6 +74,7 @@ function PersonalLeaderboardCard({
 }: Readonly<{
     placement: LeaderboardPlacement | null
 }>) {
+    const { t } = useTranslation()
     const queryAccount = useQueryAccount();
     if (!queryAccount.data?.user) {
         /* user is not logged in */
@@ -83,7 +85,7 @@ function PersonalLeaderboardCard({
         return (
             <div className="mt-5 rounded-[1.35rem] border border-sky-300/20 bg-sky-400/10 px-4 py-4 text-sm shadow-[0_16px_60px_rgba(14,165,233,0.12)]">
                 <div className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-sky-200">
-                    Your Place
+                    {t('yourPlace', 'Your Place')}
                 </div>
 
                 <Link
@@ -94,7 +96,7 @@ function PersonalLeaderboardCard({
                 </Link>
 
                 <div className="mt-1 text-slate-300">
-                    You are not ranked yet. Finish a rated game to claim a leaderboard spot.
+                    {t('youAreNotRankedYetFinishARatedGameToClaimALeaderboardSpot', 'You are not ranked yet. Finish a rated game to claim a leaderboard spot.')}
                 </div>
             </div>
         );
@@ -116,6 +118,7 @@ function LeaderboardCard({
     rank: number,
     player: LeaderboardPlayer,
 }>) {
+    const { t } = useTranslation()
 
     const kRankTones: Record<string, string> & { normal: string, self: string } = {
         "rank-1": `border-amber-300/35 bg-[linear-gradient(90deg,rgba(251,191,36,0.16),rgba(15,23,42,0.5)_42%)]`,
@@ -133,7 +136,7 @@ function LeaderboardCard({
         >
             {display === `self` && (
                 <div className="text-[0.68rem] mb-3 font-semibold uppercase tracking-[0.24em] text-sky-200">
-                    Your Place
+                    {t('yourPlace', 'Your Place')}
                 </div>
             )}
 
@@ -181,13 +184,14 @@ export function LeaderboardSection({
     leaderboard: Leaderboard,
     isUpdating: boolean,
 }>) {
+    const { t } = useTranslation()
     const isOnLeaderboard = leaderboard.ownPlacement && leaderboard.players.some(player => player.profileId === leaderboard.ownPlacement!.profileId);
 
     return (
         <section className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col">
             {leaderboard.players.length === 0 ? (
                 <div className="mt-6 rounded-3xl border border-dashed border-white/10 bg-slate-950/35 px-5 py-10 text-center text-sm text-slate-400">
-                    No rated games yet, so the leaderboard is still empty.
+                    {t('noRatedGamesYetSoTheLeaderboardIsStillEmpty', 'No rated games yet, so the leaderboard is still empty.')}
                 </div>
             ) : (
                 <div className="mt-4 space-y-2 sm:mt-5 sm:space-y-2.5">
@@ -218,6 +222,7 @@ export function LeaderboardRefreshIndicator({
     leaderboard: Leaderboard
     isRefreshing: boolean
 }>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const [now, setNow] = useState(useSsrCompatibleNow());
 
@@ -239,10 +244,8 @@ export function LeaderboardRefreshIndicator({
     return (
         <div className="mt-5 min-w-[10em] w-full rounded-3xl border border-emerald-300/20 bg-emerald-300/10 p-4">
             <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-emerald-100">
-                    <span className={`h-2.5 w-2.5 rounded-full ${isRefreshing ? `animate-pulse bg-amber-300` : `bg-emerald-300`}`} />
-                    Leaderboard Refresh
-                </div>
+                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-emerald-100"><Trans i18nKey="spanClassnameh25W25RoundedfullIsrefreshingAnimatepulseBgamber300Bgemerald300LeaderboardRefresh"><span className={`h-2.5 w-2.5 rounded-full ${isRefreshing ? `animate-pulse bg-amber-300` : `bg-emerald-300`}`} />
+                    Leaderboard Refresh</Trans></div>
 
                 <div className="text-sm font-bold text-white">
                     {isRefreshing ? `Updating...` : formatRefreshCountdown(remainingMs)}
@@ -259,7 +262,7 @@ export function LeaderboardRefreshIndicator({
             <div className="mt-3 text-sm text-emerald-50/85">
                 {`Last updated `}
                 {formatDateTime(intlFormatProvider, leaderboard.generatedAt)}
-                {`. Next recalculation `}
+                {t('nextRecalculation', '. Next recalculation')}
                 {formatDateTime(intlFormatProvider, leaderboard.nextRefreshAt)}
             </div>
         </div>

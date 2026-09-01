@@ -1,4 +1,6 @@
 import { Button, buttonVariants } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 type AppErrorScreenProps = {
     badge?: string
     title: string
@@ -10,7 +12,7 @@ type AppErrorScreenProps = {
 };
 
 function AppErrorScreen({
-    badge = `Application Error`,
+    badge = i18next.t('applicationError', 'Application Error'),
     title,
     message,
     detail = null,
@@ -18,6 +20,7 @@ function AppErrorScreen({
     retryLabel = `Try Again`,
     homeHref = `/`,
 }: Readonly<AppErrorScreenProps>) {
+    const { t } = useTranslation()
     const showDetail = import.meta.env.DEV && Boolean(detail);
 
     return (
@@ -60,14 +63,14 @@ function AppErrorScreen({
                                 onClick={() => window.location.reload()}
                                 variant="outline" size="lg"
                             >
-                                Reload App
+                                {t('reloadApp', 'Reload App')}
                             </Button>
 
                             <a
                                 href={homeHref}
                                 className={buttonVariants({ variant: `info`, size: `lg` })}
                             >
-                                Go To Lobby
+                                {t('goToLobby', 'Go To Lobby')}
                             </a>
                         </div>
 

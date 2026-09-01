@@ -16,6 +16,8 @@ import {
     useQueryTournaments,
 } from '../query/tournamentClient';
 import { formatDateTime, useIntlFormatProvider } from '../utils/dateTime';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 /* ── constants ─────────────────────────────────────── */
 
@@ -56,8 +58,8 @@ function formatTimeShort(ts: number) {
 
 function describeTimeControl(t: TournamentSummary): string {
     if (t.timeControl.mode === `turn`) return `${Math.round(t.timeControl.turnTimeMs / 1000)}s/turn`;
-    if (t.timeControl.mode === `match`) return `${Math.round(t.timeControl.mainTimeMs / 60_000)}+${Math.round(t.timeControl.incrementMs / 1000)}`;
-    return `No clock`;
+    if (t.timeControl.mode === `match`) return i18next.t('valval22', '{{val}}+{{val2}}', { val: Math.round(t.timeControl.mainTimeMs / 60_000), val2: Math.round(t.timeControl.incrementMs / 1000) });
+    return i18next.t('noClock', 'No clock');
 }
 
 /* ── calendar types ────────────────────────────────── */
@@ -77,11 +79,11 @@ function buildCalendarEvents(tournaments: TournamentSummary[], upcomingMatches: 
             events.push({ timestamp: t.scheduledStartAt, label: t.name, type: `start`, tournamentId: t.id });
         }
         if (t.checkInOpensAt > now && t.checkInOpensAt !== t.scheduledStartAt) {
-            events.push({ timestamp: t.checkInOpensAt, label: `${t.name} check-in`, type: `check-in`, tournamentId: t.id });
+            events.push({ timestamp: t.checkInOpensAt, label: i18next.t('nameCheckin', '{{name}} check-in', { name: t.name }), type: `check-in`, tournamentId: t.id });
         }
     }
     for (const m of upcomingMatches) {
-        events.push({ timestamp: now, label: `vs ${m.opponentDisplayName ?? `TBD`}`, type: `match`, tournamentId: m.tournamentId });
+        events.push({ timestamp: now, label: i18next.t('vsVal', 'vs {{val}}', { val: m.opponentDisplayName ?? `TBD` }), type: `match`, tournamentId: m.tournamentId });
     }
     return events;
 }
@@ -99,6 +101,7 @@ function WeeklyCalendar({ tournaments, upcomingMatches, onNavigate }: {
     upcomingMatches: TournamentUpcomingMatch[]
     onNavigate: (tournamentId: string) => void
 }) {
+    const { t } = useTranslation()
     const [weekOffset, setWeekOffset] = useState(0);
     const today = new Date();
     const baseMonday = getMonday(today);
@@ -119,8 +122,8 @@ function WeeklyCalendar({ tournaments, upcomingMatches, onNavigate }: {
         const sun = days[6]!;
         const mMonth = monday.toLocaleString(undefined, { month: `short` });
         const sMonth = sun.toLocaleString(undefined, { month: `short` });
-        if (mMonth === sMonth) return `${mMonth} ${monday.getDate()}–${sun.getDate()}`;
-        return `${mMonth} ${monday.getDate()} – ${sMonth} ${sun.getDate()}`;
+        if (mMonth === sMonth) return t('mmonthValval2', '{{mMonth}} {{val}}–{{val2}}', { mMonth, val: monday.getDate(), val2: sun.getDate() });
+        return t('mmonthValSmonthVal2', '{{mMonth}} {{val}} – {{sMonth}} {{val2}}', { mMonth, val: monday.getDate(), sMonth, val2: sun.getDate() });
     })();
 
     return (
@@ -129,18 +132,18 @@ function WeeklyCalendar({ tournaments, upcomingMatches, onNavigate }: {
             <div className="flex items-center justify-between border-b border-white/6 px-4 py-3">
                 <Button type="button" onClick={() => setWeekOffset((w) => w - 1)}
                     variant="outline" size="xs">
-                    &larr;
+                    {t('larr', '&larr;')}
                 </Button>
                 <div className="text-center">
                     <div className="text-[13px] font-bold text-white">{weekLabel}</div>
                     {!isCurrentWeek && (
                         <Button type="button" onClick={() => setWeekOffset(0)}
-                            variant="link" size="bare">Return to This Week</Button>
+                            variant="link" size="bare">{t('returnToThisWeek', 'Return to This Week')}</Button>
                     )}
                 </div>
                 <Button type="button" onClick={() => setWeekOffset((w) => w + 1)}
                     variant="outline" size="xs">
-                    &rarr;
+                    {t('rarr', '&rarr;')}
                 </Button>
             </div>
 
@@ -191,6 +194,7 @@ function WeeklyCalendar({ tournaments, upcomingMatches, onNavigate }: {
 function TournamentCard({ tournament, onClick, onUnsubscribe }: {
     tournament: TournamentSummary; onClick: () => void; onUnsubscribe?: () => void
 }) {
+    const { t } = useTranslation()
     const intl = useIntlFormatProvider();
     const statusColor = STATUS_COLORS[tournament.status] ?? `text-slate-400`;
     const statusBg = statusColor.replace(`text-`, `bg-`);
@@ -208,9 +212,7 @@ function TournamentCard({ tournament, onClick, onUnsubscribe }: {
                                 {tournament.name}
                             </span>
                         </div>
-                        <div className="mt-1 pl-4 text-[11px] text-slate-500">
-                            by {tournament.createdByDisplayName}
-                        </div>
+                        <div className="mt-1 pl-4 text-[11px] text-slate-500">{t('byCreatedbydisplayname', 'by {{createdByDisplayName}}', { createdByDisplayName: tournament.createdByDisplayName })}</div>
                     </div>
 
                     <div className="shrink-0 text-right">
@@ -244,15 +246,15 @@ function TournamentCard({ tournament, onClick, onUnsubscribe }: {
             {onUnsubscribe && !confirmUnsub && (
                 <Button type="button" onClick={(e) => { e.stopPropagation(); setConfirmUnsub(true); }}
                     variant="ghost" size="xs" className="absolute right-2.5 top-2.5 opacity-0 group-hover:opacity-100">
-                    &times;
+                    {t('times', '&times;')}
                 </Button>
             )}
             {onUnsubscribe && confirmUnsub && (
                 <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <Button type="button" onClick={() => { setConfirmUnsub(false); onUnsubscribe(); }}
-                        variant="destructive" size="xs">Yes</Button>
+                        variant="destructive" size="xs">{t('yes', 'Yes')}</Button>
                     <Button type="button" onClick={() => setConfirmUnsub(false)}
-                        variant="outline" size="xs">No</Button>
+                        variant="outline" size="xs">{t('no', 'No')}</Button>
                 </span>
             )}
         </div>
@@ -273,6 +275,7 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
 /* ── main route ────────────────────────────────────── */
 
 function TournamentListRoute() {
+    const { t } = useTranslation()
     const nav = useNavigate();
     const acctQ = useQueryAccount({ enabled: true });
     const [pastPage, setPastPage] = useState(1);
@@ -296,7 +299,7 @@ function TournamentListRoute() {
             const t = await createTournament(request);
             void nav(`/tournaments/${t.id}`);
         } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : `Failed to create tournament.`, { toastId: `create-err` });
+            toast.error(err instanceof Error ? err.message : t('failedToCreateTournament', 'Failed to create tournament.'), { toastId: `create-err` });
         } finally {
             setSubmitting(false);
         }
@@ -307,7 +310,7 @@ function TournamentListRoute() {
             await unsubscribeFromTournament(tournamentId);
             toast.success(`Unsubscribed.`, { toastId: `unsub` });
         } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : `Failed to unsubscribe.`, { toastId: `unsub-err` });
+            toast.error(err instanceof Error ? err.message : t('failedToUnsubscribe', 'Failed to unsubscribe.'), { toastId: `unsub-err` });
         }
     };
 
@@ -316,7 +319,7 @@ function TournamentListRoute() {
         try {
             setQuickCreating(true);
             const request: CreateTournamentRequest = {
-                name: `Quick Test ${new Date().toLocaleTimeString()}`,
+                name: t('quickTestVal', 'Quick Test {{val}}', { val: new Date().toLocaleTimeString() }),
                 format: `double-elimination`,
                 visibility: `private`,
                 scheduledStartAt: Date.now() + 60_000,
@@ -327,15 +330,15 @@ function TournamentListRoute() {
                 matchJoinTimeoutMinutes: 5,
                 matchExtensionMinutes: 5,
             };
-            const t = await createTournament(request);
-            toast.info(`Created. Seeding 256 players...`, { toastId: `quick-create` });
-            await seedTournamentWithDevUsers(t.id, { count: 256, state: `checked-in` });
-            toast.info(`Seeded. Starting...`, { toastId: `quick-create` });
-            await startTournament(t.id);
-            toast.success(`Tournament started!`, { toastId: `quick-create` });
-            void nav(`/tournaments/${t.id}`);
+            const tournament = await createTournament(request);
+            toast.info(t('createdSeeding256Players', 'Created. Seeding 256 players...'), { toastId: `quick-create` });
+            await seedTournamentWithDevUsers(tournament.id, { count: 256, state: `checked-in` });
+            toast.info(t('seededStarting', 'Seeded. Starting...'), { toastId: `quick-create` });
+            await startTournament(tournament.id);
+            toast.success(t('tournamentStarted', 'Tournament started!'), { toastId: `quick-create` });
+            void nav(`/tournaments/${tournament.id}`);
         } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : `Quick create failed.`, { toastId: `quick-create-err` });
+            toast.error(err instanceof Error ? err.message : t('quickCreateFailed', 'Quick create failed.'), { toastId: `quick-create-err` });
         } finally {
             setQuickCreating(false);
         }
@@ -347,10 +350,10 @@ function TournamentListRoute() {
         try {
             setQuickSealBotCreating(true);
             const tournament = await createQuickSealBotTournament();
-            toast.success(`8-player Seal Bot tournament created.`, { toastId: `quick-seal-bot` });
+            toast.success(t('8playerSealBotTournamentCreated', '8-player Seal Bot tournament created.'), { toastId: `quick-seal-bot` });
             void nav(`/tournaments/${tournament.id}`);
         } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : `Quick Seal Bot tournament failed.`, { toastId: `quick-seal-bot-err` });
+            toast.error(err instanceof Error ? err.message : t('quickSealBotTournamentFailed', 'Quick Seal Bot tournament failed.'), { toastId: `quick-seal-bot-err` });
         } finally {
             setQuickSealBotCreating(false);
         }
@@ -363,10 +366,10 @@ function TournamentListRoute() {
             setQuickSealBot16Creating(format);
             const tournament = await createQuickSealBot16Tournament(format);
             const label = format === `swiss` ? `Swiss` : format === `single-elimination` ? `Single Elim` : `Double Elim`;
-            toast.success(`16-player ${label} Seal Bot tournament created.`, { toastId: `quick-seal-bot-16` });
+            toast.success(t('16playerLabelSealBotTournamentCreated', '16-player {{label}} Seal Bot tournament created.', { label }), { toastId: `quick-seal-bot-16` });
             void nav(`/tournaments/${tournament.id}`);
         } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : `Quick Seal Bot tournament failed.`, { toastId: `quick-seal-bot-16-err` });
+            toast.error(err instanceof Error ? err.message : t('quickSealBotTournamentFailed', 'Quick Seal Bot tournament failed.'), { toastId: `quick-seal-bot-16-err` });
         } finally {
             setQuickSealBot16Creating(null);
         }
@@ -375,13 +378,13 @@ function TournamentListRoute() {
     return (
         <>
             <PageMetadata
-                title={`Tournaments • ${DEFAULT_PAGE_TITLE}`}
-                description="Browse and create HeXO tournaments."
+                title={t('tournamentsDefault_page_title', 'Tournaments • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                description={t('browseAndCreateHexoTournaments', 'Browse and create HeXO tournaments.')}
             />
 
             <PageCorpus
                 category="Competition" title="Tournaments"
-                description="Create a tournament and share the link to invite players."
+                description={t('createATournamentAndShareTheLinkToInvitePlayers', 'Create a tournament and share the link to invite players.')}
                 onRefresh={() => void tQ.refetch()}
             >
                 <div className="grid gap-6 px-4 pb-6 sm:px-6 xl:grid-cols-2">
@@ -389,10 +392,10 @@ function TournamentListRoute() {
                     <div className="space-y-5">
                         {/* Active */}
                         <div>
-                            <SectionHeader label="Active" count={tournaments.length} />
+                            <SectionHeader label={t('active', 'Active')} count={tournaments.length} />
                             {tournaments.length === 0 ? (
                                 <div className="rounded-2xl border border-dashed border-white/6 px-4 py-8 text-center text-[12px] text-slate-600">
-                                    No active tournaments. Create one or open a tournament link to subscribe.
+                                    {t('noActiveTournamentsCreateOneOrOpenATournamentLinkToSubscribe', 'No active tournaments. Create one or open a tournament link to subscribe.')}
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -412,7 +415,7 @@ function TournamentListRoute() {
                             <SectionHeader label="Past" count={pastTotal} />
                             {(data?.past ?? []).length === 0 ? (
                                 <div className="rounded-2xl border border-dashed border-white/6 px-4 py-4 text-center text-[12px] text-slate-600">
-                                    None yet
+                                    {t('noneYet', 'None yet')}
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -429,11 +432,11 @@ function TournamentListRoute() {
                                 <div className="mt-3 flex items-center justify-center gap-3 text-[10px] text-slate-500">
                                     <Button type="button" disabled={pastPage <= 1}
                                         onClick={() => setPastPage((p) => Math.max(1, p - 1))}
-                                        variant="ghost" size="xs">Prev</Button>
-                                    <span className="tabular-nums">{pastPage} / {pastPageCount}</span>
+                                        variant="ghost" size="xs">{t('prev', 'Prev')}</Button>
+                                    <span className="tabular-nums">{t('pastpagePastpagecount', '{{pastPage}} / {{pastPageCount}}', { pastPage, pastPageCount })}</span>
                                     <Button type="button" disabled={pastPage >= pastPageCount}
                                         onClick={() => setPastPage((p) => p + 1)}
-                                        variant="ghost" size="xs">Next</Button>
+                                        variant="ghost" size="xs">{t('next', 'Next')}</Button>
                                 </div>
                             )}
                         </div>}
@@ -449,14 +452,14 @@ function TournamentListRoute() {
 
                         {import.meta.env.DEV && acct && (
                             <div className="grid gap-2">
-                                <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">16-Player Seal Bot Tests</div>
+                                <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600">{t('16playerSealBotTests', '16-Player Seal Bot Tests')}</div>
                                 <Button
                                     type="button"
                                     onClick={() => void handleQuickSealBot16Create(`swiss`)}
                                     disabled={quickSealBot16Creating !== null}
                                     variant="info" size="sm" className="w-full"
                                 >
-                                    {quickSealBot16Creating === `swiss` ? `Creating...` : `Swiss 16P — Seal Bots`}
+                                    {quickSealBot16Creating === `swiss` ? `Creating...` : t('swiss16pSealBots', 'Swiss 16P — Seal Bots')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -464,7 +467,7 @@ function TournamentListRoute() {
                                     disabled={quickSealBot16Creating !== null}
                                     variant="success-soft" size="sm" className="w-full"
                                 >
-                                    {quickSealBot16Creating === `single-elimination` ? `Creating...` : `Single Elim 16P — Seal Bots`}
+                                    {quickSealBot16Creating === `single-elimination` ? `Creating...` : t('singleElim16pSealBots', 'Single Elim 16P — Seal Bots')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -472,24 +475,24 @@ function TournamentListRoute() {
                                     disabled={quickSealBot16Creating !== null}
                                     variant="info" size="sm" className="w-full"
                                 >
-                                    {quickSealBot16Creating === `double-elimination` ? `Creating...` : `Double Elim 16P — Seal Bots`}
+                                    {quickSealBot16Creating === `double-elimination` ? `Creating...` : t('doubleElim16pSealBots', 'Double Elim 16P — Seal Bots')}
                                 </Button>
 
-                                <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mt-1">Other</div>
+                                <div className="text-[9px] font-bold uppercase tracking-[0.15em] text-slate-600 mt-1">{t('other', 'Other')}</div>
                                 <Button
                                     type="button"
                                     onClick={() => void handleQuickSealBotCreate()}
                                     disabled={quickSealBotCreating}
                                     variant="info" size="sm" className="w-full"
                                 >
-                                    {quickSealBotCreating ? `Creating...` : `Double Elim 8P — Seal Bots`}
+                                    {quickSealBotCreating ? `Creating...` : t('doubleElim8pSealBots', 'Double Elim 8P — Seal Bots')}
                                 </Button>
 
                                 <Button
                                     type="button" onClick={() => void handleQuickCreate()} disabled={quickCreating}
                                     variant="warning" size="sm" className="w-full"
                                 >
-                                    {quickCreating ? `Creating...` : `Quick Create 256-Player Tournament`}
+                                    {quickCreating ? `Creating...` : t('quickCreate256playerTournament', 'Quick Create 256-Player Tournament')}
                                 </Button>
                             </div>
                         )}
@@ -501,13 +504,13 @@ function TournamentListRoute() {
                                         type="button" onClick={() => setShowCreateForm(true)}
                                         variant="outline" size="sm" className="w-full text-center"
                                     >
-                                        + Create Tournament
+                                        {t('createTournament', '+ Create Tournament')}
                                     </Button>
                                 )}
                                 {showCreateForm && (
                                     <div>
                                         <TournamentEditorCard
-                                            formKey="create" title="New Tournament"
+                                            formKey="create" title={t('newTournament', 'New Tournament')}
                                             description=""
                                             defaultRequest={{ ...createDefaultTournamentRequest(), visibility: `private` }}
                                             submitLabel="Create" submitting={submitting}
@@ -517,15 +520,15 @@ function TournamentListRoute() {
                                             type="button" onClick={() => setShowCreateForm(false)}
                                             variant="ghost" size="bare" className="mt-2 w-full text-center"
                                         >
-                                            Cancel
+                                            {t('cancel', 'Cancel')}
                                         </Button>
                                     </div>
                                 )}
                             </>
                         ) : (
                             <div className="rounded-xl border border-white/8 bg-slate-900/50 p-4">
-                                <h3 className="text-sm font-bold uppercase tracking-[0.06em] text-white">Tournaments</h3>
-                                <p className="mt-1 text-xs text-slate-400">Sign in with Discord to create tournaments and join events.</p>
+                                <h3 className="text-sm font-bold uppercase tracking-[0.06em] text-white">{t('tournaments', 'Tournaments')}</h3>
+                                <p className="mt-1 text-xs text-slate-400">{t('signInWithDiscordToCreateTournamentsAndJoinEvents', 'Sign in with Discord to create tournaments and join events.')}</p>
                             </div>
                         )}
                     </div>

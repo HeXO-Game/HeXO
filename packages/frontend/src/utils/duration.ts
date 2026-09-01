@@ -1,3 +1,4 @@
+import i18next from 'i18next'
 function getTotalSeconds(milliseconds: number, roundMode: `ceil` | `round` = `round`) {
     const round = roundMode === `ceil` ? Math.ceil : Math.round;
     return Math.max(0, round(milliseconds / 1000));
@@ -23,7 +24,7 @@ export function formatCompactDuration(milliseconds: number) {
         return `${seconds}s`;
     }
 
-    return `${minutes}m ${seconds}s`;
+    return i18next.t('minutesmSecondss', '{{minutes}}m {{seconds}}s', { minutes, seconds });
 }
 
 export function formatDetailedDuration(milliseconds: number) {
@@ -33,11 +34,11 @@ export function formatDetailedDuration(milliseconds: number) {
     const seconds = totalSeconds % 60;
 
     if (hours > 0) {
-        return `${hours}h ${minutes}m ${seconds}s`;
+        return i18next.t('hourshMinutesmSecondss', '{{hours}}h {{minutes}}m {{seconds}}s', { hours, minutes, seconds });
     }
 
     if (minutes > 0) {
-        return `${minutes}m ${seconds}s`;
+        return i18next.t('minutesmSecondss', '{{minutes}}m {{seconds}}s', { minutes, seconds });
     }
 
     return `${seconds}s`;
@@ -51,15 +52,15 @@ export function formatLongDuration(milliseconds: number) {
     const seconds = totalSeconds % 60;
 
     if (days > 0) {
-        return `${days}d ${hours}h ${minutes}m`;
+        return i18next.t('daysdHourshMinutesm', '{{days}}d {{hours}}h {{minutes}}m', { days, hours, minutes });
     }
 
     if (hours > 0) {
-        return `${hours}h ${minutes}m ${seconds}s`;
+        return i18next.t('hourshMinutesmSecondss', '{{hours}}h {{minutes}}m {{seconds}}s', { hours, minutes, seconds });
     }
 
     if (minutes > 0) {
-        return `${minutes}m ${seconds}s`;
+        return i18next.t('minutesmSecondss', '{{minutes}}m {{seconds}}s', { minutes, seconds });
     }
 
     return `${seconds}s`;
@@ -72,10 +73,10 @@ export function formatCountdownDuration(milliseconds: number) {
     const seconds = totalSeconds % 60;
 
     if (hours > 0) {
-        return `${hours}h ${String(minutes).padStart(2, `0`)}m ${String(seconds).padStart(2, `0`)}s`;
+        return i18next.t('hourshValmVal2s', '{{hours}}h {{val}}m {{val2}}s', { hours, val: String(minutes).padStart(2, `0`), val2: String(seconds).padStart(2, `0`) });
     }
 
-    return `${minutes}m ${String(seconds).padStart(2, `0`)}s`;
+    return i18next.t('minutesmVals', '{{minutes}}m {{val}}s', { minutes, val: String(seconds).padStart(2, `0`) });
 }
 
 export function formatRefreshCountdown(milliseconds: number) {
@@ -89,7 +90,7 @@ export function formatRefreshCountdown(milliseconds: number) {
     const seconds = totalSeconds % 60;
 
     if (hours > 0) {
-        return `${hours}h ${String(minutes).padStart(2, `0`)}m`;
+        return i18next.t('hourshValm', '{{hours}}h {{val}}m', { hours, val: String(minutes).padStart(2, `0`) });
     }
 
     return `${minutes}:${String(seconds).padStart(2, `0`)}`;
@@ -97,5 +98,5 @@ export function formatRefreshCountdown(milliseconds: number) {
 
 export function formatBucketSize(bucketSizeMs: number) {
     const totalMinutes = Math.round(bucketSizeMs / 60_000);
-    return `${totalMinutes}-minute`;
+    return i18next.t('totalminutesminute', '{{totalMinutes}}-minute', { totalMinutes });
 }

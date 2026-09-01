@@ -6,6 +6,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import { useQueryTournament } from '../query/tournamentClient';
 import { getBracketConnectorEdges } from '../utils/tournamentBracketConnectors';
+import { useTranslation } from 'react-i18next'
 
 /* ── Match node ─────────────────────────────────────── */
 
@@ -17,6 +18,7 @@ const STATE_COLORS: Record<string, { dot: string; border: string }> = {
 };
 
 function MatchNode({ match, allMatches, onSpectate }: { match: TournamentMatch; allMatches: TournamentMatch[]; onSpectate: (sid: string) => void }) {
+    const { t } = useTranslation()
     const { dot, border } = STATE_COLORS[match.state] ?? STATE_COLORS.pending!;
     const isLive = match.state === `in-progress` && match.sessionId;
     const handleSpectate = () => {
@@ -33,7 +35,7 @@ function MatchNode({ match, allMatches, onSpectate }: { match: TournamentMatch; 
             : sourceRecord?.bracket === `grand-final` ? ` (GF)`
                 : sourceRecord?.bracket === `grand-final-reset` ? ` (GF Reset)` : ``;
         const sourceLabel = source && sourceRecord
-            ? `${source.type === `winner` ? `W` : `L`} of R${sourceRecord.round}M${sourceRecord.order}${bracketSuffix}`
+            ? t('valOfRroundmorderbracketsuffix', '{{val}} of R{{round}}M{{order}}{{bracketSuffix}}', { val: source.type === `winner` ? `W` : `L`, round: sourceRecord.round, order: sourceRecord.order, bracketSuffix })
             : null;
 
         return (
@@ -78,9 +80,9 @@ function MatchNode({ match, allMatches, onSpectate }: { match: TournamentMatch; 
         >
             <div className="flex items-center gap-1.5 bg-slate-950/60 px-2.5 py-1">
                 <span className={`inline-block h-1.5 w-1.5 rounded-full ${dot}`} />
-                <span className="text-[8px] font-semibold uppercase tracking-wider text-slate-500">M{match.order}</span>
-                <span className="text-[8px] text-slate-600">BO{match.bestOf}</span>
-                {isLive && <span className="ml-auto text-[8px] font-bold tracking-wide text-sky-300">LIVE</span>}
+                <span className="text-[8px] font-semibold uppercase tracking-wider text-slate-500">{t('morder', 'M{{order}}', { order: match.order })}</span>
+                <span className="text-[8px] text-slate-600">{t('bobestof', 'BO{{bestOf}}', { bestOf: match.bestOf })}</span>
+                {isLive && <span className="ml-auto text-[8px] font-bold tracking-wide text-sky-300">{t('live', 'LIVE')}</span>}
             </div>
             <div className="divide-y divide-white/[0.04]">
                 {slot(match.slots[0], match.leftWins, match.winnerProfileId !== null && match.winnerProfileId === match.slots[0].profileId, `top`)}
@@ -167,6 +169,7 @@ function BracketConnectors({
     matchHeight: number
     columnGap: number
 }) {
+    const { t } = useTranslation()
     const paths: React.ReactNode[] = [];
     const sortedRounds = rounds.map((round) => ({
         round: round.round,
@@ -186,7 +189,7 @@ function BracketConnectors({
         paths.push(
             <path
                 key={`${edge.sourceRoundIndex}-${edge.sourceMatchIndex}-${edge.targetRoundIndex}-${edge.targetMatchIndex}`}
-                d={`M ${x1} ${sourceY} H ${midX} V ${targetY} H ${x2}`}
+                d={t('mX1SourceyHMidxVTargetyHX2', 'M {{x1}} {{sourceY}} H {{midX}} V {{targetY}} H {{x2}}', { x1, sourceY, midX, targetY, x2 })}
                 fill="none"
                 stroke="rgba(255,255,255,0.06)"
                 strokeWidth={1.5}
@@ -214,6 +217,7 @@ function BracketSection({ label, rounds, allMatches, onSpectate, scale }: {
     onSpectate: (sid: string) => void
     scale: number
 }) {
+    const { t } = useTranslation()
     if (rounds.length === 0) return null;
     const matchWidth = MATCH_W * scale;
     const matchHeight = MATCH_H * scale;
@@ -247,9 +251,7 @@ function BracketSection({ label, rounds, allMatches, onSpectate, scale }: {
                                 justifyContent: `space-around`,
                             }}
                         >
-                            <div className="mb-1 text-center text-[9px] font-semibold uppercase tracking-wider text-slate-600">
-                                R{r.round}
-                            </div>
+                            <div className="mb-1 text-center text-[9px] font-semibold uppercase tracking-wider text-slate-600">{t('rround', 'R{{round}}', { round: r.round })}</div>
                             {r.matches.sort((a, b) => a.order - b.order).map((m, idx) => (
                                 <div
                                     key={m.id}
@@ -280,6 +282,7 @@ function SwissView({
     onSpectate: (sid: string) => void
     scale: number
 }) {
+    const { t } = useTranslation()
     const rounds = new Map<number, TournamentMatch[]>();
     const gap = 12 * scale;
     for (const m of matches) {
@@ -292,7 +295,7 @@ function SwissView({
         <div className="space-y-6">
             {Array.from(rounds.entries()).sort(([a], [b]) => a - b).map(([round, rMatches]) => (
                 <div key={round}>
-                    <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Round {round}</div>
+                    <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{t('roundRound', 'Round {{round}}', { round })}</div>
                     <div className="flex flex-wrap" style={{ gap }}>
                         {rMatches.sort((a, b) => a.order - b.order).map((m) => (
                             <ScaledMatchNode key={m.id} match={m} allMatches={matches} onSpectate={onSpectate} scale={scale} />
@@ -315,6 +318,7 @@ function SingleElimView({
     onSpectate: (sid: string) => void
     scale: number
 }) {
+    const { t } = useTranslation()
     const winnersRounds = groupBracketRounds(matches, `winners`);
     const thirdPlaceMatches = matches
         .filter((match) => match.bracket === `third-place`)
@@ -322,10 +326,10 @@ function SingleElimView({
 
     return (
         <div className="space-y-2">
-            <BracketSection label="Championship Bracket" rounds={winnersRounds} allMatches={matches} onSpectate={onSpectate} scale={scale} />
+            <BracketSection label={t('championshipBracket', 'Championship Bracket')} rounds={winnersRounds} allMatches={matches} onSpectate={onSpectate} scale={scale} />
             {thirdPlaceMatches.length > 0 && (
                 <BracketSection
-                    label="Third Place"
+                    label={t('thirdPlace', 'Third Place')}
                     rounds={[{ round: 1, matches: thirdPlaceMatches }]}
                     allMatches={matches}
                     onSpectate={onSpectate}
@@ -345,6 +349,7 @@ function DoubleElimView({
     onSpectate: (sid: string) => void
     scale: number
 }) {
+    const { t } = useTranslation()
     const grandFinal: TournamentMatch[] = [];
     const grandFinalReset: TournamentMatch[] = [];
 
@@ -362,9 +367,9 @@ function DoubleElimView({
 
     return (
         <div className="space-y-2">
-            <BracketSection label="Winners Bracket" rounds={groupBracketRounds(matches, `winners`)} allMatches={matches} onSpectate={onSpectate} scale={scale} />
-            <BracketSection label="Losers Bracket" rounds={groupBracketRounds(matches, `losers`)} allMatches={matches} onSpectate={onSpectate} scale={scale} />
-            {gfRounds.length > 0 && <BracketSection label="Grand Final" rounds={gfRounds} allMatches={matches} onSpectate={onSpectate} scale={scale} />}
+            <BracketSection label={t('winnersBracket', 'Winners Bracket')} rounds={groupBracketRounds(matches, `winners`)} allMatches={matches} onSpectate={onSpectate} scale={scale} />
+            <BracketSection label={t('losersBracket', 'Losers Bracket')} rounds={groupBracketRounds(matches, `losers`)} allMatches={matches} onSpectate={onSpectate} scale={scale} />
+            {gfRounds.length > 0 && <BracketSection label={t('grandFinal', 'Grand Final')} rounds={gfRounds} allMatches={matches} onSpectate={onSpectate} scale={scale} />}
         </div>
     );
 }
@@ -372,10 +377,11 @@ function DoubleElimView({
 /* ── Main route ────────────────────────────────────── */
 
 function TournamentBracketRoute() {
+    const { t } = useTranslation()
     const { tournamentId } = useParams<{ tournamentId: string }>();
     const nav = useNavigate();
     const tQ = useQueryTournament(tournamentId ?? null, { enabled: true });
-    const t = tQ.data ?? null;
+    const tournament = tQ.data ?? null;
     const [zoomIndex, setZoomIndex] = useState(DEFAULT_BRACKET_ZOOM_INDEX);
     const scale = BRACKET_ZOOM_LEVELS[zoomIndex] ?? 1;
 
@@ -384,8 +390,8 @@ function TournamentBracketRoute() {
     return (
         <>
             <PageMetadata
-                title={t ? `${t.name} Bracket • ${DEFAULT_PAGE_TITLE}` : `Bracket • ${DEFAULT_PAGE_TITLE}`}
-                description="Live tournament bracket visualization." />
+                title={tournament ? t('nameBracketDefault_page_title', '{{name}} Bracket • {{DEFAULT_PAGE_TITLE}}', { name: tournament.name, DEFAULT_PAGE_TITLE }) : t('bracketDefault_page_title', 'Bracket • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                description={t('liveTournamentBracketVisualization', 'Live tournament bracket visualization.')} />
 
             <div className="flex min-h-0 flex-1 flex-col text-white">
                 {/* Top bar */}
@@ -393,20 +399,20 @@ function TournamentBracketRoute() {
                     <div className="mx-auto flex max-w-[2000px] items-center gap-4 px-4 py-2.5 sm:px-6">
                         <Link to={`/tournaments/${tournamentId}`}
                             className="text-[11px] font-medium text-slate-400 transition hover:text-white">
-                            &larr; Back
+                            {t('larrBack', '&larr; Back')}
                         </Link>
 
                         <h1 className="min-w-0 truncate text-sm font-bold text-white">
-                            {t?.name ?? `Loading...`}
+                            {tournament?.name ?? `Loading...`}
                         </h1>
 
-                        {t && (
+                        {tournament && (
                             <div className="ml-auto flex items-center gap-2 text-[10px] text-slate-500">
-                                <span>{getTournamentFormatLabel(t.format)}</span>
+                                <span>{getTournamentFormatLabel(tournament.format)}</span>
                                 <span>·</span>
-                                <span>{t.checkedInCount}/{t.maxPlayers} players</span>
+                                <span>{t('checkedincountmaxplayersPlayers', '{{checkedInCount}}/{{maxPlayers}} players', { checkedInCount: tournament.checkedInCount, maxPlayers: tournament.maxPlayers })}</span>
                                 <span>·</span>
-                                <span className={t.status === `live` ? `text-emerald-400` : ``}>{t.status}</span>
+                                <span className={tournament.status === `live` ? `text-emerald-400` : ``}>{tournament.status}</span>
                             </div>
                         )}
 
@@ -439,13 +445,13 @@ function TournamentBracketRoute() {
                                 disabled={scale === 1}
                                 variant="outline" size="xs"
                             >
-                                Reset
+                                {t('reset', 'Reset')}
                             </Button>
                         </div>
 
                         <Button onClick={() => void tQ.refetch()}
                             variant="outline" size="xs">
-                            Refresh
+                            {t('refresh', 'Refresh')}
                         </Button>
                     </div>
                 </div>
@@ -453,18 +459,18 @@ function TournamentBracketRoute() {
                 {/* Bracket content */}
                 <div className="min-h-0 flex-1 overflow-x-auto px-4 py-6 sm:px-6">
                     <div className="mx-auto max-w-[2000px]">
-                        {!t ? (
-                            <div className="py-20 text-center text-sm text-slate-600">Loading bracket...</div>
-                        ) : t.matches.length === 0 ? (
+                        {!tournament ? (
+                            <div className="py-20 text-center text-sm text-slate-600">{t('loadingBracket', 'Loading bracket...')}</div>
+                        ) : tournament.matches.length === 0 ? (
                             <div className="py-20 text-center text-sm text-slate-600">
-                                Bracket will appear when the tournament goes live.
+                                {t('bracketWillAppearWhenTheTournamentGoesLive', 'Bracket will appear when the tournament goes live.')}
                             </div>
-                        ) : t.format === `swiss` ? (
-                            <SwissView matches={t.matches} onSpectate={handleSpectate} scale={scale} />
-                        ) : t.format === `single-elimination` ? (
-                            <SingleElimView matches={t.matches} onSpectate={handleSpectate} scale={scale} />
+                        ) : tournament.format === `swiss` ? (
+                            <SwissView matches={tournament.matches} onSpectate={handleSpectate} scale={scale} />
+                        ) : tournament.format === `single-elimination` ? (
+                            <SingleElimView matches={tournament.matches} onSpectate={handleSpectate} scale={scale} />
                         ) : (
-                            <DoubleElimView matches={t.matches} onSpectate={handleSpectate} scale={scale} />
+                            <DoubleElimView matches={tournament.matches} onSpectate={handleSpectate} scale={scale} />
                         )}
                     </div>
                 </div>

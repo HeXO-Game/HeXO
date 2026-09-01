@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import type { ReactNode } from 'react';
+import i18next from 'i18next'
 
 function RefreshIcon() {
     return (
@@ -51,7 +52,7 @@ const PageCorpus = ({ category, title, description, children, back, onBack, onRe
                                 {onBack && (
                                     <Button
                                         onClick={onBack}
-                                        aria-label="Back"
+                                        aria-label={i18next.t('back', 'Back')}
                                         variant="secondary" size="icon"
                                     >
                                         <BackIcon />
@@ -81,7 +82,7 @@ const PageCorpus = ({ category, title, description, children, back, onBack, onRe
                         {onRefresh && (
                             <Button
                                 onClick={onRefresh}
-                                aria-label="Refresh archive"
+                                aria-label={i18next.t('refreshArchive', 'Refresh archive')}
                                 variant="outline" size="lg"
                             >
                                 {`Refresh\r`}
@@ -93,7 +94,7 @@ const PageCorpus = ({ category, title, description, children, back, onBack, onRe
                                 onClick={onBack}
                                 variant="secondary" size="lg" className="hidden sm:inline-flex"
                             >
-                                {back ?? `Back To Lobby`}
+                                {back ?? i18next.t('backToLobby', 'Back To Lobby')}
                             </Button>
                         )}
                     </div>

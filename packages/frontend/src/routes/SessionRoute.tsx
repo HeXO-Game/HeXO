@@ -29,6 +29,7 @@ import { describeSessionInvite } from '../utils/routeMetadata';
 import { buildSessionPath } from './archiveRouteState';
 import type { SandboxRouteState } from './sandboxRouteState';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { useTranslation, Trans } from 'react-i18next'
 
 function showErrorToast(message: string) {
     toast.error(message, {
@@ -47,15 +48,16 @@ function SessionConnectingScreen({ sessionId, isConnected, onBack }: Readonly<{
     isConnected: boolean
     onBack: () => void
 }>) {
+    const { t } = useTranslation()
     return (
         <div className="mx-auto flex max-w-3xl items-center justify-center h-full px-4">
             <div className="w-full rounded-4xl border border-white/10 bg-slate-950/55 p-8 text-center shadow-[0_20px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:p-10">
                 <div className="text-xs uppercase tracking-[0.32em] text-sky-200/80">
-                    Live Session
+                    {t('liveSession', 'Live Session')}
                 </div>
 
                 <h1 className="mt-4 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
-                    Joining Match
+                    {t('joiningMatch', 'Joining Match')}
                 </h1>
 
                 <div className="mt-4 break-all text-lg font-bold text-sky-100 sm:text-2xl">
@@ -64,15 +66,15 @@ function SessionConnectingScreen({ sessionId, isConnected, onBack }: Readonly<{
 
                 <p className="mt-4 text-sm leading-6 text-slate-300 sm:text-base">
                     {isConnected
-                        ? `Waiting for the server to confirm this session. If it is still active, you will enter it automatically.`
-                        : `Reconnecting to the server so this session can be restored.`}
+                        ? t('waitingForTheServerToConfirmThisSessionIfItIsStillActiveYouWillEnterItAutomatically', 'Waiting for the server to confirm this session. If it is still active, you will enter it automatically.')
+                        : t('reconnectingToTheServerSoThisSessionCanBeRestored', 'Reconnecting to the server so this session can be restored.')}
                 </p>
 
                 <Button
                     onClick={onBack}
                     variant="outline" size="lg" className="mt-8"
                 >
-                    Back To Lobby
+                    {t('backToLobby', 'Back To Lobby')}
                 </Button>
             </div>
         </div>
@@ -94,11 +96,12 @@ function SessionUnavailableScreen({
     onPrimaryAction: () => void
     onBack: () => void
 }>) {
+    const { t } = useTranslation()
     return (
         <div className="mx-auto flex max-w-3xl items-center justify-center h-full px-4">
             <div className="w-full rounded-4xl border border-white/10 bg-slate-950/55 p-8 text-center shadow-[0_20px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:p-10">
                 <div className="text-xs uppercase tracking-[0.32em] text-amber-200/80">
-                    Live Session
+                    {t('liveSession', 'Live Session')}
                 </div>
 
                 <h1 className="mt-4 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
@@ -125,7 +128,7 @@ function SessionUnavailableScreen({
                         onClick={onBack}
                         variant="outline" size="lg"
                     >
-                        Back To Lobby
+                        {t('backToLobby', 'Back To Lobby')}
                     </Button>
                 </div>
             </div>
@@ -142,16 +145,15 @@ function ConfirmLeaveSessionDialog({
     onStay: () => void
     onLeave: () => void
 }>) {
+    const { t } = useTranslation()
     return (
         <Dialog open={shown}>
             <DialogContent className={"w-full max-w-xl"} showCloseButton={false}>
                 <h2 id="leave-session-title" className="text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
-                    Leave This Match?
+                    {t('leaveThisMatch', 'Leave This Match?')}
                 </h2>
-                <p className="text-sm leading-6 sm:text-base">
-                    Leaving right now will surrender the match immediately.<br />
-                    Stay if you want to keep playing.
-                </p>
+                <p className="text-sm leading-6 sm:text-base"><Trans i18nKey="leavingRightNowWillSurrenderTheMatchImmediatelybrStayIfYouWantToKeepPlaying">Leaving right now will surrender the match immediately.<br />
+                    Stay if you want to keep playing.</Trans></p>
 
                 <DialogFooter className={"bg-transparent"}>
                     <Button
@@ -159,7 +161,7 @@ function ConfirmLeaveSessionDialog({
                         variant="outline" size="lg"
                         className={"w-full"}
                     >
-                        Stay In Match
+                        {t('stayInMatch', 'Stay In Match')}
                     </Button>
 
                     <Button
@@ -170,7 +172,7 @@ function ConfirmLeaveSessionDialog({
                         {`Surrender `}
 
                         <span className="hidden sm:inline">
-                            And Leave
+                            {t('andLeave', 'And Leave')}
                         </span>
                     </Button>
                 </DialogFooter>
@@ -180,6 +182,7 @@ function ConfirmLeaveSessionDialog({
 }
 
 function RouteMetadata() {
+    const { t } = useTranslation()
     const { sessionId } = useParams<{ sessionId: SessionId }>();
     const { data: sessionInfo, isLoading: sessionInfoLoading } = useQuerySessionInfo(sessionId ?? null);
     const localParticipantId = useLiveGameStore(state => state.session?.localParticipantId);
@@ -187,33 +190,33 @@ function RouteMetadata() {
     let metadata: Partial<PageMetadataProps>;
     if (sessionInfoLoading) {
         metadata = {
-            title: `Live Session • ${DEFAULT_PAGE_TITLE}`,
-            description: `Join or spectate a live HeXO session.`,
-            robots: `noindex, nofollow` as const,
+            title: t('liveSessionDefault_page_title', 'Live Session • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+            description: t('joinOrSpectateALiveHexoSession', 'Join or spectate a live HeXO session.'),
+            robots: 'noindex, nofollow' as const,
         };
     } else if (!sessionInfo) {
         metadata = {
-            title: `Invite Expired • ${DEFAULT_PAGE_TITLE}`,
-            description: `This live session is no longer active. Open the lobby to host or join another match.`,
-            robots: `noindex, nofollow` as const,
+            title: t('inviteExpiredDefault_page_title', 'Invite Expired • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+            description: t('thisLiveSessionIsNoLongerActiveOpenTheLobbyToHostOrJoinAnotherMatch', 'This live session is no longer active. Open the lobby to host or join another match.'),
+            robots: 'noindex, nofollow' as const,
         };
     } else if (localParticipantId) {
         /* Active SPA game */
         switch (sessionInfo.state.status) {
             case `lobby`:
-                metadata = { title: `Lobby ${sessionInfo.id} • ${DEFAULT_PAGE_TITLE}` };
+                metadata = { title: t('lobbyIdDefault_page_title', 'Lobby {{id}} • {{DEFAULT_PAGE_TITLE}}', { id: sessionInfo.id, DEFAULT_PAGE_TITLE }) };
                 break;
 
             case `in-game`:
                 if (sessionInfo.players.some(player => player.id === localParticipantId)) {
-                    metadata = { title: `Live Game ${sessionInfo.id} • ${DEFAULT_PAGE_TITLE}` };
+                    metadata = { title: t('liveGameIdDefault_page_title', 'Live Game {{id}} • {{DEFAULT_PAGE_TITLE}}', { id: sessionInfo.id, DEFAULT_PAGE_TITLE }) };
                 } else {
-                    metadata = { title: `Spectating Game ${sessionInfo.id} • ${DEFAULT_PAGE_TITLE}` };
+                    metadata = { title: t('spectatingGameIdDefault_page_title', 'Spectating Game {{id}} • {{DEFAULT_PAGE_TITLE}}', { id: sessionInfo.id, DEFAULT_PAGE_TITLE }) };
                 }
                 break;
 
             case `finished`:
-                metadata = { title: `Finished Game ${sessionInfo.id} • ${DEFAULT_PAGE_TITLE}` };
+                metadata = { title: t('finishedGameIdDefault_page_title', 'Finished Game {{id}} • {{DEFAULT_PAGE_TITLE}}', { id: sessionInfo.id, DEFAULT_PAGE_TITLE }) };
                 break;
         }
     } else {
@@ -226,6 +229,7 @@ function RouteMetadata() {
 
 const kEmptyGameState = createEmptyGameState();
 function SessionRoute() {
+    const { t } = useTranslation()
     const { sessionId } = useParams<{ sessionId: SessionId }>();
 
     const navigate = useNavigate();
@@ -344,7 +348,7 @@ function SessionRoute() {
             return;
         }
 
-        const gameKey = `${session.state.gameId}:${session.localParticipantId}`;
+        const gameKey = t('gameidlocalparticipantid', '{{gameId}}:{{localParticipantId}}', { gameId: session.state.gameId, localParticipantId: session.localParticipantId });
         if (autoPlacedOpeningTileGameKeyRef.current === gameKey) {
             return;
         }
@@ -393,8 +397,8 @@ function SessionRoute() {
         try {
             if (navigator.share) {
                 await navigator.share({
-                    title: `Join my HeXO lobby`,
-                    text: `Join my lobby directly with this link.`,
+                    title: t('joinMyHexoLobby', 'Join my HeXO lobby'),
+                    text: t('joinMyLobbyDirectlyWithThisLink', 'Join my lobby directly with this link.'),
                     url: inviteUrl.toString(),
                 });
                 showSuccessToast(`Invite link shared.`);
@@ -423,29 +427,26 @@ function SessionRoute() {
             targetScreen = (
                 <div className="mx-auto flex max-w-lg flex-1 flex-col items-center justify-center px-4 py-20 text-center text-white">
                     <div className="inline-flex rounded-full border border-sky-300/30 bg-sky-300/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-sky-200">
-                        Spectating
+                        {t('spectating', 'Spectating')}
                     </div>
 
                     <h2 className="mt-5 text-2xl font-black uppercase tracking-[0.06em] sm:text-4xl">
-                        Waiting for match to start
+                        {t('waitingForMatchToStart', 'Waiting for match to start')}
                     </h2>
 
                     <p className="mt-3 text-sm text-slate-400">
-                        The players haven&apos;t started yet. You&apos;ll be able to spectate once the game begins.
+                        {t('thePlayersHaventStartedYetYoullBeAbleToSpectateOnceTheGameBegins', "The players haven't started yet. You'll be able to spectate once the game begins.")}
                     </p>
 
                     <div className="mt-3 text-[11px] tabular-nums text-slate-500">
-                        Players ready:
-                        {` `}
-                        {session.players.length}
-                        /2
-                    </div>
+                        {t('playersReady', 'Players ready:')}
+                        {` `}{t('length2', '{{length}}\n                        /2', { length: session.players.length })}</div>
 
                     <Button
                         onClick={leaveSessionAndNavigate}
                         variant="ghost" size="bare" className="mt-6"
                     >
-                        Leave
+                        {t('leave', 'Leave')}
                     </Button>
                 </div>
             );
@@ -555,8 +556,8 @@ function SessionRoute() {
         targetScreen = (
             <SessionUnavailableScreen
                 sessionId={sessionId}
-                title="Session Unavailable"
-                message={pendingSessionJoin.errorMessage ?? `The session could not be opened right now. You can retry or return to the lobby.`}
+                title={t('sessionUnavailable', 'Session Unavailable')}
+                message={pendingSessionJoin.errorMessage ?? t('theSessionCouldNotBeOpenedRightNowYouCanRetryOrReturnToTheLobby', 'The session could not be opened right now. You can retry or return to the lobby.')}
                 primaryActionLabel="Retry"
                 onPrimaryAction={retryJoinSession}
                 onBack={leaveSessionAndNavigate}
@@ -566,7 +567,7 @@ function SessionRoute() {
         targetScreen = (
             <SessionUnavailableScreen
                 sessionId={sessionId}
-                title="Session Not Found"
+                title={t('sessionNotFound2', 'Session Not Found')}
                 message="This live session does not exist anymore. It may have finished already, been closed, or the link may be incorrect."
                 primaryActionLabel="Try Again"
                 onPrimaryAction={retryJoinSession}

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import type { GameState, SessionPlayer } from '@ih3t/shared';
 
 import { getPlayerLabel, getPlayerTileColor } from '../../utils/gameBoard';
+import { useTranslation } from 'react-i18next'
 
 type SandboxWinnerBannerProps = {
     players: SessionPlayer[]
@@ -18,6 +19,7 @@ function SandboxWinnerBanner({
     onResetBoard,
     onExploreBoard,
 }: Readonly<SandboxWinnerBannerProps>) {
+    const { t } = useTranslation()
     if (!winnerId) {
         return null;
     }
@@ -38,11 +40,11 @@ function SandboxWinnerBanner({
                         >
                             {winnerLabel}
                             {` `}
-                            Wins
+                            {t('wins', 'Wins')}
                         </div>
 
                         <div className="mt-3 text-sm text-slate-200 sm:text-base">
-                            Reset the board to play the position again.
+                            {t('resetTheBoardToPlayThePositionAgain', 'Reset the board to play the position again.')}
                         </div>
                     </div>
 
@@ -51,14 +53,14 @@ function SandboxWinnerBanner({
                             onClick={onExploreBoard}
                             variant="outline" size="lg"
                         >
-                            Explore Board
+                            {t('exploreBoard', 'Explore Board')}
                         </Button>
 
                         <Button
                             onClick={onResetBoard}
                             variant="secondary" size="lg"
                         >
-                            Reset Board
+                            {t('resetBoard', 'Reset Board')}
                         </Button>
                     </div>
                 </div>

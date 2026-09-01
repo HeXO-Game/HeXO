@@ -8,6 +8,8 @@ import type {
 } from '@ih3t/shared';
 import { TOURNAMENT_BRACKET_SIZES, TOURNAMENT_SERIES_BEST_OF_VALUES } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
+import { useTranslation, Trans } from 'react-i18next'
+import i18next from 'i18next'
 
 type TournamentEditorCardProps = {
     formKey: string
@@ -170,7 +172,7 @@ function formatUtcHint(localDateTime: string): string | null {
     const day = String(parsed.getUTCDate()).padStart(2, `0`);
     const hours = String(parsed.getUTCHours()).padStart(2, `0`);
     const minutes = String(parsed.getUTCMinutes()).padStart(2, `0`);
-    return `${year}-${month}-${day} ${hours}:${minutes} UTC`;
+    return i18next.t('yearmonthdayHoursminutesUtc', '{{year}}-{{month}}-{{day}} {{hours}}:{{minutes}} UTC', { year, month, day, hours, minutes });
 }
 
 function init(r: CreateTournamentRequest): TournamentFormState {
@@ -206,6 +208,7 @@ function bo(v: string): TournamentSeriesBestOf { return v === `7` ? 7 : v === `5
 /* ── estimated duration ────────────────────────────── */
 
 function EstimatedDuration({ form }: { form: TournamentFormState }) {
+    const { t } = useTranslation()
     const mp = Number.parseInt(form.maxPlayers, 10) || 8;
     const bracketSize = [4, 8, 16, 32, 64, 128, 256].find((s) => s >= mp) ?? 256;
     const roundCount = Math.log2(bracketSize);
@@ -244,11 +247,11 @@ function EstimatedDuration({ form }: { form: TournamentFormState }) {
     const totalMinutes = checkInMin + waitlistMin + (totalRounds * matchMinutes) + (Math.max(0, totalRounds - 1) * roundDelay);
     const hours = Math.floor(totalMinutes / 60);
     const mins = Math.round(totalMinutes % 60);
-    const display = hours > 0 ? `~${hours}h ${mins}m` : `~${mins}m`;
+    const display = hours > 0 ? t('hourshMinsm', '~{{hours}}h {{mins}}m', { hours, mins }) : `~${mins}m`;
 
     return (
         <div className="mb-3 text-[10px] text-slate-500">
-            Estimated max duration: <span className="text-slate-400">{display}</span> <span className="text-slate-600">(approximate)</span>
+            {t('estimatedMaxDuration', 'Estimated max duration:')} <span className="text-slate-400">{display}</span> <span className="text-slate-600">{t('approximate', '(approximate)')}</span>
         </div>
     );
 }
@@ -259,6 +262,7 @@ function TournamentEditorCard({
     formKey, title, description, defaultRequest,
     submitLabel, submitting, onSubmit,
 }: TournamentEditorCardProps) {
+    const { t } = useTranslation()
     const [f, setF] = useState<TournamentFormState>(() => init(defaultRequest));
 
     // Only reset when the caller intentionally swaps to a different form payload.
@@ -312,27 +316,27 @@ function TournamentEditorCard({
             {/* Name */}
             <Input
                 value={f.name} onChange={(e) => set(`name`, e.target.value)}
-                placeholder="Event name" className="mb-3 w-full"
+                placeholder={t('eventName', 'Event name')} className="mb-3 w-full"
             />
 
             {/* Description */}
             <textarea
                 value={f.description} onChange={(e) => set(`description`, e.target.value)}
-                rows={2} placeholder="Description (optional)"
+                rows={2} placeholder={t('descriptionOptional', 'Description (optional)')}
                 className="mb-3 w-full rounded-md border border-white/8 bg-slate-950/60 px-2.5 py-1.5 text-[13px] text-white outline-none transition placeholder:text-slate-600 focus:border-sky-400/30"
             />
 
             {/* Format toggle */}
             <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                 <Row label="Format" inline>
-                    <Pill value={f.format} options={[{ value: `single-elimination`, label: `Single Elim` }, { value: `double-elimination`, label: `Double Elim` }, { value: `swiss`, label: `Swiss` }]}
+                    <Pill value={f.format} options={[{ value: `single-elimination`, label: t('singleElim', 'Single Elim') }, { value: `double-elimination`, label: t('doubleElim', 'Double Elim') }, { value: `swiss`, label: t('swiss', 'Swiss') }]}
                         onChange={(v) => set(`format`, v)} />
                 </Row>
             </div>
 
             {/* Players */}
             <div className="mb-3 flex flex-wrap items-center gap-3">
-                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">Players</span>
+                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">{t('players', 'Players')}</span>
 
                 {f.format === `swiss` ? (
                     <Input type="number" min={2} max={256} value={f.maxPlayers}
@@ -350,37 +354,37 @@ function TournamentEditorCard({
 
                 {f.format === `swiss` && (
                     <>
-                        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">Rounds</span>
+                        <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">{t('rounds', 'Rounds')}</span>
                         <Input type="number" min={1} max={15} value={f.swissRoundCount}
-                            onChange={(e) => set(`swissRoundCount`, e.target.value)} placeholder="Auto" className="w-16 text-center" />
+                            onChange={(e) => set(`swissRoundCount`, e.target.value)} placeholder={t('auto', 'Auto')} className="w-16 text-center" />
                     </>
                 )}
             </div>
 
             {/* Schedule — two inline fields */}
             <div className="mb-3 grid grid-cols-2 gap-3">
-                <Row label="Start">
+                <Row label={t('start', 'Start')}>
                     <Input type="datetime-local" value={f.scheduledStartAt} onChange={(e) => set(`scheduledStartAt`, e.target.value)} className="w-full" />
                     <div className="text-[10px] text-slate-500">
-                        Times are entered in your local timezone.
+                        {t('timesAreEnteredInYourLocalTimezone', 'Times are entered in your local timezone.')}
                         {scheduledStartUtcHint && (
                             <>
                                 {` `}
                                 <span className="text-slate-400">
-                                    {`UTC: ${scheduledStartUtcHint}`}
+                                    {t('utcScheduledstartutchint', 'UTC: {{scheduledStartUtcHint}}', { scheduledStartUtcHint })}
                                 </span>
                             </>
                         )}
                     </div>
                 </Row>
-                <Row label="Check-in (min)"><Input type="number" min={5} max={1440} value={f.checkInWindowMinutes} onChange={(e) => set(`checkInWindowMinutes`, e.target.value)} className="w-full" /></Row>
+                <Row label={t('checkinMin', 'Check-in (min)')}><Input type="number" min={5} max={1440} value={f.checkInWindowMinutes} onChange={(e) => set(`checkInWindowMinutes`, e.target.value)} className="w-full" /></Row>
             </div>
 
             {/* Clock */}
             <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                 <Row label="Clock" inline>
                     <Pill value={f.timeControlMode}
-                        options={[{ value: `turn`, label: `Turn` }, { value: `match`, label: `Match` }, { value: `unlimited`, label: `None` }]}
+                        options={[{ value: `turn`, label: t('turn', 'Turn') }, { value: `match`, label: t('match', 'Match') }, { value: `unlimited`, label: t('none', 'None') }]}
                         onChange={(v) => set(`timeControlMode`, v)} />
                 </Row>
 
@@ -404,15 +408,15 @@ function TournamentEditorCard({
 
             {/* Series — single row */}
             <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">Series</span>
+                <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-slate-500">{t('series', 'Series')}</span>
                 <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                    Early
+                    {t('early', 'Early')}
                     <Select value={f.earlyRoundsBestOf} onChange={(e) => set(`earlyRoundsBestOf`, e.target.value)}>
                         <BestOfOptions />
                     </Select>
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                    Finals
+                    {t('finals', 'Finals')}
                     <Select value={f.finalsBestOf} onChange={(e) => set(`finalsBestOf`, e.target.value)}>
                         <BestOfOptions />
                     </Select>
@@ -425,17 +429,15 @@ function TournamentEditorCard({
                                 <BestOfOptions />
                             </Select>
                         </div>
-                        <label className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                            <input type="checkbox" checked={f.grandFinalResetEnabled} onChange={(e) => set(`grandFinalResetEnabled`, e.target.checked)}
+                        <label className="flex items-center gap-1.5 text-[11px] text-slate-400"><Trans i18nKey="inputTypecheckboxCheckedfgrandfinalresetenabledOnchangeeSetgrandfinalresetenabledEtargetcheckedClassnameh3W3RoundedBorderwhite20Bgslate900Textamber300Reset"><input type="checkbox" checked={f.grandFinalResetEnabled} onChange={(e) => set(`grandFinalResetEnabled`, e.target.checked)}
                                 className="h-3 w-3 rounded border-white/20 bg-slate-900 text-amber-300" />
-                            Reset
-                        </label>
+                            Reset</Trans></label>
                     </>
                 )}
 
                 <span className="text-slate-600">|</span>
 
-                <Row label="Join timeout" inline>
+                <Row label={t('joinTimeout', 'Join timeout')} inline>
                     <Input type="number" min={0} max={30} value={f.matchJoinTimeoutMinutes} onChange={(e) => set(`matchJoinTimeoutMinutes`, e.target.value)} className="w-14 text-center" />
                     <span className="text-[10px] text-slate-500">{Number(f.matchJoinTimeoutMinutes) === 0 ? `(no limit)` : `min`}</span>
                 </Row>
@@ -452,7 +454,7 @@ function TournamentEditorCard({
 
                 <label className="flex cursor-pointer items-center gap-1.5">
                     <input type="checkbox" checked={f.lateRegistrationEnabled} onChange={(e) => set(`lateRegistrationEnabled`, e.target.checked)} className="accent-sky-400" />
-                    <span className="text-[10px] text-slate-400">Late registration</span>
+                    <span className="text-[10px] text-slate-400">{t('lateRegistration', 'Late registration')}</span>
                 </label>
             </div>
 
@@ -461,11 +463,11 @@ function TournamentEditorCard({
                 {f.format === `single-elimination` && (
                     <label className="flex cursor-pointer items-center gap-1.5">
                         <input type="checkbox" checked={f.thirdPlaceMatchEnabled} onChange={(e) => set(`thirdPlaceMatchEnabled`, e.target.checked)} className="accent-sky-400" />
-                        <span className="text-[10px] text-slate-400">3rd place match</span>
+                        <span className="text-[10px] text-slate-400">{t('3rdPlaceMatch', '3rd place match')}</span>
                     </label>
                 )}
 
-                <Row label="Round delay" inline>
+                <Row label={t('roundDelay', 'Round delay')} inline>
                     <Input type="number" min={0} max={60} value={f.roundDelayMinutes} onChange={(e) => set(`roundDelayMinutes`, e.target.value)} className="w-14 text-center" />
                     <span className="text-[10px] text-slate-500">{Number(f.roundDelayMinutes) === 0 ? `(none)` : `min`}</span>
                 </Row>
@@ -474,11 +476,11 @@ function TournamentEditorCard({
 
                 <label className="flex cursor-pointer items-center gap-1.5">
                     <input type="checkbox" checked={f.waitlistEnabled} onChange={(e) => set(`waitlistEnabled`, e.target.checked)} className="accent-sky-400" />
-                    <span className="text-[10px] text-slate-400">Waitlist</span>
+                    <span className="text-[10px] text-slate-400">{t('waitlist', 'Waitlist')}</span>
                 </label>
 
                 {f.waitlistEnabled && (
-                    <Row label="Waitlist window" inline>
+                    <Row label={t('waitlistWindow', 'Waitlist window')} inline>
                         <Input type="number" min={1} max={30} value={f.waitlistCheckInMinutes} onChange={(e) => set(`waitlistCheckInMinutes`, e.target.value)} className="w-14 text-center" />
                         <span className="text-[10px] text-slate-500">min</span>
                     </Row>

@@ -21,6 +21,8 @@ import { formatTimeControl } from '../../utils/gameTimeControl';
 import { getSessionFinishReasonSentenceLabel } from '../../utils/sessionResult';
 import GameBoardView from '../game-screen/GameBoardView';
 import FinishedGameReviewLayout from './FinishedGameReviewLayout';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 type FinishedGameReplayViewProps = {
     game: FinishedGameRecord
@@ -171,11 +173,11 @@ function buildReplaySandboxPosition(game: FinishedGameRecord, visibleMoveCount: 
     };
 
     const moveLabel = visibleMoveCount === 0
-        ? `Opening Position`
-        : `Replay Move ${visibleMoveCount}/${game.moves.length}`;
+        ? i18next.t('openingPosition', 'Opening Position')
+        : i18next.t('replayMoveVisiblemovecountlength', 'Replay Move {{visibleMoveCount}}/{{length}}', { visibleMoveCount, length: game.moves.length });
 
     return {
-        name: `${game.players[0].displayName} vs ${game.players[1].displayName} - ${moveLabel}`,
+        name: i18next.t('displaynameVsDisplayname2Movelabel', '{{displayName}} vs {{displayName2}} - {{moveLabel}}', { displayName: game.players[0].displayName, displayName2: game.players[1].displayName, moveLabel }),
         gamePosition,
     };
 }
@@ -190,6 +192,7 @@ function FinishedGameReplayView({
     theme,
     onRetry,
 }: Readonly<FinishedGameReplayViewProps>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const navigate = useNavigate();
     const [visibleMoveCount, setVisibleMoveCount] = useState(game.moves.length);
@@ -306,156 +309,153 @@ function FinishedGameReplayView({
                     >
                         {({ renderableCellCount, resetView }) => (
                             <div className="pointer-events-none absolute inset-0 flex flex-col justify-between gap-2 p-2.5 sm:gap-3 sm:p-4">
-                            <div className="pointer-events-auto flex items-start justify-between gap-2">
-                                <div className="rounded-full border border-white/10 bg-slate-950/72 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.18em]">
-                                    {`Move `}
-                                    {visibleMoveCount}
-                                    /
-                                    {game.moves.length}
-                                </div>
-
-                                <div className="flex flex-wrap justify-end gap-2">
-                                    <Button
-                                        onClick={() => {
-                                            if (!replaySandboxPosition) {
-                                                return;
-                                            }
-
-                                            void navigate(`/sandbox`, {
-                                                state: {
-                                                    initialPosition: replaySandboxPosition,
-                                                } satisfies SandboxRouteState,
-                                            });
-                                        }}
-                                        aria-label="Explore this position in sandbox mode"
-                                        variant="outline" size="xs"
-                                    >
-                                        Explore In Sandbox
-                                    </Button>
-
-                                    <Button
-                                        onClick={resetView}
-                                        aria-label="Reset board view"
-                                        variant="outline" size="xs"
-                                    >
-                                        <span className="sm:hidden">
-                                            <ResetViewIcon />
-                                        </span>
-
-                                        <span className="hidden sm:inline">
-                                            Reset View
-                                        </span>
-                                    </Button>
-
-                                    <div className="hidden rounded-full border border-white/15 bg-slate-950/75 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200 sm:block">
-                                        {`Cells `}
-                                        {renderableCellCount}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="pointer-events-auto rounded-2xl border border-white/10 bg-slate-950/78 p-2.5 backdrop-blur sm:rounded-[1.75rem] sm:p-4">
-                                <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-                                    <div className="min-w-0">
-                                        <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400 sm:text-xs sm:tracking-[0.24em]">
-                                            Current Step
-                                        </div>
-
-                                        <div className="mt-1 wrap-break-word text-sm font-bold text-white sm:text-2xl">
-                                            {activeMove
-                                                ? `${getPlayerLabel(game.players, activeMove.playerId)} at (${activeMove.x}, ${activeMove.y})`
-                                                : `Board setup`}
-                                        </div>
-
-                                        <div className="mt-1 wrap-break-word text-xs text-slate-300 sm:text-sm">
-                                            {activeMove
-                                                ? `${formatDateTimeWithSeconds(intlFormatProvider, activeMove.timestamp)} • +${formatMinutesSeconds(activeMove.timestamp - game.startedAt)}`
-                                                : `Started ${formatDateTimeWithSeconds(intlFormatProvider, game.startedAt)}`}
-                                        </div>
+                                <div className="pointer-events-auto flex items-start justify-between gap-2">
+                                    <div className="rounded-full border border-white/10 bg-slate-950/72 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur sm:px-4 sm:py-2 sm:text-xs sm:tracking-[0.18em]">
+                                        {t(
+                                            'visiblemovecountLength',
+                                            'Move {{visibleMoveCount}} / {{length}}',
+                                            { visibleMoveCount, length: game.moves.length }
+                                        )}
                                     </div>
 
-                                    <div className="grid grid-cols-5 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
-                                        <Button
-                                            onClick={goToStart}
-                                            aria-label="Go to start"
-                                            variant="outline" size="xs"
-                                        >
-                                            <span className="sm:hidden">
-                                                <StartIcon />
-                                            </span>
-
-                                            <span className="hidden sm:inline">
-                                                Start
-                                            </span>
-                                        </Button>
-
-                                        <Button
-                                            onClick={goToPreviousMove}
-                                            disabled={visibleMoveCount === 0}
-                                            aria-label="Previous move"
-                                            variant="outline" size="xs"
-                                        >
-                                            <span className="sm:hidden">
-                                                <PreviousIcon />
-                                            </span>
-
-                                            <span className="hidden sm:inline">
-                                                Prev
-                                            </span>
-                                        </Button>
-
+                                    <div className="flex flex-wrap justify-end gap-2">
                                         <Button
                                             onClick={() => {
-                                                if (isAutoPlaying) {
-                                                    setIsAutoPlaying(false);
+                                                if (!replaySandboxPosition) {
                                                     return;
                                                 }
 
-                                                startPlayback();
+                                                void navigate(`/sandbox`, {
+                                                    state: {
+                                                        initialPosition: replaySandboxPosition,
+                                                    } satisfies SandboxRouteState,
+                                                });
                                             }}
-                                            aria-label={isAutoPlaying ? `Pause playback` : `Play replay`}
-                                            variant="default" size="xs"
+                                            variant="outline" size="xs"
                                         >
-                                            <span className="sm:hidden">
-                                                {isAutoPlaying ? <PauseIcon /> : <PlayIcon />}
-                                            </span>
-
-                                            <span className="hidden sm:inline">
-                                                {isAutoPlaying ? `Pause` : `Play`}
-                                            </span>
+                                            {t('exploreInSandbox', 'Explore In Sandbox')}
                                         </Button>
 
                                         <Button
-                                            onClick={goToNextMove}
-                                            disabled={visibleMoveCount >= totalMoveCount}
-                                            aria-label="Next move"
+                                            onClick={resetView}
                                             variant="outline" size="xs"
                                         >
                                             <span className="sm:hidden">
-                                                <NextIcon />
+                                                <ResetViewIcon />
                                             </span>
 
                                             <span className="hidden sm:inline">
-                                                Next
+                                                {t('resetView', 'Reset View')}
                                             </span>
                                         </Button>
 
-                                        <Button
-                                            onClick={goToEnd}
-                                            aria-label="Go to end"
-                                            variant="outline" size="xs"
-                                        >
-                                            <span className="sm:hidden">
-                                                <EndIcon />
-                                            </span>
-
-                                            <span className="hidden sm:inline">
-                                                End
-                                            </span>
-                                        </Button>
+                                        <div className="hidden rounded-full border border-white/15 bg-slate-950/75 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200 sm:block">
+                                            {`Cells `}
+                                            {renderableCellCount}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+
+                                <div className="pointer-events-auto rounded-2xl border border-white/10 bg-slate-950/78 p-2.5 backdrop-blur sm:rounded-[1.75rem] sm:p-4">
+                                    <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+                                        <div className="min-w-0">
+                                            <div className="text-[10px] uppercase tracking-[0.2em] text-slate-400 sm:text-xs sm:tracking-[0.24em]">
+                                                {t('currentStep', 'Current Step')}
+                                            </div>
+
+                                            <div className="mt-1 wrap-break-word text-sm font-bold text-white sm:text-2xl">
+                                                {activeMove
+                                                    ? t('valAtXY', '{{val}} at ({{x}}, {{y}})', { val: getPlayerLabel(game.players, activeMove.playerId), x: activeMove.x, y: activeMove.y })
+                                                    : t('boardSetup', `Board setup`)}
+                                            </div>
+
+                                            <div className="mt-1 wrap-break-word text-xs text-slate-300 sm:text-sm">
+                                                {activeMove
+                                                    ? t('valVal2', '{{val}} • +{{val2}}', { val: formatDateTimeWithSeconds(intlFormatProvider, activeMove.timestamp), val2: formatMinutesSeconds(activeMove.timestamp - game.startedAt) })
+                                                    : t('startedVal', 'Started {{val}}', { val: formatDateTimeWithSeconds(intlFormatProvider, game.startedAt) })}
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-5 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
+                                            <Button
+                                                onClick={goToStart}
+                                                variant="outline" size="xs"
+                                            >
+                                                <span className="sm:hidden">
+                                                    <StartIcon />
+                                                </span>
+
+                                                <span className="hidden sm:inline">
+                                                    {t('start', 'Start')}
+                                                </span>
+                                            </Button>
+
+                                            <Button
+                                                onClick={goToPreviousMove}
+                                                disabled={visibleMoveCount === 0}
+                                                aria-label={t('previousMove', 'Previous move')}
+                                                variant="outline" size="xs"
+                                            >
+                                                <span className="sm:hidden">
+                                                    <PreviousIcon />
+                                                </span>
+
+                                                <span className="hidden sm:inline">
+                                                    {t('prev', 'Prev')}
+                                                </span>
+                                            </Button>
+
+                                            <Button
+                                                onClick={() => {
+                                                    if (isAutoPlaying) {
+                                                        setIsAutoPlaying(false);
+                                                        return;
+                                                    }
+
+                                                    startPlayback();
+                                                }}
+                                                variant="default" size="xs"
+                                            >
+                                                <span className="sm:hidden">
+                                                    {isAutoPlaying ? <PauseIcon /> : <PlayIcon />}
+                                                </span>
+
+                                                <span className="hidden sm:inline">
+                                                    {isAutoPlaying ? `Pause` : `Play`}
+                                                </span>
+                                            </Button>
+
+                                            <Button
+                                                onClick={goToNextMove}
+                                                disabled={visibleMoveCount >= totalMoveCount}
+                                                aria-label={t('nextMove', 'Next move')}
+                                                variant="outline" size="xs"
+                                            >
+                                                <span className="sm:hidden">
+                                                    <NextIcon />
+                                                </span>
+
+                                                <span className="hidden sm:inline">
+                                                    {t('next', 'Next')}
+                                                </span>
+                                            </Button>
+
+                                            <Button
+                                                onClick={goToEnd}
+                                                aria-label={t('goToEnd', 'Go to end')}
+                                                variant="outline" size="xs"
+                                            >
+                                                <span className="sm:hidden">
+                                                    <EndIcon />
+                                                </span>
+
+                                                <span className="hidden sm:inline">
+                                                    {t('end', 'End')}
+                                                </span>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </GameBoardView>
@@ -464,13 +464,13 @@ function FinishedGameReplayView({
                 <aside className="flex min-w-0 flex-col gap-4 xl:min-h-136 xl:overflow-hidden">
                     <section className="flex min-h-0 min-w-0 shrink-0 flex-col overflow-hidden rounded-3xl border border-white/10 bg-slate-950/55 p-4 shadow-[0_20px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:rounded-4xl sm:p-5">
                         <div className={`text-sm uppercase tracking-[0.3em] text-slate-300 `}>
-                            Match Summary
+                            {t('matchSummary', 'Match Summary')}
                         </div>
 
                         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-1">
                             <div>
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                    Finished
+                                    {t('finished', 'Finished')}
                                 </div>
 
                                 <div className="mt-1 text-sm text-white">
@@ -485,7 +485,7 @@ function FinishedGameReplayView({
 
                             <div>
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                    Game Type
+                                    {t('gameType', 'Game Type')}
                                 </div>
 
                                 <div className="mt-1 text-sm text-white">
@@ -495,7 +495,7 @@ function FinishedGameReplayView({
 
                             <div>
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                    Time Control
+                                    {t('timeControl', 'Time Control')}
                                 </div>
 
                                 <div className="mt-1 text-sm text-white">
@@ -505,7 +505,7 @@ function FinishedGameReplayView({
 
                             <div>
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                    Finish Reason
+                                    {t('finishReason', 'Finish Reason')}
                                 </div>
 
                                 <div className="mt-1 text-sm text-white">
@@ -515,7 +515,7 @@ function FinishedGameReplayView({
 
                             <div>
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
-                                    Players
+                                    {t('players', 'Players')}
                                 </div>
 
                                 <div className="mt-1.5 space-y-0.5">
@@ -550,13 +550,13 @@ function FinishedGameReplayView({
 
                                                     {gameResult?.winningPlayerId === player.playerId && (
                                                         <span className="rounded-full border border-amber-200/30 bg-amber-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-black">
-                                                            Winner
+                                                            {t('winner', 'Winner')}
                                                         </span>
                                                     )}
 
                                                     {isDraw && (
                                                         <span className="rounded-full border border-sky-200/30 bg-sky-300 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-950">
-                                                            Draw
+                                                            {t('draw', 'Draw')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -587,13 +587,13 @@ function FinishedGameReplayView({
                     <section className="flex min-h-72 min-w-0 flex-1 flex-col rounded-3xl border border-white/10 bg-slate-950/55 p-4 shadow-[0_20px_80px_rgba(15,23,42,0.45)] backdrop-blur sm:min-h-88 sm:rounded-4xl sm:p-5 xl:min-h-[10em] xl:overflow-hidden">
                         <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                             <div className="text-sm uppercase tracking-[0.3em] text-slate-300">
-                                Move Timeline
+                                {t('moveTimeline', 'Move Timeline')}
                             </div>
 
                             <div className="text-sm text-slate-400">
                                 {game.moves.length}
                                 {` `}
-                                logged moves
+                                {t('loggedMoves', 'logged moves')}
                             </div>
                         </div>
 
@@ -606,15 +606,15 @@ function FinishedGameReplayView({
                                 }
                             >
                                 <div className="text-xs uppercase tracking-[0.24em] text-slate-400">
-                                    Move 0
+                                    {t('move0', 'Move 0')}
                                 </div>
 
                                 <div className="mt-1 text-base font-semibold text-white sm:text-lg">
-                                    Initial board
+                                    {t('initialBoard', 'Initial board')}
                                 </div>
 
                                 <div className="mt-1 text-sm text-slate-300">
-                                    Before the first placement.
+                                    {t('beforeTheFirstPlacement', 'Before the first placement.')}
                                 </div>
                             </button>
 
@@ -647,18 +647,12 @@ function FinishedGameReplayView({
 
                                         <div className="mt-2 wrap-break-word text-base font-semibold text-white sm:text-lg">
                                             {getPlayerLabel(game.players, move.playerId)}
-                                            {` `}
-                                            placed at (
-                                            {move.x}
-                                            ,
-                                            {move.y}
-                                            )
-                                        </div>
+                                            {` `}{t('placedAtXY', 'placed at (\n                                            {{x}}\n                                            ,\n                                            {{y}}\n                                            )', { x: move.x, y: move.y })}</div>
 
                                         <div className="mt-1 wrap-break-word text-sm text-slate-300">
                                             {formatDateTimeWithSeconds(intlFormatProvider, move.timestamp)}
                                             {` `}
-                                            • +
+                                            {t('key2', '• +')}
                                             {formatMinutesSeconds(move.timestamp - game.startedAt)}
                                         </div>
                                     </button>

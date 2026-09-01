@@ -1,5 +1,6 @@
 import type { BotEngineInterface, BotEngineSuggestionResult } from '@ih3t/shared';
 import { applyGameMove, cloneGameState, type GameState, type HexCoordinate } from '@ih3t/shared';
+import i18next from 'i18next'
 
 export class SandboxBotMoveError extends Error {
     constructor(message: string) {
@@ -35,7 +36,7 @@ function applySuggestedMove(gameState: GameState, playerId: string, move: HexCoo
             y: move.y,
         });
     } catch (error) {
-        const detail = error instanceof Error ? error.message : `Suggested move was illegal.`;
+        const detail = error instanceof Error ? error.message : i18next.t('suggestedMoveWasIllegal', 'Suggested move was illegal.');
         throw new SandboxBotMoveError(`${displayName} suggested an illegal move. ${detail}`);
     }
 }
@@ -79,8 +80,8 @@ export async function getSandboxBotMoves(bot: BotEngineInterface, gameState: Gam
     if (!capabilities.suggestMove) {
         throw new SandboxBotMoveError(
             gameState.placementsRemaining === 1
-                ? `${displayName} cannot continue this partial turn because it only supports full-turn suggestions.`
-                : `${displayName} does not support single-move suggestions for this position.`,
+                ? i18next.t('displaynameCannotContinueThisPartialTurnBecauseItOnlySupportsFullturnSuggestions', '{{displayName}} cannot continue this partial turn because it only supports full-turn suggestions.', { displayName })
+                : i18next.t('displaynameDoesNotSupportSinglemoveSuggestionsForThisPosition', '{{displayName}} does not support single-move suggestions for this position.', { displayName }),
         );
     }
 

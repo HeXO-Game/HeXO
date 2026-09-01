@@ -13,6 +13,7 @@ import {
 } from '../utils/changelog';
 import { formatDateTime, formatUtcCalendarDate, useIntlFormatProvider } from '../utils/dateTime';
 import PageCorpus from './PageCorpus';
+import { useTranslation } from 'react-i18next'
 
 const CHANGELOG_KIND_LABELS: Record<ChangelogEntryKind, string> = {
     feature: `Feature`,
@@ -59,6 +60,7 @@ function ChangelogScreen({
     isPreferencesLoading,
     preferencesErrorMessage,
 }: Readonly<ChangelogScreenProps>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const [isMarkingRead, setIsMarkingRead] = useState(false);
     const latestCommitAt = getLatestChangelogCommitAt(changelogDays);
@@ -91,13 +93,13 @@ function ChangelogScreen({
         <PageCorpus
             category="Project History"
             title="Changelog"
-            description={`Generated from ${commitCount} commits in git history on ${formatDateTime(intlFormatProvider, new Date(generatedAt))}.${totalBreakingChangeCount > 0 ? ` ${totalBreakingChangeCount} breaking change${totalBreakingChangeCount === 1 ? `` : `s`} flagged.` : ``}`}
+            description={t('generatedFromCommitcountCommitsInGitHistoryOnValval2', 'Generated from {{commitCount}} commits in git history on {{val}}.{{val2}}', { commitCount, val: formatDateTime(intlFormatProvider, new Date(generatedAt)), val2: totalBreakingChangeCount > 0 ? ` ${totalBreakingChangeCount} breaking change${totalBreakingChangeCount === 1 ? `` : `s`} flagged.` : `` })}
         >
             <div className="px-4 sm:px-6 pb-4 sm:pb-6 flex flex-col gap-4 overflow-auto overscroll-contain">
                 {account ? (
                     isPreferencesLoading ? (
                         <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/45 p-5 text-sm text-slate-300 sm:p-6">
-                            Loading your changelog status...
+                            {t('loadingYourChangelogStatus', 'Loading your changelog status...')}
                         </section>
                     ) : preferencesErrorMessage ? (
                         <section className="rounded-[1.75rem] border border-rose-300/30 bg-rose-500/10 p-5 text-sm text-rose-100 sm:p-6">
@@ -108,17 +110,17 @@ function ChangelogScreen({
                             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                                 <div>
                                     <p className="text-xs uppercase tracking-[0.3em] text-amber-100/80">
-                                        Updates Since You Last Visited
+                                        {t('updatesSinceYouLastVisited', 'Updates Since You Last Visited')}
                                     </p>
 
                                     <h2 className="mt-2 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl">
-                                        {hasNewEntries ? `${newEntryCount} new change${newEntryCount === 1 ? `` : `s`} waiting` : `You are all caught up`}
+                                        {hasNewEntries ? t('newentrycountNewChangevalWaiting', '{{newEntryCount}} new change{{val}} waiting', { newEntryCount, val: newEntryCount === 1 ? `` : `s` }) : t('youAreAllCaughtUp', 'You are all caught up')}
                                     </h2>
 
                                     <p className="mt-3 max-w-3xl text-sm leading-6 text-amber-50/85 sm:text-base">
                                         {changelogReadAt === null
-                                            ? `No changelog visit has been recorded yet, so all current entries are marked as new.`
-                                            : `Your last read marker was saved on ${formatDateTime(intlFormatProvider, changelogReadAt)}.`}
+                                            ? t('noChangelogVisitHasBeenRecordedYetSoAllCurrentEntriesAreMarkedAsNew', 'No changelog visit has been recorded yet, so all current entries are marked as new.')
+                                            : t('yourLastReadMarkerWasSavedOnVal', 'Your last read marker was saved on {{val}}.', { val: formatDateTime(intlFormatProvider, changelogReadAt) })}
                                     </p>
                                 </div>
 
@@ -129,7 +131,7 @@ function ChangelogScreen({
                                     disabled={!hasNewEntries || isMarkingRead}
                                     onClick={() => void handleMarkNewChangesAsRead()}
                                 >
-                                    {isMarkingRead ? `Saving...` : `Mark New Changes As Read`}
+                                    {isMarkingRead ? `Saving...` : t('markNewChangesAsRead', 'Mark New Changes As Read')}
                                 </Button>
                             </div>
                         </section>
@@ -209,7 +211,7 @@ function ChangelogScreen({
 
                                                 {entry.isBreakingChange && (
                                                     <span className="rounded-full border border-rose-300/25 bg-rose-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-rose-50">
-                                                        Breaking Change
+                                                        {t('breakingChange', 'Breaking Change')}
                                                     </span>
                                                 )}
 
@@ -219,7 +221,7 @@ function ChangelogScreen({
 
                                                 {account && preferences && isUnreadChangelogEntry(entry.committedAt, changelogReadAt) && (
                                                     <span className="rounded-full border border-amber-300/20 bg-amber-300/12 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-100">
-                                                        New
+                                                        {t('new', 'New')}
                                                     </span>
                                                 )}
                                             </div>
@@ -232,7 +234,7 @@ function ChangelogScreen({
                                         {entry.isBreakingChange && entry.breakingChangeNote && entry.breakingChangeNote !== entry.summary && (
                                             <div className="mt-3 rounded-[1.1rem] border border-rose-300/20 bg-black/15 p-3 text-sm leading-6 text-rose-50/95">
                                                 <span className="mr-2 inline-flex rounded-full border border-rose-300/25 bg-rose-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-50">
-                                                    Impact
+                                                    {t('impact', 'Impact')}
                                                 </span>
 
                                                 {entry.breakingChangeNote}

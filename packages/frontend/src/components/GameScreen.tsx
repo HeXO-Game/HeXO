@@ -12,6 +12,7 @@ import GameChatBox from './game-screen/GameChatBox';
 import GameScreenHud, { HudPlayerInfo } from './game-screen/GameScreenHud';
 import ShutdownTimer from './game-screen/ShutdownTimer';
 import TurnTimerHud from './game-screen/TurnTimerHud';
+import { useTranslation } from 'react-i18next'
 
 type GameScreenProps = {
     sessionId: string
@@ -75,6 +76,7 @@ function GameScreen({
     onChatOpenChange,
     onSendChatMessage,
 }: Readonly<GameScreenProps>) {
+    const { t } = useTranslation()
     const previousCellCountRef = useRef(gameState.cells.length);
     const isSpectator = participantRole === `spectator`;
     const isOwnTurn = Boolean(currentPlayerId) && gameState.currentTurnPlayerId === currentPlayerId;
@@ -146,7 +148,7 @@ function GameScreen({
 
                     {shutdown && (
                         <div className="absolute bottom-3 left-3 rounded-full border border-amber-300/40 bg-amber-200/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-100 shadow-lg">
-                            {`Server Restart in `}
+                            {t('serverRestartIn', 'Server Restart in')}
                             <ShutdownTimer shutdown={shutdown} />
                         </div>
                     )}

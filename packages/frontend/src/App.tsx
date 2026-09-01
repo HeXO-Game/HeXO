@@ -8,6 +8,7 @@ import { trackOpenReplayUser } from './openReplay';
 import { useQueryAccount } from './query/accountClient';
 import { clearHydrationRenderPassFlag, useRenderMode } from './ssrState';
 import { TooltipProvider } from './components/ui/tooltip';
+import { useTranslation } from 'react-i18next'
 
 type AppProps = {
     router: Parameters<typeof RouterProvider>[0][`router`]
@@ -35,6 +36,7 @@ function OpenReplayUserSync() {
 }
 
 function App({ router, queryClient, dehydratedState }: Readonly<AppProps>) {
+    const { t } = useTranslation()
     const renderMode = useRenderMode();
 
     useEffect(() => clearHydrationRenderPassFlag(), []);
@@ -47,9 +49,9 @@ function App({ router, queryClient, dehydratedState }: Readonly<AppProps>) {
         <AppErrorBoundary>
             <meta charSet="UTF-8" />
             <link rel="icon" type="image/svg+xml" href="/favicon.png" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta name="viewport" content={t('widthdevicewidthInitialscale10', 'width=device-width, initial-scale=1.0')} />
             <meta name="theme-color" content="#111827" />
-            <meta property="og:site_name" content="HeXO: The infinite hexagonal tic-tac-toe game" />
+            <meta property="og:site_name" content={t('hexoTheInfiniteHexagonalTictactoeGame', 'HeXO: The infinite hexagonal tic-tac-toe game')} />
 
             <QueryClientProvider client={queryClient}>
                 <TooltipProvider>

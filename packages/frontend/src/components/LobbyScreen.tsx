@@ -8,6 +8,7 @@ import ShutdownTimer from './game-screen/ShutdownTimer';
 import PublicMatchesList from './PublicMatchesList';
 import ScreenFooter from './ScreenFooter';
 import { cn } from '../utils/cn';
+import { useTranslation, Trans } from 'react-i18next'
 
 type LobbyScreenProps = {
     isConnected: boolean
@@ -45,6 +46,7 @@ function LobbyScreen({
     onJoinGame,
     onViewChangelog,
 }: Readonly<LobbyScreenProps>) {
+    const { t } = useTranslation()
     const [isCreateLobbyDialogOpen, setIsCreateLobbyDialogOpen] = useState(false);
     const showClientBadges = useHydratedDelay(500);
 
@@ -64,29 +66,25 @@ function LobbyScreen({
             )}>
                 <section className="relative flex flex-col max-w-xl w-full xl:w-[40%] px-2 xl:p-6 xl:min-w-130">
                     <h1 className="mt-5 text-3xl font-black uppercase tracking-[0.08em] text-white sm:mt-6 sm:text-5xl lg:text-6xl">
-                        HeXO
+                        {t('hexo', 'HeXO')}
                     </h1>
 
-                    <h2 className="mt-1 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl lg:mt-3 lg:text-3xl">
-                        The infinite hexagonal
+                    <h2 className="mt-1 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl lg:mt-3 lg:text-3xl"><Trans i18nKey="theInfiniteHexagonalBrTictactoeGame">The infinite hexagonal
                         <br />
-                        tic-tac-toe game
-                    </h2>
+                        tic-tac-toe game</Trans></h2>
 
-                    <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:mt-6 sm:text-base sm:leading-7 lg:text-lg">
-                        <span className={"hidden"}>HeXO</span> is a two-player strategy game played on an infinite hexagonal grid. Take turns placing your pieces, build and block lines, and be the first to connect six in a row.
-                    </p>
+                    <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:mt-6 sm:text-base sm:leading-7 lg:text-lg"><Trans i18nKey="spanClassnamehiddenhexospanIsATwoplayerStrategyGamePlayedOnAnInfiniteHexagonalGridTakeTurnsPlacingYourPiecesBuildAndBlockLinesAndBeTheFirstToConnectSixInARow"><span className={"hidden"}>HeXO</span> is a two-player strategy game played on an infinite hexagonal grid. Take turns placing your pieces, build and block lines, and be the first to connect six in a row.</Trans></p>
 
                     <div className="mt-6 flex flex-col gap-4">
                         {showClientBadges && !isConnected && (
                             <div className="inline-flex items-center rounded-md border text-left border-rose-300/40 bg-rose-300/10 px-4 py-3 text-sm font-medium text-rose-400">
-                                Not connected to server
+                                {t('notConnectedToServer', 'Not connected to server')}
                             </div>
                         )}
 
                         {showClientBadges && shutdown && (
                             <div className="inline-flex items-center rounded-md border text-left border-amber-300/40 bg-amber-300/10 px-4 py-3 text-sm font-medium text-amber-400">
-                                New matches are disabled until the restart completes: <ShutdownTimer shutdown={shutdown} />
+                                {t('newMatchesAreDisabledUntilTheRestartCompletes', 'New matches are disabled until the restart completes:')} <ShutdownTimer shutdown={shutdown} />
                             </div>
                         )}
                     </div>
@@ -109,7 +107,7 @@ function LobbyScreen({
                                 </span>
 
                                 <span className="text-xs uppercase tracking-[0.18em] text-sky-200/85">
-                                    View changelog
+                                    {t('viewChangelog', 'View changelog')}
                                 </span>
                             </span>
 

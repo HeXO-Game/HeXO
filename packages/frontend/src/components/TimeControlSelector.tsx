@@ -1,6 +1,8 @@
 import type { GameTimeControl } from '@ih3t/shared';
 
 import { formatGameTimeSeconds } from '../utils/gameTimeControl';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 const timeControlModeOptions: {
     value: GameTimeControl[`mode`]
@@ -59,14 +61,14 @@ function SelectableOption({ onClick, selected, title, description, disabled = fa
 
 export function formatTimeControlSummary(timeControl: GameTimeControl): string {
     if (timeControl.mode === `turn`) {
-        return `${formatGameTimeSeconds(timeControl.turnTimeMs / 1000)} turns`;
+        return i18next.t('valTurns', '{{val}} turns', { val: formatGameTimeSeconds(timeControl.turnTimeMs / 1000) });
     }
 
     if (timeControl.mode === `match`) {
-        return `${timeControl.mainTimeMs / 60_000}m + ${formatGameTimeSeconds(timeControl.incrementMs / 1000)}`;
+        return i18next.t('valmVal2', '{{val}}m + {{val2}}', { val: timeControl.mainTimeMs / 60_000, val2: formatGameTimeSeconds(timeControl.incrementMs / 1000) });
     }
 
-    return `No clock`;
+    return i18next.t('noClock', 'No clock');
 }
 
 type TimeControlSelectorProps = {
@@ -104,13 +106,14 @@ function TimeControlSelector({
     onTurnTimeStepIndexChange,
     onMatchTimeStepIndexChange,
     onIncrementStepIndexChange,
-    emptyMessage = `No clock will be configured.`,
+    emptyMessage = i18next.t('noClockWillBeConfigured', 'No clock will be configured.'),
 }: Readonly<TimeControlSelectorProps>) {
+    const { t } = useTranslation()
     return (
         <>
             <div className="mt-3 flex items-center justify-between gap-3">
                 <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                    Time Control
+                    {t('timeControl', 'Time Control')}
                 </div>
 
                 <div className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-100">
@@ -143,7 +146,7 @@ function TimeControlSelector({
                     <div className="space-y-2.5">
                         <div>
                             <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                Turn Time
+                                {t('turnTime', 'Turn Time')}
                             </div>
 
                             <div className="mt-0.5 text-lg font-bold text-white">
@@ -176,13 +179,10 @@ function TimeControlSelector({
                         <div className="space-y-2.5">
                             <div>
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                    Main Time
+                                    {t('mainTime', 'Main Time')}
                                 </div>
 
-                                <div className="mt-0.5 text-lg font-bold text-white">
-                                    {matchTimeMinutes}
-                                    m
-                                </div>
+                                <div className="mt-0.5 text-lg font-bold text-white">{t('matchtimeminutesM', '{{matchTimeMinutes}}\n                                    m', { matchTimeMinutes })}</div>
                             </div>
 
                             <input
@@ -209,7 +209,7 @@ function TimeControlSelector({
                         <div className="space-y-2.5">
                             <div>
                                 <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                                    Increment
+                                    {t('increment', 'Increment')}
                                 </div>
 
                                 <div className="mt-0.5 text-lg font-bold text-white">

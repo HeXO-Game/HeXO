@@ -5,6 +5,8 @@ import { SandboxBotEngineInfo } from '../../sandbox/botLoader';
 import type { SandboxPlayerMode } from '../../sandbox/sandboxBotSettings';
 import GameHudShell from '../game-screen/GameHudShell';
 import SandboxBotControls from './SandboxBotControls';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 function getBotCapabilitiesLabel(botCapabilities: Readonly<BotEngineCapabilities> | null) {
     if (!botCapabilities) {
@@ -12,18 +14,18 @@ function getBotCapabilitiesLabel(botCapabilities: Readonly<BotEngineCapabilities
     }
 
     if (botCapabilities.suggestTurn && botCapabilities.suggestMove) {
-        return `Supports full turns and single-move continuations.`;
+        return i18next.t('supportsFullTurnsAndSinglemoveContinuations', 'Supports full turns and single-move continuations.');
     }
 
     if (botCapabilities.suggestTurn) {
-        return `Supports only full turns.`;
+        return i18next.t('supportsOnlyFullTurns', 'Supports only full turns.');
     }
 
     if (botCapabilities.suggestMove) {
-        return `Supports one move at a time suggestions.`;
+        return i18next.t('supportsOneMoveAtATimeSuggestions', 'Supports one move at a time suggestions.');
     }
 
-    return `Does not support any move generation capability.`;
+    return i18next.t('doesNotSupportAnyMoveGenerationCapability', 'Does not support any move generation capability.');
 }
 
 
@@ -69,6 +71,7 @@ function SandboxBotPanel({
     onBotPlayerModeChange,
     onBotTimeoutMsChange,
 }: Readonly<SandboxBotPanelProps>) {
+    const { t } = useTranslation()
     const capabilityLabel = getBotCapabilitiesLabel(botCapabilities);
     return (
         <GameHudShell
@@ -95,22 +98,22 @@ function SandboxBotPanel({
         >
             <div>
                 <div className="text-[11px] uppercase tracking-[0.24em] text-sky-300">
-                    Sandbox Bot
+                    {t('sandboxBot', 'Sandbox Bot')}
                 </div>
 
                 <h2 className="mt-1 text-xl font-bold text-white">
-                    Bot Controls
+                    {t('botControls', 'Bot Controls')}
                 </h2>
 
                 <div className="mt-2 text-sm leading-6 text-slate-300">
-                    Add a bot to either side, adjust the request timeout, and switch back to human control whenever you want.
+                    {t('addABotToEitherSideAdjustTheRequestTimeoutAndSwitchBackToHumanControlWheneverYouWant', 'Add a bot to either side, adjust the request timeout, and switch back to human control whenever you want.')}
                 </div>
             </div>
 
             <div className="mt-4 items-center grid grid-cols-[1fr_auto] gap-1 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
                 <div>
                     <div className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                        Engine
+                        {t('engine', 'Engine')}
                     </div>
 
                     <div className="mt-1 text-sm font-semibold text-white">
@@ -123,7 +126,7 @@ function SandboxBotPanel({
                     onClick={onChangeBotEngine}
                     variant="outline" size="sm" className="ml-3"
                 >
-                    Change
+                    {t('change', 'Change')}
                 </Button>
 
                 <div className="col-span-2 text-xs leading-5 text-slate-300">

@@ -2,16 +2,18 @@ import LeaderboardScreen from '../components/LeaderboardScreen';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import { useQueryAccount } from '../query/accountClient';
 import { useQueryLeaderboard } from '../query/leaderboardClient';
+import { useTranslation } from 'react-i18next'
 
 function LeaderboardRoute() {
+    const { t } = useTranslation()
     const accountQuery = useQueryAccount({ enabled: true });
     const leaderboardQuery = useQueryLeaderboard({ enabled: true });
 
     return (
         <>
             <PageMetadata
-                title={`Leaderboard • ${DEFAULT_PAGE_TITLE}`}
-                description="See the highest rated HeXO players and current standings."
+                title={t('leaderboardDefault_page_title', 'Leaderboard • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                description={t('seeTheHighestRatedHexoPlayersAndCurrentStandings', 'See the highest rated HeXO players and current standings.')}
             />
 
             <LeaderboardScreen

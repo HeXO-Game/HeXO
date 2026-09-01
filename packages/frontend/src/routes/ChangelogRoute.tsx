@@ -3,8 +3,10 @@ import { CHANGELOG_COMMIT_COUNT, CHANGELOG_DAYS, CHANGELOG_GENERATED_AT } from '
 import ChangelogScreen from '../components/ChangelogScreen';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import { useQueryAccount, useQueryAccountPreferences } from '../query/accountClient';
+import { useTranslation } from 'react-i18next'
 
 function ChangelogRoute() {
+    const { t } = useTranslation()
     const accountQuery = useQueryAccount({ enabled: true });
     const accountPreferencesQuery = useQueryAccountPreferences({
         enabled: !accountQuery.isLoading && Boolean(accountQuery.data?.user),
@@ -13,8 +15,8 @@ function ChangelogRoute() {
     return (
         <>
             <PageMetadata
-                title={`Changelog • ${DEFAULT_PAGE_TITLE}`}
-                description="Read the latest HeXO updates and release notes."
+                title={t('changelogDefault_page_title', 'Changelog • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                description={t('readTheLatestHexoUpdatesAndReleaseNotes', 'Read the latest HeXO updates and release notes.')}
             />
 
             <ChangelogScreen

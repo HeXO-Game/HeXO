@@ -43,6 +43,7 @@ import { getBoardTheme, toRendererBoardState } from '../utils/gameBoard';
 import { formatPlacementSummary, formatSandboxPlayerLabel } from '../utils/routeMetadata';
 import type { SandboxRouteState } from './sandboxRouteState';
 import BoardHelp from "../components/game-screen/BoardHelp.tsx";
+import { useTranslation } from 'react-i18next'
 
 type SandboxSnapshot = {
     positionName: string | null
@@ -168,6 +169,7 @@ function createSandboxSnapshot(gameState: GameState, gameHistory: readonly GameS
 }
 
 function SandboxRoute() {
+    const { t } = useTranslation()
     const location = useLocation();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -309,7 +311,7 @@ function SandboxRoute() {
             } catch (error) {
                 const errorMessage = error instanceof GameRuleError
                     ? error.message
-                    : `This move is not legal in sandbox mode.`;
+                    : t('thisMoveIsNotLegalInSandboxMode', 'This move is not legal in sandbox mode.');
                 toast.error(errorMessage, {
                     toastId: `sandbox:${errorMessage}`,
                 });
@@ -370,7 +372,7 @@ function SandboxRoute() {
         } catch (error) {
             const errorMessage = error instanceof GameRuleError
                 ? error.message
-                : `This move is not legal in sandbox mode.`;
+                : t('thisMoveIsNotLegalInSandboxMode', 'This move is not legal in sandbox mode.');
             toast.error(errorMessage, {
                 toastId: `sandbox:${errorMessage}`,
             });
@@ -669,20 +671,20 @@ function SandboxRoute() {
             <PageMetadata
                 {...(routeSandboxPositionQuery.data
                     ? {
-                        title: `${routeSandboxPositionQuery.data.name} • Sandbox Mode • ${DEFAULT_PAGE_TITLE}`,
-                        description: `Open the "${routeSandboxPositionQuery.data.name}" sandbox position with ${routeSandboxPositionQuery.data.gamePosition.cells.length} placed ${routeSandboxPositionQuery.data.gamePosition.cells.length === 1 ? `cell` : `cells`}. ${formatSandboxPlayerLabel(routeSandboxPositionQuery.data.gamePosition.currentTurnPlayer)} to move with ${formatPlacementSummary(routeSandboxPositionQuery.data.gamePosition.placementsRemaining)}.`,
+                        title: t('nameSandboxModeDefault_page_title', '{{name}} • Sandbox Mode • {{DEFAULT_PAGE_TITLE}}', { name: routeSandboxPositionQuery.data.name, DEFAULT_PAGE_TITLE }),
+                        description: t('openTheNameSandboxPositionWithLengthPlacedValVal2ToMoveWithVal3', 'Open the "{{name}}" sandbox position with {{length}} placed {{val}}. {{val2}} to move with {{val3}}.', { name: routeSandboxPositionQuery.data.name, length: routeSandboxPositionQuery.data.gamePosition.cells.length, val: routeSandboxPositionQuery.data.gamePosition.cells.length === 1 ? `cell` : `cells`, val2: formatSandboxPlayerLabel(routeSandboxPositionQuery.data.gamePosition.currentTurnPlayer), val3: formatPlacementSummary(routeSandboxPositionQuery.data.gamePosition.placementsRemaining) }),
                         ogType: `article` as const,
                     }
                     : normalizedRoutePositionId && routeSandboxPositionQuery.error
                         ? {
-                            title: `Sandbox Position Not Found • ${DEFAULT_PAGE_TITLE}`,
-                            description: `The requested sandbox position could not be found. Open sandbox mode to start from a clean board or import another shared position.`,
+                            title: t('sandboxPositionNotFoundDefault_page_title', 'Sandbox Position Not Found • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+                            description: t('theRequestedSandboxPositionCouldNotBeFoundOpenSandboxModeToStartFromACleanBoardOrImportAnotherSharedPosition', 'The requested sandbox position could not be found. Open sandbox mode to start from a clean board or import another shared position.'),
                             ogType: `article` as const,
-                            robots: `noindex, nofollow` as const,
+                            robots: 'noindex, nofollow' as const,
                         }
                         : {
-                            title: `Sandbox Mode • ${DEFAULT_PAGE_TITLE}`,
-                            description: `Play HeXO locally with no clock, control both sides, import shared positions, and explore custom boards.`,
+                            title: t('sandboxModeDefault_page_title', 'Sandbox Mode • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+                            description: t('playHexoLocallyWithNoClockControlBothSidesImportSharedPositionsAndExploreCustomBoards', 'Play HeXO locally with no clock, control both sides, import shared positions, and explore custom boards.'),
                         })}
             />
 
@@ -709,7 +711,7 @@ function SandboxRoute() {
                             <SandboxTurnIndicator
                                 players={SANDBOX_PLAYERS.map(player => ({
                                     ...player,
-                                    displayName: botPlayerIds.includes(player.id) ? `Bot as ${player.displayName}` : player.displayName,
+                                    displayName: botPlayerIds.includes(player.id) ? t('botAsDisplayname', 'Bot as {{displayName}}', { displayName: player.displayName }) : player.displayName,
                                 }))}
                                 botPlayerIds={botPlayerIds}
                                 gameState={currentGameState}

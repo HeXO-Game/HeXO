@@ -1,4 +1,5 @@
 import { getPlayerLabel } from '../../utils/gameBoard';
+import { useTranslation } from 'react-i18next'
 
 type TurnIndicatorProps = {
     playerIds: readonly string[]
@@ -19,24 +20,25 @@ function TurnIndicator({
     isSpectator,
     canPlaceCell,
 }: Readonly<TurnIndicatorProps>) {
+    const { t } = useTranslation()
     const spectatorAccentTextStyle = isSpectator ? { color: activePlayerColor } : undefined;
     const spectatorAccentDotStyle = isSpectator ? { backgroundColor: activePlayerColor } : undefined;
 
     const turnHeadline = isSpectator
         ? `Spectating`
         : canPlaceCell
-            ? `It's your turn`
+            ? t('itsYourTurn', 'It\'s your turn')
             : `Opponents turn`;
 
     const spectatorTurnDetail = !currentTurnPlayerId
-        ? `Waiting for the next player to move.`
-        : `${getPlayerLabel(playerIds, currentTurnPlayerId, playerNames)} to move.`;
+        ? t('waitingForTheNextPlayerToMove', 'Waiting for the next player to move.')
+        : t('valToMove', '{{val}} to move.', { val: getPlayerLabel(playerIds, currentTurnPlayerId, playerNames) });
 
     const turnDetail = isSpectator
         ? spectatorTurnDetail
         : canPlaceCell
-            ? `${placementsRemaining} ${placementsRemaining === 1 ? `placement` : `placements`} left.`
-            : `${placementsRemaining} ${placementsRemaining === 1 ? `placement` : `placements`} left for the opponent.`;
+            ? t('placementsremainingValLeft', '{{placementsRemaining}} {{val}} left.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` })
+            : t('placementsremainingValLeftForTheOpponent', '{{placementsRemaining}} {{val}} left for the opponent.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` });
 
     return (
         <div className="flex items-start justify-between gap-2 sm:gap-3">

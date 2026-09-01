@@ -1,5 +1,6 @@
 import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
+import './i18n';
 
 import { initializeOpenReplay, trackOpenReplayError } from './openReplay';
 import { installSoundEffects } from './soundEffects';

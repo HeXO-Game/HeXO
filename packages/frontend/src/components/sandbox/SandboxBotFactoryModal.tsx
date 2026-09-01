@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { SandboxBotEngineInfo } from "../../sandbox/botLoader";
+import { useTranslation } from 'react-i18next'
 
 type SandboxBotFactoryModalProps = {
     isOpen: boolean
@@ -20,6 +21,7 @@ function SandboxBotFactoryModal({
 
     onSelectBotFactory,
 }: Readonly<SandboxBotFactoryModalProps>) {
+    const { t } = useTranslation()
     if (!isOpen) {
         return null;
     }
@@ -28,7 +30,7 @@ function SandboxBotFactoryModal({
         <div className="pointer-events-auto absolute inset-0 z-30 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-md">
             <button
                 type="button"
-                aria-label="Close bot engine picker"
+                aria-label={t('closeBotEnginePicker', 'Close bot engine picker')}
                 className="absolute inset-0"
                 onClick={onClose}
             />
@@ -40,23 +42,23 @@ function SandboxBotFactoryModal({
                 <div className="flex items-start justify-between gap-4">
                     <div className="pr-6">
                         <div className="text-[11px] uppercase tracking-[0.24em] text-sky-300">
-                            Bot Engine
+                            {t('botEngine', 'Bot Engine')}
                         </div>
 
                         <h2 className="mt-1 text-2xl font-bold text-white">
-                            Choose an engine
+                            {t('chooseAnEngine', 'Choose an engine')}
                         </h2>
 
                         <div className="mt-2 text-sm leading-6 text-slate-300">
-                            Pick which bot engine the bot should use.
+                            {t('pickWhichBotEngineTheBotShouldUse', 'Pick which bot engine the bot should use.')}
                         </div>
                     </div>
 
                     <Button
                         type="button"
                         onClick={onClose}
-                        aria-label="Close bot engine picker"
-                        title="Close bot engine picker"
+                        aria-label={t('closeBotEnginePicker', 'Close bot engine picker')}
+                        title={t('closeBotEnginePicker', 'Close bot engine picker')}
                         variant="muted" size="icon"
                     >
                         <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -110,7 +112,7 @@ function SandboxBotFactoryModal({
                         onClick={() => onSelectBotFactory(null)}
                         variant="destructive" size="lg" className="mt-6 ml-auto"
                     >
-                        Disable Bot Engine
+                        {t('disableBotEngine', 'Disable Bot Engine')}
                     </Button>
                 )}
 

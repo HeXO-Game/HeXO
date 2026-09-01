@@ -4,8 +4,10 @@ import AdminStatsScreen from '../components/AdminStatsScreen';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import { useQueryAccount } from '../query/accountClient';
 import { useQueryAdminStats } from '../query/adminClient';
+import { useTranslation } from 'react-i18next'
 
 function AdminRoute() {
+    const { t } = useTranslation()
     const navigate = useNavigate();
     const accountQuery = useQueryAccount({ enabled: true });
     const isAdmin = accountQuery.data?.user?.role === `admin`;
@@ -18,8 +20,8 @@ function AdminRoute() {
         return (
             <>
                 <PageMetadata
-                    title={`Admin Dashboard • ${DEFAULT_PAGE_TITLE}`}
-                    description="Administrative statistics for HeXO."
+                    title={t('adminDashboardDefault_page_title', 'Admin Dashboard • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                    description={t('administrativeStatisticsForHexo', 'Administrative statistics for HeXO.')}
                     robots="noindex, nofollow"
                 />
 
@@ -41,8 +43,8 @@ function AdminRoute() {
     return (
         <>
             <PageMetadata
-                title={`Admin Dashboard • ${DEFAULT_PAGE_TITLE}`}
-                description="Administrative statistics for HeXO."
+                title={t('adminDashboardDefault_page_title', 'Admin Dashboard • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                description={t('administrativeStatisticsForHexo', 'Administrative statistics for HeXO.')}
                 robots="noindex, nofollow"
             />
 

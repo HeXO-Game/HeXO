@@ -11,6 +11,8 @@ import GameHudShell from './GameHudShell';
 import HudInfoBlock from './HudInfoBlock';
 import { ShutdownTimer } from './ShutdownTimer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { useTranslation, Trans } from 'react-i18next'
+import i18next from 'i18next'
 
 export type HudPlayerInfo = {
     playerId: string,
@@ -75,9 +77,7 @@ function OfflineIcon() {
 }
 
 function showDrawUnavailableToast(remainingTurns: number) {
-    const message = remainingTurns === 1
-        ? `A draw can be requested in 1 more completed turn.`
-        : `A draw can be requested in ${remainingTurns} more completed turns.`;
+    const message = i18next.t('aDrawCanBeRequestedInCountMoreCompletedTurns', { defaultValue_one: 'A draw can be requested in 1 more completed turn.', defaultValue_other: 'A draw can be requested in {{count}} more completed turns.', count: remainingTurns });
 
     toast.error(message, {
         toastId: `draw-unavailable:${remainingTurns}`,
@@ -118,6 +118,7 @@ function GameScreenHud({
     onLeave,
     onResetView,
 }: Readonly<GameScreenHudProps>) {
+    const { t } = useTranslation()
     const isSpectator = !players.some(player => player.playerId === localPlayerId);
     /* Do not show the HUD by default on mobile devices */
     const [isHudOpen, setIsHudOpen] = useState(window.innerWidth >= 900);
@@ -136,7 +137,7 @@ function GameScreenHud({
                     disabled
                     variant="outline" size="sm" className="min-w-36"
                 >
-                    Waiting For Reply
+                    {t('waitingForReply', 'Waiting For Reply')}
                 </Button>
             );
         } else if (requestedByOpponent) {
@@ -147,21 +148,21 @@ function GameScreenHud({
                         onClick={onDeclineDraw}
                         variant="warning" size="sm" className="min-w-36"
                     >
-                        Decline Draw
+                        {t('declineDraw', 'Decline Draw')}
                     </Button>
 
                     <Button
                         onClick={onAcceptDraw}
                         variant="success" size="sm" className="min-w-36"
                     >
-                        Accept Draw
+                        {t('acceptDraw', 'Accept Draw')}
                     </Button>
                 </React.Fragment>
             );
         } else if (turnsUntilDrawRequest > 0) {
             const drawHint = drawRequestAvailableAfterTurn === DRAW_REQUEST_MIN_TURNS
-                ? `A draw can be offered once ${DRAW_REQUEST_MIN_TURNS} completed turns have been played.`
-                : `A new draw request can be made after ${turnsUntilDrawRequest} more completed turns.`;
+                ? t('aDrawCanBeOfferedOnceDraw_request_min_turnsCompletedTurnsHaveBeenPlayed', 'A draw can be offered once {{DRAW_REQUEST_MIN_TURNS}} completed turns have been played.', { DRAW_REQUEST_MIN_TURNS })
+                : t('aNewDrawRequestCanBeMadeAfterTurnsuntildrawrequestMoreCompletedTurns', 'A new draw request can be made after {{turnsUntilDrawRequest}} more completed turns.', { turnsUntilDrawRequest });
 
             drawActionArea = (
                 <Tooltip>
@@ -174,7 +175,7 @@ function GameScreenHud({
                             }}
                             variant="outline" size="sm" className="w-full"
                         >
-                            Draw
+                            {t('draw', 'Draw')}
                         </Button>
                     )} />
                     <TooltipContent>
@@ -188,7 +189,7 @@ function GameScreenHud({
                     onClick={onRequestDraw}
                     variant="outline" size="sm" className="min-w-36"
                 >
-                    Draw
+                    {t('draw', 'Draw')}
                 </Button>
             );
         }
@@ -199,7 +200,7 @@ function GameScreenHud({
             {showConnectionUnstableBadge && (
                 <div className="pointer-events-none absolute right-3 top-3 z-30">
                     <div className="rounded-full border border-amber-300/40 bg-amber-200/12 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-100 shadow-lg backdrop-blur-md">
-                        Connection unstable
+                        {t('connectionUnstable', 'Connection unstable')}
                     </div>
                 </div>
             )}
@@ -219,31 +220,28 @@ function GameScreenHud({
                 </div>
 
                 <h1 className="mt-1 text-2xl font-bold">
-                    Infinite Hex Tic-Tac-Toe
+                    {t('infiniteHexTictactoe', 'Infinite Hex Tic-Tac-Toe')}
                 </h1>
 
-                <div className="mt-2 text-sm text-slate-300">
-                    Connect 6 hexagons in a row.
+                <div className="mt-2 text-sm text-slate-300"><Trans i18nKey="connect6HexagonsInARowBr">Connect 6 hexagons in a row.
 
-                    <br />
-
-                    {localPlayerId
-                        ? `Tap to place, drag to pan, pinch to zoom.`
-                        : `Drag to pan, pinch to zoom.`}
+                    <br /></Trans>{localPlayerId
+                        ? t('tapToPlaceDragToPanPinchToZoom', 'Tap to place, drag to pan, pinch to zoom.')
+                        : t('dragToPanPinchToZoom', 'Drag to pan, pinch to zoom.')}
 
                     <span className="pointer-fine:inline hidden ml-1">
-                        Press F1 for all shortcuts.
+                        {t('pressF1ForAllShortcuts', 'Press F1 for all shortcuts.')}
                     </span>
                 </div>
 
                 {shutdown && (
                     <div className="mt-4 rounded-2xl border border-amber-200/25 bg-amber-300/10 px-4 py-3 text-sm text-amber-50">
                         <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-200">
-                            Shutdown Scheduled
+                            {t('shutdownScheduled', 'Shutdown Scheduled')}
                         </div>
 
                         <div className="mt-1">
-                            New games are disabled. This server restarts in
+                            {t('newGamesAreDisabledThisServerRestartsIn', 'New games are disabled. This server restarts in')}
                             <ShutdownTimer shutdown={shutdown} />
                             .
                         </div>
@@ -253,7 +251,7 @@ function GameScreenHud({
                 {tournament && (
                     <div className="mt-4 rounded-xl border border-amber-300/15 bg-amber-300/6 px-3 py-2.5">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/70">
-                            Tournament Match
+                            {t('tournamentMatch', 'Tournament Match')}
                         </div>
 
                         <div className="mt-0.5 text-[13px] font-bold text-white">
@@ -262,23 +260,13 @@ function GameScreenHud({
 
                         <div className="mt-1 text-[11px] text-slate-300">
                             {tournament.bracket.replace(/-/g, ` `)}
-                            {` `}
-                            R
-                            {tournament.round}
-                            {` · `}
-                            BO
-                            {tournament.bestOf}
-                            {` · `}
-                            Game
+                            {` `}{t('rRound3', 'R\n                            {{round}}', { round: tournament.round })}{` · `}{t('boBestof2', 'BO\n                            {{bestOf}}', { bestOf: tournament.bestOf })}{` · `}
+                            {t('game', 'Game')}
                             {` `}
                             {tournament.currentGameNumber}
                             {` · `}
-                            Score
-                            {` `}
-                            {tournament.leftWins}
-                            –
-                            {tournament.rightWins}
-                        </div>
+                            {t('score', 'Score')}
+                            {` `}{t('leftwinsRightwins2', '{{leftWins}}\n                            –\n                            {{rightWins}}', { leftWins: tournament.leftWins, rightWins: tournament.rightWins })}</div>
                     </div>
                 )}
 
@@ -298,13 +286,13 @@ function GameScreenHud({
                         <div className="text-white">
                             {turnCount}
                             {` `}
-                            turns completed
+                            {t('turnsCompleted', 'turns completed')}
                         </div>
 
                         <div className="text-slate-300">
                             {occupiedCellCount}
                             {` `}
-                            cells occupied
+                            {t('cellsOccupied', 'cells occupied')}
                         </div>
                     </HudInfoBlock>
 
@@ -312,7 +300,7 @@ function GameScreenHud({
                         {players.map(({ playerId, profileId, displayColor, displayName, isConnected, rankingEloScore }) => {
                             let formattedName;
                             if (gameOptions.rated && !hideEloInHud) {
-                                formattedName = `${displayName} (${rankingEloScore})`;
+                                formattedName = t('displaynameRankingeloscore', '{{displayName}} ({{rankingEloScore}})', { displayName, rankingEloScore });
                             } else {
                                 formattedName = displayName;
                             }
@@ -340,8 +328,8 @@ function GameScreenHud({
 
                                     {!isConnected && (
                                         <span
-                                            title={`${displayName} is offline`}
-                                            aria-label={`${displayName} is offline`}
+                                            title={t('displaynameIsOffline', '{{displayName}} is offline', { displayName })}
+                                            aria-label={t('displaynameIsOffline', '{{displayName}} is offline', { displayName })}
                                             className="flex h-5 w-5 items-center justify-center rounded-full border border-amber-300/25 bg-amber-400/10 text-amber-100"
                                         >
                                             <OfflineIcon />
@@ -350,7 +338,7 @@ function GameScreenHud({
 
                                     {playerId === localPlayerId && (
                                         <span className="rounded-md border border-white/10 bg-white/6 px-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                                            You
+                                            {t('you', 'You')}
                                         </span>
                                     )}
                                 </div>
@@ -363,28 +351,28 @@ function GameScreenHud({
                             isSpectator ? (
                                 <React.Fragment>
                                     <div className="text-white">
-                                        Rated Match
+                                        {t('ratedMatch', 'Rated Match')}
                                     </div>
 
                                     <div className="text-slate-300">
-                                        Players will gain/lose ELO.
+                                        {t('playersWillGainloseElo', 'Players will gain/lose ELO.')}
                                     </div>
                                 </React.Fragment>
                             ) : hideEloInHud ? (
                                 <React.Fragment>
                                     <div className="text-white">
-                                        Rated Match
+                                        {t('ratedMatch', 'Rated Match')}
                                     </div>
 
                                     <div className="text-slate-300">
-                                        Zen mode hides Elo in the HUD.
+                                        {t('zenModeHidesEloInTheHud', 'Zen mode hides Elo in the HUD.')}
                                     </div>
                                 </React.Fragment>
                             ) : (
                                 <React.Fragment>
                                     <div className="text-white">
                                         <span className="inline-block w-[2em]">
-                                            Win
+                                            {t('win', 'Win')}
                                         </span>
 
                                         <span className="inline-block w-[2em] text-right">
@@ -395,7 +383,7 @@ function GameScreenHud({
 
                                     <div className="text-slate-300">
                                         <span className="inline-block w-[2em]">
-                                            Loss
+                                            {t('loss', 'Loss')}
                                         </span>
 
                                         <span className="inline-block w-[2em] text-right">
@@ -406,7 +394,7 @@ function GameScreenHud({
                             )
                         ) : (
                             <div className="text-white">
-                                Not Rated
+                                {t('notRated', 'Not Rated')}
                             </div>
                         )}
                     </HudInfoBlock>
@@ -429,7 +417,7 @@ function GameScreenHud({
                         onClick={onResetView}
                         variant="default" size="sm" className="min-w-36"
                     >
-                        Reset View
+                        {t('resetView', 'Reset View')}
                     </Button>
                 </div>
             </GameHudShell>

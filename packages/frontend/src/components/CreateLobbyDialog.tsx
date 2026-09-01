@@ -3,6 +3,7 @@ import type { AccountProfile, CreateSessionRequest, GameTimeControl, LobbyFirstP
 import { useEffect, useMemo, useState } from 'react';
 
 import TimeControlSelector from './TimeControlSelector';
+import { useTranslation } from 'react-i18next'
 
 type CreateLobbyDialogProps = {
     isOpen: boolean
@@ -96,6 +97,7 @@ function CreateLobbyDialog({
     account,
     onCreateLobby,
 }: Readonly<CreateLobbyDialogProps>) {
+    const { t } = useTranslation()
     const canCreateRatedLobby = Boolean(account);
     const [visibility, setVisibility] = useState<LobbyVisibility>(`public`);
     const [timeControlMode, setTimeControlMode] = useState<GameTimeControl[`mode`]>(`match`);
@@ -182,11 +184,11 @@ function CreateLobbyDialog({
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                                 <div className="text-[10px] uppercase tracking-[0.22em] text-slate-400">
-                                    Create Lobby
+                                    {t('createLobby', 'Create Lobby')}
                                 </div>
 
                                 <h2 className="mt-1 text-lg font-black uppercase tracking-[0.05em] text-white sm:text-xl">
-                                    Lobby Setup
+                                    {t('lobbySetup', 'Lobby Setup')}
                                 </h2>
                             </div>
 
@@ -196,7 +198,7 @@ function CreateLobbyDialog({
                                 onClick={() => setShowAdvancedOptions((value) => !value)}
                                 variant="info" size="sm"
                             >
-                                {showAdvancedOptions ? `Simple Settings` : `Advanced Settings`}
+                                {showAdvancedOptions ? `Simple Settings` : t('advancedSettings', 'Advanced Settings')}
                             </Button>
                         </div>
 
@@ -237,7 +239,7 @@ function CreateLobbyDialog({
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                                                    Mode
+                                                    {t('mode', 'Mode')}
                                                 </div>
                                             </div>
 
@@ -251,7 +253,7 @@ function CreateLobbyDialog({
                                                 onClick={() => setRated(false)}
                                                 selected={!rated}
                                                 title="Casual"
-                                                description="Casual unrated game"
+                                                description={t('casualUnratedGame', 'Casual unrated game')}
                                             />
 
                                             <SelectableOptions
@@ -263,13 +265,13 @@ function CreateLobbyDialog({
                                                 selected={rated}
                                                 disabled={!canCreateRatedLobby}
                                                 title="Rated"
-                                                description="Rated game with ELO"
+                                                description={t('ratedGameWithElo', 'Rated game with ELO')}
                                             />
                                         </div>
 
                                         {!canCreateRatedLobby && (
                                             <div className="mt-2.5 rounded-[0.9rem] border border-amber-300/20 bg-amber-300/10 px-3 py-2.5 text-xs leading-5 text-amber-50/85">
-                                                Rated lobbies are for authenticated players only.
+                                                {t('ratedLobbiesAreForAuthenticatedPlayersOnly', 'Rated lobbies are for authenticated players only.')}
                                             </div>
                                         )}
                                     </section>
@@ -278,7 +280,7 @@ function CreateLobbyDialog({
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                                                    Visibility
+                                                    {t('visibility', 'Visibility')}
                                                 </div>
                                             </div>
 
@@ -310,7 +312,7 @@ function CreateLobbyDialog({
                                         <div className="flex items-center justify-between gap-3">
                                             <div>
                                                 <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
-                                                    First Player
+                                                    {t('firstPlayer', 'First Player')}
                                                 </div>
                                             </div>
 
@@ -365,14 +367,14 @@ function CreateLobbyDialog({
                                 onClick={onClose}
                                 variant="outline" size="sm"
                             >
-                                Cancel
+                                {t('cancel', 'Cancel')}
                             </Button>
 
                             <Button
                                 onClick={handleCreate}
                                 variant="secondary" size="default"
                             >
-                                Create Lobby
+                                {t('createLobby', 'Create Lobby')}
                             </Button>
                         </div>
                     </div>

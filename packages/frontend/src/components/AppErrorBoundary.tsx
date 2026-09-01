@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, Fragment, type ReactNode } from 'react';
 
 import { trackOpenReplayError } from '../openReplay';
 import AppErrorScreen from './AppErrorScreen';
+import i18next from 'i18next'
 
 type AppErrorBoundaryProps = {
     children: ReactNode
@@ -44,7 +45,7 @@ class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorBoundary
             return (
                 <AppErrorScreen
                     badge="Application Error"
-                    title="The app hit an unexpected problem."
+                    title={i18next.t('theAppHitAnUnexpectedProblem', 'The app hit an unexpected problem.')}
                     message="A screen crashed while React was rendering. You can try mounting the app again, reload the page, or head back to the lobby."
                     detail={this.state.error.stack ?? this.state.error.message}
                     onRetry={this.handleRetry}

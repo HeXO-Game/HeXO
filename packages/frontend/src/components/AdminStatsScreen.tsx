@@ -21,6 +21,7 @@ import {
 import { formatChartDateTime, formatDateTime, useIntlFormatProvider } from '../utils/dateTime';
 import { formatBucketSize, formatLongDuration } from '../utils/duration';
 import PageCorpus from './PageCorpus';
+import { useTranslation } from 'react-i18next'
 
 type AdminStatsScreenProps = {
     stats: AdminStatsResponse | null
@@ -91,6 +92,7 @@ function LongestGameCard({
     value: string | null
     onOpenGame: (gameId: string) => void
 }) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     return (
         <div className="rounded-[1.2rem] border border-white/10 bg-slate-950/45 p-3">
@@ -121,7 +123,7 @@ function LongestGameCard({
                         onClick={() => onOpenGame(game.gameId)}
                         variant="info" size="sm" className="mt-3"
                     >
-                        Open Replay
+                        {t('openReplay', 'Open Replay')}
                     </Button>
                 </>
             ) : (
@@ -140,6 +142,7 @@ function UserWindowCard({
     title: string
     windowStats: AdminUserStatsWindow
 }) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     return (
         <section className="rounded-3xl border border-white/10 bg-white/6 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.28)]">
@@ -154,8 +157,8 @@ function UserWindowCard({
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-2">
-                <StatStripItem label="New Users" value={windowStats.newUsers} />
-                <StatStripItem label="Active Users" value={windowStats.activeUsers} />
+                <StatStripItem label={t('newUsers', 'New Users')} value={windowStats.newUsers} />
+                <StatStripItem label={t('activeUsers', 'Active Users')} value={windowStats.activeUsers} />
             </div>
         </section>
     );
@@ -166,24 +169,25 @@ function ActiveGamesChartSection({
 }: {
     timeline: AdminActiveGamesTimeline
 }) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     return (
         <section className="rounded-[1.6rem] border border-white/10 bg-white/6 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.3)] sm:p-5">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <div className="text-[0.68rem] uppercase tracking-[0.3em] text-sky-200/80">
-                        Active Games Timeline
+                        {t('activeGamesTimeline', 'Active Games Timeline')}
                     </div>
 
                     <div className="mt-1 text-sm font-semibold text-white">
-                        {`Peak concurrent active games in `}
+                        {t('peakConcurrentActiveGamesIn', 'Peak concurrent active games in')}
                         {formatBucketSize(timeline.bucketSizeMs)}
                         {` `}
-                        buckets over the last 7 days
+                        {t('bucketsOverTheLast7Days', 'buckets over the last 7 days')}
                     </div>
 
                     <div className="mt-1 text-xs leading-5 text-slate-400">
-                        Drag the range selector below the chart to zoom into a narrower time window.
+                        {t('dragTheRangeSelectorBelowTheChartToZoomIntoANarrowerTimeWindow', 'Drag the range selector below the chart to zoom into a narrower time window.')}
                     </div>
                 </div>
 
@@ -220,11 +224,11 @@ function ActiveGamesChartSection({
                             cursor={{ stroke: `rgba(125,211,252,0.35)`, strokeWidth: 1 }}
                             contentStyle={{
                                 backgroundColor: `rgba(2,6,23,0.94)`,
-                                border: `1px solid rgba(148,163,184,0.2)`,
+                                border: '1px solid rgba(148,163,184,0.2)',
                                 borderRadius: `1rem`,
                                 color: `#e2e8f0`,
                             }}
-                            formatter={(value) => [`${value as number} games`, `Active`]}
+                            formatter={(value) => [t('valGames', '{{val}} games', { val: value as number }), `Active`]}
                             labelFormatter={(label) => formatDateTime(intlFormatProvider, Number(label))}
                         />
 
@@ -261,6 +265,7 @@ function IntervalSection({
     windowStats: AdminStatsWindow
     onOpenGame: (gameId: string) => void
 }) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     return (
         <section className="rounded-3xl border border-white/10 bg-white/6 p-4 shadow-[0_20px_60px_rgba(15,23,42,0.28)]">
@@ -286,15 +291,15 @@ function IntervalSection({
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <LongestGameCard
-                    label="Longest Game In Moves"
+                    label={t('longestGameInMoves', 'Longest Game In Moves')}
                     emptyLabel="No completed games in this interval yet."
                     game={windowStats.longestGameInMoves}
-                    value={windowStats.longestGameInMoves ? `${windowStats.longestGameInMoves.moveCount} moves` : null}
+                    value={windowStats.longestGameInMoves ? t('movecountMoves', '{{moveCount}} moves', { moveCount: windowStats.longestGameInMoves.moveCount }) : null}
                     onOpenGame={onOpenGame}
                 />
 
                 <LongestGameCard
-                    label="Longest Game In Duration"
+                    label={t('longestGameInDuration', 'Longest Game In Duration')}
                     emptyLabel="No completed timed results in this interval yet."
                     game={windowStats.longestGameInDuration}
                     value={windowStats.longestGameInDuration ? formatLongDuration(windowStats.longestGameInDuration.durationMs) : null}
@@ -312,14 +317,15 @@ function AdminStatsScreen({
     onRefresh,
     onOpenGame,
 }: Readonly<AdminStatsScreenProps>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     return (
         <PageCorpus
             category="Admin"
-            title="Site Statistics"
+            title={t('siteStatistics', 'Site Statistics')}
             description={
                 <>
-                    Live activity, traffic, and completed-game records across the main reporting windows.
+                    {t('liveActivityTrafficAndCompletedgameRecordsAcrossTheMainReportingWindows', 'Live activity, traffic, and completed-game records across the main reporting windows.')}
 
                     {stats && (
                         <span className="inline-block text-sm text-slate-400">
@@ -341,22 +347,22 @@ function AdminStatsScreen({
 
                 {isLoading && !stats ? (
                     <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/6 px-6 py-10 text-center text-slate-300">
-                        Loading statistics...
+                        {t('loadingStatistics', 'Loading statistics...')}
                     </div>
                 ) : stats ? (
                     <>
                         <div className="grid gap-4 xl:grid-cols-4">
-                            <SummaryCard label="Total Users" value={stats.users.total} tone="accent" />
-                            <UserWindowCard title="Since Midnight" windowStats={stats.users.intervals.sinceMidnight} />
-                            <UserWindowCard title="Last 7 Days" windowStats={stats.users.intervals.last7Days} />
-                            <UserWindowCard title="Last Month" windowStats={stats.users.intervals.lastMonth} />
+                            <SummaryCard label={t('totalUsers', 'Total Users')} value={stats.users.total} tone="accent" />
+                            <UserWindowCard title={t('sinceMidnight', 'Since Midnight')} windowStats={stats.users.intervals.sinceMidnight} />
+                            <UserWindowCard title={t('last7Days', 'Last 7 Days')} windowStats={stats.users.intervals.last7Days} />
+                            <UserWindowCard title={t('lastMonth', 'Last Month')} windowStats={stats.users.intervals.lastMonth} />
                         </div>
 
                         <div className="grid mt-5  gap-3 md:grid-cols-2 xl:grid-cols-4">
-                            <SummaryCard label="Active Games" value={stats.activeGames.total ?? `...`} tone="accent" />
-                            <SummaryCard label="Public Games" value={stats.activeGames.public ?? `...`} />
-                            <SummaryCard label="Private Games" value={stats.activeGames.private ?? `...`} />
-                            <SummaryCard label="Connected Clients" value={stats.connectedClients ?? `...`} />
+                            <SummaryCard label={t('activeGames', 'Active Games')} value={stats.activeGames.total ?? `...`} tone="accent" />
+                            <SummaryCard label={t('publicGames', 'Public Games')} value={stats.activeGames.public ?? `...`} />
+                            <SummaryCard label={t('privateGames', 'Private Games')} value={stats.activeGames.private ?? `...`} />
+                            <SummaryCard label={t('connectedClients', 'Connected Clients')} value={stats.connectedClients ?? `...`} />
                         </div>
 
                         <div className="mt-4">
@@ -364,9 +370,9 @@ function AdminStatsScreen({
                         </div>
 
                         <div className="mt-4 grid gap-4 xl:grid-cols-3">
-                            <IntervalSection title="Since Midnight" windowStats={stats.intervals.sinceMidnight} onOpenGame={onOpenGame} />
-                            <IntervalSection title="Last 24 Hours" windowStats={stats.intervals.last24Hours} onOpenGame={onOpenGame} />
-                            <IntervalSection title="Last 7 Days" windowStats={stats.intervals.last7Days} onOpenGame={onOpenGame} />
+                            <IntervalSection title={t('sinceMidnight', 'Since Midnight')} windowStats={stats.intervals.sinceMidnight} onOpenGame={onOpenGame} />
+                            <IntervalSection title={t('last24Hours', 'Last 24 Hours')} windowStats={stats.intervals.last24Hours} onOpenGame={onOpenGame} />
+                            <IntervalSection title={t('last7Days', 'Last 7 Days')} windowStats={stats.intervals.last7Days} onOpenGame={onOpenGame} />
                         </div>
                     </>
                 ) : null}

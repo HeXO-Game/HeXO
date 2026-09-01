@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { formatMinutesSeconds } from '../../utils/duration';
+import { useTranslation } from 'react-i18next'
 
 type ClockCardProps = {
     label: string
@@ -21,6 +22,7 @@ function ClockCard({
     isTimeEmphasized = false,
     trailingBadge,
 }: Readonly<ClockCardProps>) {
+    const { t } = useTranslation()
     const hasPlayerMarker = markerColor !== undefined;
     const paddingClassName = hasPlayerMarker
         ? `px-2 py-1.5 sm:px-2.5 sm:py-2`

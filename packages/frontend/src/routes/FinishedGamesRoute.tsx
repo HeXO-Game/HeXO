@@ -6,8 +6,10 @@ import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import { useQueryAccount } from '../query/accountClient';
 import { useQueryFinishedGames } from '../query/finishedGamesClient';
 import { buildFinishedGamePath, buildFinishedGamesPath, useArchiveRouteState } from './archiveRouteState';
+import { useTranslation } from 'react-i18next'
 
 function FinishedGamesRoute() {
+    const { t } = useTranslation()
     const navigate = useNavigate();
     const archiveRouteState = useArchiveRouteState();
     const accountQuery = useQueryAccount({ enabled: Boolean(archiveRouteState) });
@@ -49,13 +51,13 @@ function FinishedGamesRoute() {
             <PageMetadata
                 {...(isOwnArchive
                     ? {
-                        title: `My Match History • ${DEFAULT_PAGE_TITLE}`,
-                        description: `Review your own finished HeXO matches while signed in.`,
-                        robots: `noindex, nofollow` as const,
+                        title: t('myMatchHistoryDefault_page_title', 'My Match History • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+                        description: t('reviewYourOwnFinishedHexoMatchesWhileSignedIn', 'Review your own finished HeXO matches while signed in.'),
+                        robots: 'noindex, nofollow' as const,
                     }
                     : {
-                        title: `Finished Games Archive • ${DEFAULT_PAGE_TITLE}`,
-                        description: `Browse finished HeXO matches and review their move history.`,
+                        title: t('finishedGamesArchiveDefault_page_title', 'Finished Games Archive • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+                        description: t('browseFinishedHexoMatchesAndReviewTheirMoveHistory', 'Browse finished HeXO matches and review their move history.'),
                     })}
             />
 

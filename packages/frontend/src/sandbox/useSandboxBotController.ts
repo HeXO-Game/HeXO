@@ -5,6 +5,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { createSandboxBot, SandboxBotEngineInfo } from './botLoader';
 import { getSandboxBotMoves } from './getSandboxBotMoves';
 import type { SandboxPlayerMode } from './sandboxBotSettings';
+import i18next from 'i18next'
 
 type UseSandboxBotControllerOptions = {
     gameState: GameState
@@ -128,11 +129,11 @@ export function useSandboxBotController({
         }
 
         if (isBotLoading) {
-            return `Loading bot engine...`;
+            return i18next.t('loadingBotEngine', 'Loading bot engine...');
         }
 
         if (!bot) {
-            return `Bot engine unavailable in this build.`;
+            return i18next.t('botEngineUnavailableInThisBuild', 'Bot engine unavailable in this build.');
         }
 
         return null;
@@ -211,7 +212,7 @@ export function useSandboxBotController({
                     return;
                 }
 
-                const message = error instanceof Error ? error.message : `Failed to generate a sandbox bot move.`;
+                const message = error instanceof Error ? error.message : i18next.t('failedToGenerateASandboxBotMove', 'Failed to generate a sandbox bot move.');
                 pendingAttemptKeyRef.current = null;
                 failedAttemptKeyRef.current = currentAttemptKey;
                 setIsThinking(false);

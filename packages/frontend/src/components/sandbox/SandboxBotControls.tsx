@@ -3,6 +3,7 @@ import type { BotEngineCapabilities, SandboxPlayerSlot } from '@ih3t/shared';
 import React, { useEffect, useState } from 'react';
 
 import type { SandboxPlayerMode } from '../../sandbox/sandboxBotSettings';
+import { useTranslation } from 'react-i18next'
 
 type SandboxBotControlsProps = {
     botDisplayName: string | null
@@ -45,6 +46,7 @@ function SandboxBotControls({
     onPlayerModeChange,
     onTimeoutMsChange,
 }: Readonly<SandboxBotControlsProps>) {
+    const { t } = useTranslation()
     const controlsDisabled = !botDisplayName;
     const botButtonDisabled = controlsDisabled;
 
@@ -106,7 +108,7 @@ function SandboxBotControls({
 
                                 {isCurrentTurn && (
                                     <div className="rounded-full border border-white/10 bg-white/8 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-100">
-                                        To Move
+                                        {t('toMove', 'To Move')}
                                     </div>
                                 )}
                             </div>
@@ -120,7 +122,7 @@ function SandboxBotControls({
                                     disabled={controlsDisabled}
                                     onClick={() => onPlayerModeChange(playerOption.slot, `human`)}
                                 >
-                                    Human
+                                    {t('human', 'Human')}
                                 </Button>
 
                                 <Button
@@ -131,7 +133,7 @@ function SandboxBotControls({
                                     onClick={() => onPlayerModeChange(playerOption.slot, `bot`)}
                                     disabled={botButtonDisabled}
                                 >
-                                    Bot
+                                    {t('bot', 'Bot')}
                                 </Button>
                             </div>
                         </div>
@@ -141,7 +143,7 @@ function SandboxBotControls({
 
             <div className={`mt-3 rounded-[0.9rem] border border-white/10 bg-white/5 px-3 py-3 transition ${controlsDisabled ? `pointer-events-none opacity-40` : ``}`}>
                 <label className="block text-[11px] uppercase tracking-[0.22em] text-slate-400" htmlFor="sandbox-bot-timeout">
-                    Timeout Per Request
+                    {t('timeoutPerRequest', 'Timeout Per Request')}
                 </label>
 
                 <div className="mt-2 flex items-center gap-2">
@@ -174,7 +176,7 @@ function SandboxBotControls({
                 </div>
 
                 <div className="mt-2 text-[11px] leading-5 text-slate-300">
-                    Single-move bots may use this budget more than once during the same turn.
+                    {t('singlemoveBotsMayUseThisBudgetMoreThanOnceDuringTheSameTurn', 'Single-move bots may use this budget more than once during the same turn.')}
                 </div>
             </div>
         </React.Fragment>

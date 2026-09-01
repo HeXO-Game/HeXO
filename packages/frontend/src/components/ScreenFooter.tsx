@@ -1,20 +1,22 @@
 import { Link } from 'react-router';
 
 import { APP_VERSION_HASH } from '../appVersion';
+import { useTranslation } from 'react-i18next'
 
 function ScreenFooter() {
+    const { t } = useTranslation()
     return (
         <footer className="mt-10 text-center text-xs uppercase tracking-[0.22em] text-slate-400">
             <a
                 href="mailto:infhex-ttt@did.science"
                 className="transition hover:text-sky-300"
             >
-                Made with love by WolverinDEV
+                {t('madeWithLoveByWolverindev', 'Made with love by WolverinDEV')}
             </a>
 
             <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
                 <span>
-                    Copyright ©
+                    {t('copyright', 'Copyright ©')}
                     {new Date().getFullYear()}
                 </span>
 
@@ -38,7 +40,7 @@ function ScreenFooter() {
                     to="/changelog"
                     className="transition hover:text-sky-300"
                 >
-                    Changelog
+                    {t('changelog', 'Changelog')}
                 </Link>
 
                 <span aria-hidden="true">
@@ -51,7 +53,7 @@ function ScreenFooter() {
                     rel="noreferrer"
                     className="transition hover:text-sky-300"
                 >
-                    GitHub
+                    {t('github', 'GitHub')}
                 </a>
             </div>
         </footer>

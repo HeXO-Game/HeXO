@@ -6,8 +6,10 @@ import { useQueryAccount, useQueryAccountPreferences } from '../query/accountCli
 import { useQueryFinishedGame } from '../query/finishedGamesClient';
 import { getBoardTheme } from '../utils/gameBoard';
 import { describeFinishedGameMetadata } from '../utils/routeMetadata';
+import { useTranslation } from 'react-i18next'
 
 function FinishedGameRoute() {
+    const { t } = useTranslation()
     const { gameId } = useParams<{ gameId: string }>();
     const location = useLocation();
     const accountQuery = useQueryAccount({ enabled: Boolean(gameId) });
@@ -30,18 +32,18 @@ function FinishedGameRoute() {
                     ? describeFinishedGameMetadata(finishedGameQuery.data, isOwnReplay)
                     : !finishedGameQuery.isLoading
                         ? {
-                            title: `Replay Not Found • ${DEFAULT_PAGE_TITLE}`,
-                            description: `The requested finished match could not be found.`,
+                            title: t('replayNotFoundDefault_page_title', 'Replay Not Found • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+                            description: t('theRequestedFinishedMatchCouldNotBeFound', 'The requested finished match could not be found.'),
                             ogType: `article` as const,
-                            robots: `noindex, nofollow` as const,
+                            robots: 'noindex, nofollow' as const,
                         }
                         : {
-                            title: `${isOwnReplay ? `My Replay` : `Replay`} • ${DEFAULT_PAGE_TITLE}`,
+                            title: t('valDefault_page_title', '{{val}} • {{DEFAULT_PAGE_TITLE}}', { val: isOwnReplay ? `My Replay` : `Replay`, DEFAULT_PAGE_TITLE }),
                             description: isOwnReplay
-                                ? `Review your finished HeXO matches.`
-                                : `Review a finished HeXO match.`,
+                                ? t('reviewYourFinishedHexoMatches', 'Review your finished HeXO matches.')
+                                : t('reviewAFinishedHexoMatch', 'Review a finished HeXO match.'),
                             ogType: `article` as const,
-                            robots: isOwnReplay ? `noindex, nofollow` as const : `index, follow` as const,
+                            robots: isOwnReplay ? 'noindex, nofollow' as const : `index, follow` as const,
                         })}
             />
 

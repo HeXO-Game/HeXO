@@ -37,12 +37,15 @@ import {
 import { formatDateTime, useIntlFormatProvider } from '../utils/dateTime';
 import { getTournamentMatchSessionAccess } from '../utils/tournamentMatchSessionAccess';
 import { getRoundDelayCountdownState } from '../utils/tournamentRoundDelay';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 /* ── Modal overlay ──────────────────────────────────── */
 
 function Modal({ open, onClose, title, children }: {
     open: boolean; onClose: () => void; title: string; children: React.ReactNode
 }) {
+    const { t } = useTranslation()
     if (!open) return null;
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -55,7 +58,7 @@ function Modal({ open, onClose, title, children }: {
                     </h3>
 
                     <Button onClick={onClose} variant="ghost" size="bare">
-                        &times;
+                        {t('times', '&times;')}
                     </Button>
                 </div>
 
@@ -104,15 +107,16 @@ function Confirm({
     size?: ButtonProps[`size`]
     className?: string
 }) {
+    const { t } = useTranslation()
     const [ask, setAsk] = useState(false);
     if (ask) return (
         <span className="inline-flex items-center gap-1">
             <Button onClick={() => { setAsk(false); onConfirm(); }} variant="destructive" size="xs">
-                Yes
+                {t('yes', 'Yes')}
             </Button>
 
             <Button onClick={() => setAsk(false)} variant="outline" size="xs">
-                No
+                {t('no', 'No')}
             </Button>
         </span>
     );
@@ -124,6 +128,7 @@ function Confirm({
 /* ── Waitlist banner ────────────────────────────────── */
 
 function WaitlistBanner({ closesAt, availableSlots }: { closesAt: number; availableSlots: number }) {
+    const { t } = useTranslation()
     const [remaining, setRemaining] = useState(() => Math.max(0, closesAt - Date.now()));
     useEffect(() => {
         const timer = setInterval(() => setRemaining(Math.max(0, closesAt - Date.now())), 1000);
@@ -137,15 +142,15 @@ function WaitlistBanner({ closesAt, availableSlots }: { closesAt: number; availa
         <div className="rounded-xl border border-orange-400/20 bg-orange-400/5 p-3">
             <div className="flex items-center gap-2">
                 <span className="inline-block h-2 w-2 rounded-full bg-orange-400 shadow-[0_0_6px_rgba(251,146,60,0.6)]" />
-                <span className="text-[12px] font-semibold text-orange-200">Waitlist check-in open</span>
+                <span className="text-[12px] font-semibold text-orange-200">{t('waitlistCheckinOpen', 'Waitlist check-in open')}</span>
                 <span className="ml-auto text-[11px] tabular-nums text-orange-300">
                     {remaining > 0 ? `${mins}:${String(secs).padStart(2, `0`)}` : `Closing...`}
                 </span>
             </div>
             <div className="mt-1 text-[11px] text-slate-400">
-                {availableSlots > 0 ? `${availableSlots} spot${availableSlots === 1 ? `` : `s`} available` : `No spots remaining`}
+                {availableSlots > 0 ? t('availableslotsSpotvalAvailable', '{{availableSlots}} spot{{val}} available', { availableSlots, val: availableSlots === 1 ? `` : `s` }) : t('noSpotsRemaining', 'No spots remaining')}
                 {` `}
-                — first come, first served
+                {t('firstComeFirstServed', '— first come, first served')}
             </div>
         </div>
     );
@@ -154,6 +159,7 @@ function WaitlistBanner({ closesAt, availableSlots }: { closesAt: number; availa
 /* ── Round delay countdown ─────────────────────────── */
 
 function RoundDelayCountdown({ tournament }: { tournament: TournamentDetail }) {
+    const { t } = useTranslation()
     const [, setTick] = useState(0);
     useEffect(() => {
         if (tournament.roundDelayMinutes <= 0) return;
@@ -174,9 +180,8 @@ function RoundDelayCountdown({ tournament }: { tournament: TournamentDetail }) {
         <div className="rounded-xl border border-sky-400/20 bg-sky-400/5 p-3">
             <div className="flex items-center gap-2">
                 <span className="inline-block h-2 w-2 rounded-full bg-sky-400" />
-                <span className="text-[12px] font-semibold text-sky-200">Round break</span>
-                <span className="ml-auto text-[11px] tabular-nums text-sky-300">
-                    Next round in {mins}:{String(secs).padStart(2, `0`)}
+                <span className="text-[12px] font-semibold text-sky-200">{t('roundBreak', 'Round break')}</span>
+                <span className="ml-auto text-[11px] tabular-nums text-sky-300">{t('nextRoundInMins', 'Next round in {{mins}}:', { mins })}{String(secs).padStart(2, `0`)}
                 </span>
             </div>
         </div>
@@ -232,6 +237,7 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
     tournamentId: string; tournamentStatus: string; tournamentStartedAt: number | null
     onRemove: (id: string) => void; onSwapSelect: (id: string | null) => void; swapTarget: string | null
 }) {
+    const { t } = useTranslation()
     const standMap = new Map(standings.map((s) => [s.profileId, s]));
     const [sortMode, setSortMode] = useState<ParticipantSortMode>(`status`);
     const [showRemoved, setShowRemoved] = useState(false);
@@ -301,7 +307,7 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
             >
                 <span className="w-5 shrink-0 text-center text-[10px] font-bold tabular-nums text-amber-300">{idx + 1}</span>
                 <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-white">{p.displayName}</span>
-                <span className="text-[9px] text-slate-500">&#x2630;</span>
+                <span className="text-[9px] text-slate-500">{t('x2630', '&#x2630;')}</span>
             </div>
         );
     };
@@ -323,13 +329,7 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
                     {p.displayName}
                 </span>
 
-                {st && <span className="text-[10px] tabular-nums text-slate-500">
-                    {st.wins}
-                    W
-                    {` `}
-                    {st.losses}
-                    L
-                       </span>}
+                {st && <span className="text-[10px] tabular-nums text-slate-500">{t('winsW', '{{wins}}\n                    W', { wins: st.wins })}{` `}{t('lossesL', '{{losses}}\n                    L', { losses: st.losses })}</span>}
 
                 <Chip color={pColor(p.status)}>
                     {pLabel(p.status)}
@@ -370,14 +370,14 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
         return (
             <div className="space-y-1">
                 <div className="flex items-center gap-2 pb-1">
-                    <span className="text-[10px] font-medium text-amber-300">Drag to reorder seeds</span>
+                    <span className="text-[10px] font-medium text-amber-300">{t('dragToReorderSeeds', 'Drag to reorder seeds')}</span>
                     <Button onClick={saveSeedOrder} disabled={savingSeeds}
                         variant="warning" size="xs">
                         {savingSeeds ? `Saving...` : `Save`}
                     </Button>
                     <Button onClick={() => setSeedMode(false)}
                         variant="outline" size="xs">
-                        Cancel
+                        {t('cancel', 'Cancel')}
                     </Button>
                 </div>
                 {seedOrder.map((id, i) => seedRow(id, i))}
@@ -389,21 +389,21 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
         <div className="space-y-1">
             {participants.length > 0 && (
                 <div className="flex items-center gap-1 pb-0.5">
-                    <span className="text-[9px] font-medium tracking-wide text-slate-600">Sort</span>
+                    <span className="text-[9px] font-medium tracking-wide text-slate-600">{t('sort', 'Sort')}</span>
                     {sortBtn(`status`, `Status`)}
                     {sortBtn(`name`, `Name`)}
                     {sortBtn(`record`, `W/L`)}
                     {canSeed && (
                         <Button onClick={enterSeedMode}
                             variant="warning" size="xs" className="ml-auto">
-                            Seed
+                            {t('seed', 'Seed')}
                         </Button>
                     )}
                 </div>
             )}
 
             {visible.length === 0 && <div className="py-3 text-center text-[11px] text-slate-600">
-                No participants yet
+                {t('noParticipantsYet', 'No participants yet')}
             </div>}
 
             {visible.map(row)}
@@ -433,10 +433,10 @@ function getExitInfo(
     matches: TournamentMatch[],
     format: StandingsFormat,
 ): { label: string; color: `gold` | `silver` | `bronze` | `rose` | `default` } {
-    if (participant?.status === `dropped`) return { label: `Disqualified`, color: `rose` };
-    if (s.rank === 1) return { label: `Champion`, color: `gold` };
-    if (s.rank === 2) return { label: `Finalist`, color: `silver` };
-    if (s.rank === 3) return { label: `3rd Place`, color: `bronze` };
+    if (participant?.status === `dropped`) return { label: i18next.t('disqualified', 'Disqualified'), color: `rose` };
+    if (s.rank === 1) return { label: i18next.t('champion', 'Champion'), color: `gold` };
+    if (s.rank === 2) return { label: i18next.t('finalist', 'Finalist'), color: `silver` };
+    if (s.rank === 3) return { label: i18next.t('3rdPlace', '3rd Place'), color: `bronze` };
 
     if (format === `swiss`) return { label: ``, color: `default` };
 
@@ -447,16 +447,16 @@ function getExitInfo(
 
     if (!elimMatch) return { label: ``, color: `default` };
 
-    if (elimMatch.bracket === `grand-final` || elimMatch.bracket === `grand-final-reset`) return { label: `Grand Final`, color: `silver` };
-    if (elimMatch.bracket === `third-place`) return { label: `Third Place Match`, color: `default` };
+    if (elimMatch.bracket === `grand-final` || elimMatch.bracket === `grand-final-reset`) return { label: i18next.t('grandFinal', 'Grand Final'), color: `silver` };
+    if (elimMatch.bracket === `third-place`) return { label: i18next.t('thirdPlaceMatch', 'Third Place Match'), color: `default` };
 
     const totalRounds = Math.max(...matches.filter((m) => m.bracket === elimMatch.bracket).map((m) => m.round));
     const roundsFromEnd = totalRounds - elimMatch.round;
 
-    if (roundsFromEnd === 0) return { label: `${bracketLabel(elimMatch.bracket)} Final`, color: `default` };
-    if (roundsFromEnd === 1) return { label: `${bracketLabel(elimMatch.bracket)} Semifinal`, color: `default` };
-    if (roundsFromEnd === 2) return { label: `${bracketLabel(elimMatch.bracket)} Quarterfinal`, color: `default` };
-    return { label: `${bracketLabel(elimMatch.bracket)} R${elimMatch.round}`, color: `default` };
+    if (roundsFromEnd === 0) return { label: i18next.t('valFinal', '{{val}} Final', { val: bracketLabel(elimMatch.bracket) }), color: `default` };
+    if (roundsFromEnd === 1) return { label: i18next.t('valSemifinal', '{{val}} Semifinal', { val: bracketLabel(elimMatch.bracket) }), color: `default` };
+    if (roundsFromEnd === 2) return { label: i18next.t('valQuarterfinal', '{{val}} Quarterfinal', { val: bracketLabel(elimMatch.bracket) }), color: `default` };
+    return { label: i18next.t('valRround', '{{val}} R{{round}}', { val: bracketLabel(elimMatch.bracket), round: elimMatch.round }), color: `default` };
 }
 
 function bracketLabel(bracket: string): string {
@@ -552,6 +552,7 @@ function exportStandingsCsv(
 function PodiumCard({ standing, exit, isSelf, rank, matches }: {
     standing: TournamentStanding; exit: { label: string; color: string }; isSelf: boolean; rank: 1 | 2 | 3; matches: TournamentMatch[]
 }) {
+    const { t } = useTranslation()
     const medal = rank === 1
         ? { icon: `\u{1F947}`, ring: `ring-amber-400/40`, bg: `bg-gradient-to-b from-amber-400/12 to-amber-400/3`, border: `border-amber-400/25`, text: `text-amber-300`, glow: `shadow-[0_0_40px_rgba(251,191,36,0.15)]` }
         : rank === 2
@@ -580,13 +581,7 @@ function PodiumCard({ standing, exit, isSelf, rank, matches }: {
             </span>
 
             {/* Record */}
-            <span className="mt-0.5 text-[10px] tabular-nums text-slate-400">
-                {standing.wins}
-                W
-                {` `}
-                {standing.losses}
-                L
-            </span>
+            <span className="mt-0.5 text-[10px] tabular-nums text-slate-400">{t('winsW2', '{{wins}}\n                W', { wins: standing.wins })}{` `}{t('lossesL2', '{{losses}}\n                L', { losses: standing.losses })}</span>
 
             {/* Label */}
             <span className={`mt-1.5 rounded-md px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] ${
@@ -668,6 +663,7 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
     standings: TournamentStanding[]; participants: TournamentParticipant[]; matches: TournamentMatch[]
     format: StandingsFormat; tournamentName: string; viewerProfileId: string | null
 }) {
+    const { t } = useTranslation()
     if (standings.length === 0) return null;
 
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -729,19 +725,11 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
                     </span>
 
                     {/* W-L pill */}
-                    <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-400">
-                        {s.wins}
-                        -
-                        {s.losses}
-                    </span>
+                    <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-400">{t('winsLosses', '{{wins}}\n                        -\n                        {{losses}}', { wins: s.wins, losses: s.losses })}</span>
 
                     {/* Swiss tiebreakers */}
                     {isSwiss && (s.buchholz > 0 || s.sonnebornBerger > 0) && (
-                        <span className="hidden text-[9px] tabular-nums text-slate-600 sm:inline" title="Buchholz / Sonneborn-Berger">
-                            {s.buchholz}
-                            /
-                            {s.sonnebornBerger}
-                        </span>
+                        <span className="hidden text-[9px] tabular-nums text-slate-600 sm:inline" title={t('buchholzSonnebornberger', 'Buchholz / Sonneborn-Berger')}>{t('buchholzSonnebornberger2', '{{buchholz}}\n                            /\n                            {{sonnebornBerger}}', { buchholz: s.buchholz, sonnebornBerger: s.sonnebornBerger })}</span>
                     )}
 
                     {/* Exit label */}
@@ -774,7 +762,7 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
             {/* Header + actions */}
             <div className="flex items-center justify-between">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Final Standings
+                    {t('finalStandings', 'Final Standings')}
                     <span className="ml-2 text-slate-600">
                         {standings.length}
                         {` `}
@@ -786,7 +774,7 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
                     onClick={() => exportStandingsCsv(standings, participants, matches, format, tournamentName)}
                     variant="outline" size="xs"
                 >
-                    Export CSV
+                    {t('exportCsv', 'Export CSV')}
                 </Button>
             </div>
 
@@ -822,6 +810,7 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
 function TierGroup({ tier, standings, renderRow }: {
     tier: string; standings: TournamentStanding[]; renderRow: (s: TournamentStanding) => React.ReactNode
 }) {
+    const { t } = useTranslation()
     const [collapsed, setCollapsed] = useState(standings.length > 16);
 
     return (
@@ -841,7 +830,7 @@ function TierGroup({ tier, standings, renderRow }: {
                 </span>
 
                 <span className={`text-[20px] text-slate-500 transition-transform ${collapsed ? `` : `rotate-180`}`}>
-                    &#9662;
+                    {t('9662', '&#9662;')}
                 </span>
             </button>
 
@@ -867,7 +856,7 @@ function useCountdown(deadlineMs: number | null) {
     const totalSec = Math.ceil(remaining / 1000);
     const min = Math.floor(totalSec / 60);
     const sec = totalSec % 60;
-    return { remaining, min, sec, expired: remaining <= 0, label: `${min}:${String(sec).padStart(2, `0`)}` };
+    return { remaining, min, sec, expired: remaining <= 0, label: i18next.t('minval', '{{min}}:{{val}}', { min, val: String(sec).padStart(2, `0`) }) };
 }
 
 /* ── Match card ─────────────────────────────────────── */
@@ -878,6 +867,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
     onOpen: (sid: string) => void; onWalkover: (mid: string, pid: string) => void; onReopen: (mid: string) => void
     onRequestExtension: (mid: string) => void; onResolveExtension: (eid: string, approve: boolean) => void
 }) {
+    const { t } = useTranslation()
     const countdown = useCountdown(timeoutAt);
     const claimCountdown = useCountdown(claimWinExpiresAt);
     const timedOut = countdown?.expired ?? false;
@@ -903,7 +893,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                     {s.displayName ?? `TBD`}
                     {canNavigate && sourceMatchRecord && <span className="text-[9px] text-slate-600">
                         {sourceRef.type === `winner` ? `W` : `L`}
-                        {` of R${sourceMatchRecord.round}M${sourceMatchRecord.order}`}
+                        {t('ofRroundmorder', 'of R{{round}}M{{order}}', { round: sourceMatchRecord.round, order: sourceMatchRecord.order })}
                         {sourceMatchRecord.bracket === `losers` ? ` (LB)` : sourceMatchRecord.bracket === `grand-final` ? ` (GF)` : sourceMatchRecord.bracket === `grand-final-reset` ? ` (GF Reset)` : ``}
                                     </span>}
                 </span>
@@ -918,26 +908,20 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
     return (
         <div id={`match-${match.id}`} className="rounded-lg border border-white/6 bg-slate-950/40 p-2 transition-shadow duration-700 ease-out">
             <div className="mb-1.5 flex items-center gap-1.5">
-                <span className="text-[9px] font-semibold tabular-nums text-slate-600">
-                    M
-                    {match.order}
-                </span>
+                <span className="text-[9px] font-semibold tabular-nums text-slate-600">{t('mOrder', 'M\n                    {{order}}', { order: match.order })}</span>
 
                 <Chip color={stateColor}>
                     {match.state === `in-progress` ? `live` : match.state}
                 </Chip>
 
-                <Chip>
-                    BO
-                    {match.bestOf}
-                </Chip>
+                <Chip>{t('boBestof', 'BO\n                    {{bestOf}}', { bestOf: match.bestOf })}</Chip>
 
                 {canJoin && (
                     <Button
                         onClick={() => onOpen(match.sessionId!)}
                         variant="secondary" size="xs" className="ml-auto"
                     >
-                        Join
+                        {t('join', 'Join')}
                     </Button>
                 )}
 
@@ -946,7 +930,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         to={`/session/${match.sessionId}`}
                         className="ml-auto text-[9px] text-slate-500 transition hover:text-slate-300"
                     >
-                        spectate &rarr;
+                        {t('spectateRarr', 'spectate &rarr;')}
                     </Link>
                 )}
             </div>
@@ -965,7 +949,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         </span>
 
                         <span className="text-[9px] text-slate-500">
-                            to join
+                            {t('toJoin', 'to join')}
                         </span>
                     </div>
 
@@ -973,9 +957,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         <Button
                             onClick={() => onRequestExtension(match.id)}
                             variant="warning" size="xs"
-                        >
-                            Request Extension (+{extensionMinutes} min)
-                        </Button>
+                        >{t('requestExtensionExtensionminutesMin', 'Request Extension (+{{extensionMinutes}} min)', { extensionMinutes })}</Button>
                     )}
                 </div>
             )}
@@ -985,7 +967,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 <div className="mt-1.5 rounded bg-amber-300/6 px-2 py-1.5">
                     <div className="flex items-center justify-between gap-2">
                         <span className="text-[9px] text-amber-200/70">
-                            Extension requested by
+                            {t('extensionRequestedBy', 'Extension requested by')}
                             {` `}
                             <span className="font-semibold text-amber-200">
                                 {pendingExtension.requestedByDisplayName}
@@ -998,21 +980,21 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                                     onClick={() => onResolveExtension(pendingExtension.id, true)}
                                     variant="success-soft" size="xs"
                                 >
-                                    Approve
+                                    {t('approve', 'Approve')}
                                 </Button>
 
                                 <Button
                                     onClick={() => onResolveExtension(pendingExtension.id, false)}
                                     variant="destructive-soft" size="xs"
                                 >
-                                    Deny
+                                    {t('deny', 'Deny')}
                                 </Button>
                             </span>
                         )}
 
                         {!canManage && (
                             <span className="text-[9px] text-amber-200/50">
-                                Waiting for organizer...
+                                {t('waitingForOrganizer', 'Waiting for organizer...')}
                             </span>
                         )}
                     </div>
@@ -1028,7 +1010,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         </span>
 
                         <span className="text-[9px] text-rose-200/70">
-                            Win claim active — opponent must join
+                            {t('winClaimActiveOpponentMustJoin', 'Win claim active — opponent must join')}
                         </span>
                     </div>
                 </div>
@@ -1039,16 +1021,14 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 <div className="mt-1.5 rounded bg-amber-300/8 px-2 py-1.5">
                     <div className="flex items-center justify-between">
                         <span className="text-[9px] font-semibold text-amber-200">
-                            Timed out — waiting for player
+                            {t('timedOutWaitingForPlayer', 'Timed out — waiting for player')}
                         </span>
 
                         {isParticipant && (
                         <Button
                             onClick={() => onRequestExtension(match.id)}
                             variant="warning" size="xs"
-                        >
-                            Request Extension (+{extensionMinutes} min)
-                        </Button>
+                        >{t('requestExtensionExtensionminutesMin', 'Request Extension (+{{extensionMinutes}} min)', { extensionMinutes })}</Button>
                     )}
                 </div>
                 </div>
@@ -1058,7 +1038,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
             {timedOut && !claimCountdown && pendingExtension && match.state !== `completed` && (
                 <div className="mt-1.5 rounded bg-amber-300/8 px-2 py-1">
                     <span className="text-[9px] font-semibold text-amber-200">
-                        Timed out — extension pending
+                        {t('timedOutExtensionPending', 'Timed out — extension pending')}
                     </span>
                 </div>
             )}
@@ -1070,13 +1050,13 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                             to={`/games/${match.gameIds[0]}`}
                             className={buttonVariants({ variant: `ghost`, size: `xxs` })}
                         >
-                            Review
+                            {t('review', 'Review')}
                         </Link>
                     )}
 
                     {match.gameIds.length > 1 && (
                         <span className="text-[9px] font-semibold text-slate-500">
-                            Review:
+                            {t('review2', 'Review:')}
                         </span>
                     )}
 
@@ -1093,7 +1073,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 <div className="mt-1.5 flex flex-wrap gap-1">
                     {match.slots.filter((s): s is typeof s & { profileId: string } => Boolean(s.profileId) && !s.isBye).map((s) => (
                         <Confirm
-                            key={s.profileId} label={`Award ${s.displayName}`} onConfirm={() => onWalkover(match.id, s.profileId)}
+                            key={s.profileId} label={t('awardDisplayname', 'Award {{displayName}}', { displayName: s.displayName })} onConfirm={() => onWalkover(match.id, s.profileId)}
                             variant="info"
                         />
                     ))}
@@ -1111,6 +1091,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
 /* ── Main route ─────────────────────────────────────── */
 
 function TournamentRoute() {
+    const { t } = useTranslation()
     const { tournamentId } = useParams<{ tournamentId: string }>();
     const nav = useNavigate();
     const intl = useIntlFormatProvider();
@@ -1130,17 +1111,17 @@ function TournamentRoute() {
     const [devCount, setDevCount] = useState(8);
     const [devState, setDevState] = useState<`registered` | `checked-in`>(`checked-in`);
 
-    const t = tQ.data ?? null;
+    const tournament = tQ.data ?? null;
     const acct = acctQ.data?.user ?? null;
 
     const [shownSubscribedToast, setShownSubscribedToast] = useState(false);
     useEffect(() => {
-        const viewerParticipant = t?.participants.find((p) => p.profileId === acct?.id);
+        const viewerParticipant = tournament?.participants.find((p) => p.profileId === acct?.id);
         const isOut = viewerParticipant?.status === `eliminated` || viewerParticipant?.status === `dropped`;
-        if (shownSubscribedToast || !t || !t.viewer.autoSubscribedOnView || t.viewer.isCreator || t.viewer.canManage || t.status === `completed` || t.status === `cancelled` || isOut) return;
+        if (shownSubscribedToast || !tournament || !tournament.viewer.autoSubscribedOnView || tournament.viewer.isCreator || tournament.viewer.canManage || tournament.status === `completed` || tournament.status === `cancelled` || isOut) return;
         setShownSubscribedToast(true);
-        toast.info(`Subscribed to ${t.name}.`, { toastId: `subscribed:${t.id}` });
-    }, [t, shownSubscribedToast]);
+        toast.info(t('subscribedToName', 'Subscribed to {{name}}.', { name: tournament.name }), { toastId: `subscribed:${tournament.id}` });
+    }, [tournament, shownSubscribedToast]);
 
     const run = async (action: () => Promise<unknown>, msg: string) => {
         try { setBusy(true); await action(); toast.success(msg, { toastId: `ok:${msg}` }); await tQ.refetch(); }
@@ -1151,30 +1132,30 @@ function TournamentRoute() {
     const doSearch = async () => {
         if (!searchQ.trim()) return;
         try { setSearchRes((await searchTournamentPlayers(searchQ)).users); }
-        catch (e: unknown) { toast.error(e instanceof Error ? e.message : `Search failed.`, { toastId: `search-err` }); }
+        catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('searchFailed', 'Search failed.'), { toastId: `search-err` }); }
     };
 
     if (!tournamentId) return null;
-    const dot = STATUS_DOT[t?.status ?? ``] ?? `bg-slate-400`;
-    const label = STATUS_LABEL[t?.status ?? ``] ?? t?.status ?? ``;
-    const formatLabel = t?.format === `swiss`
+    const dot = STATUS_DOT[tournament?.status ?? ``] ?? `bg-slate-400`;
+    const label = STATUS_LABEL[tournament?.status ?? ``] ?? tournament?.status ?? ``;
+    const formatLabel = tournament?.format === `swiss`
         ? `Swiss`
-        : t?.format === `single-elimination`
+        : tournament?.format === `single-elimination`
             ? `Single Elim`
-            : t?.format === `double-elimination`
+            : tournament?.format === `double-elimination`
                 ? `Double Elim`
                 : ``;
-    const formatBadge = t?.format === `swiss`
+    const formatBadge = tournament?.format === `swiss`
         ? `Swiss`
-        : t?.format === `single-elimination`
+        : tournament?.format === `single-elimination`
             ? `SE`
-            : t?.format === `double-elimination`
+            : tournament?.format === `double-elimination`
                 ? `DE`
-                : t?.format ?? ``;
+                : tournament?.format ?? ``;
 
     // Group matches by bracket:round
     const grouped = new Map<string, TournamentMatch[]>();
-    for (const m of t?.matches ?? []) {
+    for (const m of tournament?.matches ?? []) {
         const k = `${m.bracket}:${m.round}`;
         (grouped.get(k) ?? (() => { const a: TournamentMatch[] = []; grouped.set(k, a); return a; })()).push(m);
     }
@@ -1184,17 +1165,17 @@ function TournamentRoute() {
     return (
         <>
             <PageMetadata
-                title={t ? `${t.name} • ${DEFAULT_PAGE_TITLE}` : `Tournament • ${DEFAULT_PAGE_TITLE}`}
-                description={t?.description ?? `Tournament bracket and live matches.`}
+                title={tournament ? t('nameDefault_page_title', '{{name}} • {{DEFAULT_PAGE_TITLE}}', { name: tournament.name, DEFAULT_PAGE_TITLE }) : t('tournamentDefault_page_title', 'Tournament • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                description={tournament?.description ?? t('tournamentBracketAndLiveMatches', 'Tournament bracket and live matches.')}
             />
 
             <PageCorpus
-                category="Tournament" title={t?.name ?? `Loading...`}
-                description={t ? `${formatLabel} · ${formatDateTime(intl, t.scheduledStartAt)}` : ``}
+                category="Tournament" title={tournament?.name ?? `Loading...`}
+                description={tournament ? t('formatlabelVal', '{{formatLabel}} · {{val}}', { formatLabel, val: formatDateTime(intl, tournament.scheduledStartAt) }) : ``}
                 back="Tournaments" onBack={() => void nav(`/tournaments`)} onRefresh={() => void tQ.refetch()}
             >
 
-                {!t ? (
+                {!tournament ? (
                     <div className="px-4 pb-6 sm:px-6">
                         <div className="rounded-xl border border-white/8 bg-slate-900/50 p-6 text-center text-sm text-slate-500">
                             Loading...
@@ -1216,11 +1197,11 @@ function TournamentRoute() {
 
                             <div className="ml-auto flex items-center gap-2 text-[12px] tabular-nums">
                                 <span className="font-bold text-white">
-                                    {t.checkedInCount}
+                                    {tournament.checkedInCount}
 
                                     <span className="font-normal text-slate-500">
                                         /
-                                        {t.maxPlayers}
+                                        {tournament.maxPlayers}
                                     </span>
                                 </span>
 
@@ -1229,8 +1210,8 @@ function TournamentRoute() {
                                 </span>
 
                                 <span className="text-slate-400">
-                                    Check-in
-                                    {formatDateTime(intl, t.checkInOpensAt)}
+                                    {t('checkin', 'Check-in')}
+                                    {formatDateTime(intl, tournament.checkInOpensAt)}
                                 </span>
 
                                 <span className="text-slate-600">
@@ -1238,21 +1219,21 @@ function TournamentRoute() {
                                 </span>
 
                                 <span className="text-slate-400">
-                                    Start
-                                    {formatDateTime(intl, t.scheduledStartAt)}
+                                    {t('start', 'Start')}
+                                    {formatDateTime(intl, tournament.scheduledStartAt)}
                                 </span>
 
-                                {t.matches.length > 0 && (
+                                {tournament.matches.length > 0 && (
                                     <>
                                         <span className="text-slate-600">
                                             ·
                                         </span>
 
                                         <Button
-                                            onClick={() => void nav(`/tournaments/${t.id}/bracket`)}
+                                            onClick={() => void nav(`/tournaments/${tournament.id}/bracket`)}
                                             variant="link" size="bare"
                                         >
-                                            View Bracket
+                                            {t('viewBracket', 'View Bracket')}
                                         </Button>
                                     </>
                                 )}
@@ -1260,41 +1241,31 @@ function TournamentRoute() {
                         </div>
 
                         {/* ── Next match banner ── */}
-                        {t.viewer.nextMatch && (
+                        {tournament.viewer.nextMatch && (
                             <div className="flex items-center gap-3 rounded-xl border border-amber-300/20 bg-[linear-gradient(135deg,rgba(251,191,36,0.1),rgba(15,23,42,0.8)_60%)] px-4 py-3 shadow-[0_4px_20px_rgba(251,191,36,0.1)]">
                                 <div className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
 
                                 <div className="flex-1">
                                     <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/70">
-                                        Your Match ·
+                                        {t('yourMatch', 'Your Match ·')}
                                         {` `}
-                                        {t.viewer.nextMatch.bracket.replace(/-/g, ` `)}
-                                        {` `}
-                                        R
-                                        {t.viewer.nextMatch.round}
-                                    </div>
+                                        {tournament.viewer.nextMatch.bracket.replace(/-/g, ` `)}
+                                        {` `}{t('rRound', 'R\n                                        {{round}}', { round: tournament.viewer.nextMatch.round })}</div>
 
                                     <div className="mt-0.5 text-[13px] font-bold text-white">
-                                        {t.viewer.nextMatch.opponentDisplayName
-                                            ? `vs ${t.viewer.nextMatch.opponentDisplayName}`
-                                            : `Waiting for opponent`}
+                                        {tournament.viewer.nextMatch.opponentDisplayName
+                                            ? t('vsOpponentdisplayname', 'vs {{opponentDisplayName}}', { opponentDisplayName: tournament.viewer.nextMatch.opponentDisplayName })
+                                            : t('waitingForOpponent', 'Waiting for opponent')}
 
-                                        {(t.viewer.nextMatch.leftWins > 0 || t.viewer.nextMatch.rightWins > 0) && (
-                                            <span className="ml-2 text-[11px] font-normal tabular-nums text-slate-400">
-                                                {t.viewer.nextMatch.leftWins}
-                                                –
-                                                {t.viewer.nextMatch.rightWins}
-                                                {` `}
-                                                in BO
-                                                {t.viewer.nextMatch.bestOf}
-                                            </span>
+                                        {(tournament.viewer.nextMatch.leftWins > 0 || tournament.viewer.nextMatch.rightWins > 0) && (
+                                            <span className="ml-2 text-[11px] font-normal tabular-nums text-slate-400">{t('leftwinsRightwins', '{{leftWins}}\n                                                –\n                                                {{rightWins}}', { leftWins: tournament.viewer.nextMatch.leftWins, rightWins: tournament.viewer.nextMatch.rightWins })}{` `}{t('inBoBestof', 'in BO\n                                                {{bestOf}}', { bestOf: tournament.viewer.nextMatch.bestOf })}</span>
                                         )}
                                     </div>
                                 </div>
 
                                 <Button
                                     onClick={() => {
-                                        const el = document.getElementById(`match-${t.viewer.nextMatch!.matchId}`);
+                                        const el = document.getElementById(`match-${tournament.viewer.nextMatch!.matchId}`);
                                         if (el) {
                                             el.scrollIntoView({ behavior: `smooth`, block: `center` });
                                             el.classList.add(`ring-2`, `ring-amber-400/60`, `shadow-[0_0_16px_rgba(251,191,36,0.25)]`);
@@ -1303,48 +1274,48 @@ function TournamentRoute() {
                                     }}
                                     variant="secondary" size="lg"
                                 >
-                                    Go to Match
+                                    {t('goToMatch', 'Go to Match')}
                                 </Button>
                             </div>
                         )}
 
                         {/* Waitlist banner */}
-                        {t.status === `waitlist-open` && t.waitlistClosesAt && (
-                            <WaitlistBanner closesAt={t.waitlistClosesAt} availableSlots={t.maxPlayers - t.checkedInCount} />
+                        {tournament.status === `waitlist-open` && tournament.waitlistClosesAt && (
+                            <WaitlistBanner closesAt={tournament.waitlistClosesAt} availableSlots={tournament.maxPlayers - tournament.checkedInCount} />
                         )}
 
                         {/* ── Actions ── */}
                         <div className="flex flex-wrap items-center gap-2">
-                            {t.viewer.canRegister && (
+                            {tournament.viewer.canRegister && (
                                 <Button
-                                    onClick={() => void run(() => registerForTournament(t.id), `Registered.`)} disabled={busy}
+                                    onClick={() => void run(() => registerForTournament(tournament.id), `Registered.`)} disabled={busy}
                                     variant="secondary" size="sm"
                                 >
-                                    Register
+                                    {t('register', 'Register')}
                                 </Button>
                             )}
 
-                            {t.viewer.canJoinWaitlist && (
+                            {tournament.viewer.canJoinWaitlist && (
                                 <Button
-                                    onClick={() => void run(() => registerForTournament(t.id), `Joined waitlist.`)} disabled={busy}
+                                    onClick={() => void run(() => registerForTournament(tournament.id), `Joined waitlist.`)} disabled={busy}
                                     variant="warning" size="sm"
                                 >
-                                    Join Waitlist
+                                    {t('joinWaitlist', 'Join Waitlist')}
                                 </Button>
                             )}
 
-                            {t.viewer.canCheckIn && (
+                            {tournament.viewer.canCheckIn && (
                                 <Button
-                                    onClick={() => void run(() => checkInTournament(t.id), t.status === `waitlist-open` ? `Checked in from waitlist!` : `Checked in.`)} disabled={busy}
+                                    onClick={() => void run(() => checkInTournament(tournament.id), tournament.status === `waitlist-open` ? `Checked in from waitlist!` : `Checked in.`)} disabled={busy}
                                     variant="default" size="sm"
                                 >
-                                    {t.status === `waitlist-open` ? `Claim Spot` : `Check In`}
+                                    {tournament.status === `waitlist-open` ? `Claim Spot` : `Check In`}
                                 </Button>
                             )}
 
-                            {t.viewer.canWithdraw && (
+                            {tournament.viewer.canWithdraw && (
                                 <Confirm
-                                    label="Withdraw" onConfirm={() => void run(() => withdrawFromTournament(t.id), `Withdrawn.`)}
+                                    label="Withdraw" onConfirm={() => void run(() => withdrawFromTournament(tournament.id), `Withdrawn.`)}
                                     variant="outline"
                                     size="sm"
                                 />
@@ -1352,41 +1323,41 @@ function TournamentRoute() {
 
                             <Button
                                 onClick={() => {
-                                    void navigator.clipboard.writeText(`${window.location.origin}/tournaments/${t.id}`);
+                                    void navigator.clipboard.writeText(`${window.location.origin}/tournaments/${tournament.id}`);
                                     toast.success(`Link copied!`, { toastId: `copy-link` });
                                 }}
                                 variant="outline" size="sm"
                             >
-                                Copy Link
+                                {t('copyLink', 'Copy Link')}
                             </Button>
 
-                            {t.status === `live` && (
+                            {tournament.status === `live` && (
                                 <Link
-                                    to={`/tournaments/${t.id}/multiview`}
+                                    to={`/tournaments/${tournament.id}/multiview`}
                                     className={buttonVariants({ variant: `info`, size: `xs` })}
                                 >
-                                    Multiview (Beta)
+                                    {t('multiviewBeta', 'Multiview (Beta)')}
                                 </Link>
                             )}
 
                             {/* Organizer buttons */}
-                            {t.viewer.canManage && (
+                            {tournament.viewer.canManage && (
                                 <div className="ml-auto flex items-center gap-2">
-                                    {t.status === `check-in-open` && (
+                                    {tournament.status === `check-in-open` && (
                                         <Button
-                                            onClick={() => void run(() => startTournament(t.id), `Started.`)} disabled={busy}
+                                            onClick={() => void run(() => startTournament(tournament.id), `Started.`)} disabled={busy}
                                             variant="warning" size="sm"
                                         >
-                                            Start
+                                            {t('start', 'Start')}
                                         </Button>
                                     )}
 
-                                    {t.status !== `live` && t.status !== `completed` && t.status !== `cancelled` && (
+                                    {tournament.status !== `live` && tournament.status !== `completed` && tournament.status !== `cancelled` && (
                                         <Button
                                             onClick={() => setEditOpen(true)}
                                             variant="outline" size="sm"
                                         >
-                                            Edit
+                                            {t('edit', 'Edit')}
                                         </Button>
                                     )}
 
@@ -1394,12 +1365,12 @@ function TournamentRoute() {
                                         onClick={() => setManageOpen(true)}
                                         variant="outline" size="sm"
                                     >
-                                        Manage
+                                        {t('manage', 'Manage')}
                                     </Button>
 
-                                    {t.status !== `completed` && t.status !== `cancelled` && (
+                                    {tournament.status !== `completed` && tournament.status !== `cancelled` && (
                                         <Confirm
-                                            label="Cancel" onConfirm={() => void run(() => cancelTournament(t.id), `Cancelled.`)}
+                                            label={t('cancel', 'Cancel')} onConfirm={() => void run(() => cancelTournament(tournament.id), `Cancelled.`)}
                                             size="sm"
                                         />
                                     )}
@@ -1407,24 +1378,24 @@ function TournamentRoute() {
                             )}
                         </div>
 
-                        {t.description && (
+                        {tournament.description && (
                             <p className="text-[13px] leading-5 text-slate-400">
-                                {t.description}
+                                {tournament.description}
                             </p>
                         )}
 
                         {/* ── Final standings (completed tournaments) ── */}
-                        {t.status === `completed` && t.standings.length > 0 && (
+                        {tournament.status === `completed` && tournament.standings.length > 0 && (
                             <FinalStandings
-                                standings={t.standings} participants={t.participants} matches={t.matches}
-                                format={t.format as StandingsFormat} tournamentName={t.name}
+                                standings={tournament.standings} participants={tournament.participants} matches={tournament.matches}
+                                format={tournament.format as StandingsFormat} tournamentName={tournament.name}
                                 viewerProfileId={acct?.id ?? null}
                             />
                         )}
 
                         {/* Round delay countdown */}
-                        {t.status === `live` && t.roundDelayMinutes > 0 && (
-                            <RoundDelayCountdown tournament={t} />
+                        {tournament.status === `live` && tournament.roundDelayMinutes > 0 && (
+                            <RoundDelayCountdown tournament={tournament} />
                         )}
 
                         {/* ── Two-column: bracket + sidebar ── */}
@@ -1433,7 +1404,7 @@ function TournamentRoute() {
                             <div className="space-y-4">
                                 {grouped.size === 0 ? (
                                     <div className="rounded-xl border border-dashed border-white/6 bg-slate-950/30 py-8 text-center text-[12px] text-slate-600">
-                                        Bracket appears when the tournament goes live.
+                                        {t('bracketAppearsWhenTheTournamentGoesLive', 'Bracket appears when the tournament goes live.')}
                                     </div>
                                 ) : (
                                     Array.from(grouped.entries()).map(([key, matches]) => {
@@ -1442,26 +1413,23 @@ function TournamentRoute() {
                                             <div key={key}>
                                                 <div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600">
                                                     {bracketName(bracket)}
-                                                    {` `}
-                                                    · R
-                                                    {round}
-                                                </div>
+                                                    {` `}{t('rRound2', '· R\n                                                    {{round}}', { round })}</div>
 
                                                 <div className="grid gap-2 sm:grid-cols-2">
                                                     {matches.sort((a, b) => a.order - b.order).map((m) => (
                                                         <MatchCard
-                                                            key={m.id} match={m} allMatches={t.matches} canManage={t.viewer.canManage}
+                                                            key={m.id} match={m} allMatches={tournament.matches} canManage={tournament.viewer.canManage}
                                                             viewerProfileId={acct?.id ?? null}
-                                                            tournamentStatus={t.status}
-                                                            timeoutAt={t.matchJoinTimeoutMinutes > 0 && m.waitingForPlayers && m.startedAt !== null ? m.startedAt + t.matchJoinTimeoutMinutes * 60_000 : null}
-                                                            extensionMinutes={t.matchExtensionMinutes}
-                                                            pendingExtension={t.extensionRequests.find((r) => r.matchId === m.id && (r.gameNumber ?? 1) === m.currentGameNumber && r.status === `pending`) ?? null}
+                                                            tournamentStatus={tournament.status}
+                                                            timeoutAt={tournament.matchJoinTimeoutMinutes > 0 && m.waitingForPlayers && m.startedAt !== null ? m.startedAt + tournament.matchJoinTimeoutMinutes * 60_000 : null}
+                                                            extensionMinutes={tournament.matchExtensionMinutes}
+                                                            pendingExtension={tournament.extensionRequests.find((r) => r.matchId === m.id && (r.gameNumber ?? 1) === m.currentGameNumber && r.status === `pending`) ?? null}
                                                             claimWinExpiresAt={m.claimWinExpiresAt ?? null}
                                                             onOpen={(sid) => void nav(`/session/${sid}`)}
-                                                            onWalkover={(mid, pid) => void run(() => awardTournamentWalkover(t.id, mid, pid), `Walkover.`)}
-                                                            onReopen={(mid) => void run(() => reopenTournamentMatch(t.id, mid), `Reopened.`)}
-                                                            onRequestExtension={(mid) => void run(() => requestMatchExtension(t.id, mid), `Extension requested.`)}
-                                                            onResolveExtension={(eid, approve) => void run(() => resolveExtension(t.id, eid, approve), approve ? `Extension approved.` : `Extension denied.`)}
+                                                            onWalkover={(mid, pid) => void run(() => awardTournamentWalkover(tournament.id, mid, pid), `Walkover.`)}
+                                                            onReopen={(mid) => void run(() => reopenTournamentMatch(tournament.id, mid), `Reopened.`)}
+                                                            onRequestExtension={(mid) => void run(() => requestMatchExtension(tournament.id, mid), `Extension requested.`)}
+                                                            onResolveExtension={(eid, approve) => void run(() => resolveExtension(tournament.id, eid, approve), approve ? t('extensionApproved', 'Extension approved.') : `Extension denied.`)}
                                                         />
                                                     ))}
                                                 </div>
@@ -1474,14 +1442,14 @@ function TournamentRoute() {
                             {/* Sidebar: standings + participants + activity */}
                             <div className="space-y-4">
                                 {/* Swiss standings */}
-                                {t.format === `swiss` && t.standings.length > 0 && (
+                                {tournament.format === `swiss` && tournament.standings.length > 0 && (
                                     <div className="rounded-xl border border-white/8 bg-slate-900/50 p-3">
                                         <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                            Standings
+                                            {t('standings', 'Standings')}
                                         </div>
 
                                         <div className="space-y-0.5">
-                                            {t.standings.map((s, i) => (
+                                            {tournament.standings.map((s, i) => (
                                                 <div
                                                     key={s.profileId}
                                                     className={`flex items-center gap-2 rounded px-2 py-1 ${i === 0 ? `bg-amber-300/8` : `bg-white/2`}`}
@@ -1498,11 +1466,7 @@ function TournamentRoute() {
                                                         {s.matchPoints}
                                                     </span>
 
-                                                    <span className="text-[10px] tabular-nums text-slate-500">
-                                                        {s.wins}
-                                                        -
-                                                        {s.losses}
-                                                    </span>
+                                                    <span className="text-[10px] tabular-nums text-slate-500">{t('winsLosses2', '{{wins}}\n                                                        -\n                                                        {{losses}}', { wins: s.wins, losses: s.losses })}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1513,20 +1477,20 @@ function TournamentRoute() {
                                 <div className="rounded-xl border border-white/8 bg-slate-900/50 p-3">
                                     <div className="mb-2 flex items-center justify-between">
                                         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                            Participants
+                                            {t('participants', 'Participants')}
                                         </span>
 
                                         <span className="text-[10px] tabular-nums text-slate-600">
-                                            {t.registeredCount}
+                                            {tournament.registeredCount}
                                         </span>
                                     </div>
 
                                     <ParticipantList
-                                        participants={t.participants} standings={t.standings}
-                                        canManage={t.viewer.canManage} isLive={t.status === `live`}
+                                        participants={tournament.participants} standings={tournament.standings}
+                                        canManage={tournament.viewer.canManage} isLive={tournament.status === `live`}
                                         viewerProfileId={acct?.id ?? null}
-                                        tournamentId={t.id} tournamentStatus={t.status} tournamentStartedAt={t.startedAt}
-                                        onRemove={(pid) => void run(() => removeTournamentParticipant(t.id, pid), t.status === `live` ? `Disqualified.` : `Removed.`)}
+                                        tournamentId={tournament.id} tournamentStatus={tournament.status} tournamentStartedAt={tournament.startedAt}
+                                        onRemove={(pid) => void run(() => removeTournamentParticipant(tournament.id, pid), tournament.status === `live` ? `Disqualified.` : `Removed.`)}
                                         onSwapSelect={setSwapTarget} swapTarget={swapTarget}
                                     />
                                 </div>
@@ -1534,16 +1498,16 @@ function TournamentRoute() {
                                 {/* Activity */}
                                 <div className="rounded-xl border border-white/8 bg-slate-900/50 p-3">
                                     <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                        Activity
+                                        {t('activity', 'Activity')}
                                     </div>
 
-                                    {t.activity.length === 0
+                                    {tournament.activity.length === 0
                                         ? <div className="py-2 text-center text-[11px] text-slate-600">
-                                            No activity
+                                            {t('noActivity', 'No activity')}
                                         </div>
                                         : (
                                             <div className="max-h-48 space-y-0.5 overflow-y-auto">
-                                                {t.activity.slice(0, 40).map((e) => (
+                                                {tournament.activity.slice(0, 40).map((e) => (
                                                     <div key={e.id} className="flex items-baseline justify-between gap-2 rounded px-2 py-1 text-[11px]">
                                                         <span className="text-slate-300">
                                                             {e.message}
@@ -1564,20 +1528,20 @@ function TournamentRoute() {
             </PageCorpus>
 
             {/* ── Edit modal ── */}
-            <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Tournament">
-                {t && (
+            <Modal open={editOpen} onClose={() => setEditOpen(false)} title={t('editTournament', 'Edit Tournament')}>
+                {tournament && (
                     <TournamentEditorCard
-                        formKey={`${t.id}:${t.updatedAt}`} title="Settings" description=""
-                        defaultRequest={buildCreateTournamentRequestFromDetail(t)}
+                        formKey={t('idupdatedat', '{{id}}:{{updatedAt}}', { id: tournament.id, updatedAt: tournament.updatedAt })} title="Settings" description=""
+                        defaultRequest={buildCreateTournamentRequestFromDetail(tournament)}
                         submitLabel="Save" submitting={busy}
-                        onSubmit={(request) => void run(() => updateTournament(t.id, request), `Updated.`).then(() => setEditOpen(false))}
+                        onSubmit={(request) => void run(() => updateTournament(tournament.id, request), `Updated.`).then(() => setEditOpen(false))}
                     />
                 )}
             </Modal>
 
             {/* ── Manage modal (search + add/swap + dev seed) ── */}
-            <Modal open={manageOpen} onClose={() => setManageOpen(false)} title="Manage Players">
-                {t && (
+            <Modal open={manageOpen} onClose={() => setManageOpen(false)} title={t('managePlayers', 'Manage Players')}>
+                {tournament && (
                     <div className="space-y-4">
                         {/* Search */}
                         <div className="flex gap-2">
@@ -1585,28 +1549,28 @@ function TournamentRoute() {
                                 value={searchQ} onChange={(e) => setSearchQ(e.target.value)}
                                 onKeyDown={(e) => { if (e.key === `Enter`) void doSearch(); }}
                                 className="flex-1 rounded-lg border border-white/8 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none placeholder:text-slate-600 focus:border-sky-400/30"
-                                placeholder="Search Discord username..."
+                                placeholder={t('searchDiscordUsername', 'Search Discord username...')}
                             />
 
                             <Button
                                 onClick={() => void doSearch()}
                                 variant="default" size="sm"
                             >
-                                Search
+                                {t('search', 'Search')}
                             </Button>
                         </div>
 
                         {swapTarget && (
                             <div className="rounded-lg border border-amber-300/20 bg-amber-300/8 px-3 py-2 text-[11px] text-amber-200">
-                                Swapping
+                                {t('swapping', 'Swapping')}
                                 {` `}
 
                                 <strong>
-                                    {t.participants.find((p) => p.profileId === swapTarget)?.displayName ?? `player`}
+                                    {tournament.participants.find((p) => p.profileId === swapTarget)?.displayName ?? `player`}
                                 </strong>
 
                                 {` `}
-                                — pick replacement below
+                                {t('pickReplacementBelow', '— pick replacement below')}
                             </div>
                         )}
 
@@ -1620,18 +1584,18 @@ function TournamentRoute() {
 
                                         <div className="flex gap-1.5">
                                             <Button
-                                                onClick={() => void run(() => addTournamentParticipant(t.id, u.id), `Added ${u.username}.`)}
+                                                onClick={() => void run(() => addTournamentParticipant(tournament.id, u.id), `Added ${u.username}.`)}
                                                 variant="success-soft" size="xs"
                                             >
-                                                Add
+                                                {t('add', 'Add')}
                                             </Button>
 
                                             {swapTarget && (
                                                 <Button
-                                                    onClick={() => void run(() => swapTournamentParticipant(t.id, { profileId: swapTarget, replacementProfileId: u.id }), `Swapped.`).then(() => setSwapTarget(null))}
+                                                    onClick={() => void run(() => swapTournamentParticipant(tournament.id, { profileId: swapTarget, replacementProfileId: u.id }), `Swapped.`).then(() => setSwapTarget(null))}
                                                     variant="info" size="xs"
                                                 >
-                                                    Swap In
+                                                    {t('swapIn', 'Swap In')}
                                                 </Button>
                                             )}
                                         </div>
@@ -1640,31 +1604,31 @@ function TournamentRoute() {
                             </div>
                         ) : searchQ.trim() && (
                             <div className="py-2 text-center text-[11px] text-slate-600">
-                                No results
+                                {t('noResults', 'No results')}
                             </div>
                         )}
 
                         {/* Organizer management */}
-                        {t.viewer.canManage && (
-                            <div className="border-t border-white/6 pt-3">
+                        {tournament.viewer.canManage && (
+                            <div className="border-tournament border-white/6 pt-3">
                                 <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-300/60">
-                                    Organizers
+                                    {t('organizers', 'Organizers')}
                                 </div>
 
-                                {t.organizers.length === 0 ? (
+                                {tournament.organizers.length === 0 ? (
                                     <div className="py-1 text-[11px] text-slate-600">
-                                        No additional organizers
+                                        {t('noAdditionalOrganizers', 'No additional organizers')}
                                     </div>
                                 ) : (
                                     <div className="space-y-1 mb-2">
-                                        {t.organizers.map((org) => (
+                                        {tournament.organizers.map((org) => (
                                             <div key={org.profileId} className="flex items-center justify-between gap-2 rounded-lg bg-white/4 px-3 py-1.5">
                                                 <span className="text-[13px] font-medium text-white">
                                                     {org.displayName}
                                                 </span>
 
                                                 <Confirm
-                                                    label="Remove" onConfirm={() => void run(() => revokeTournamentOrganizer(t.id, org.profileId), `Removed organizer.`)}
+                                                    label={t('remove', 'Remove')} onConfirm={() => void run(() => revokeTournamentOrganizer(tournament.id, org.profileId), `Removed organizer.`)}
                                                 />
                                             </div>
                                         ))}
@@ -1672,7 +1636,7 @@ function TournamentRoute() {
                                 )}
 
                                 <div className="text-[10px] text-slate-500">
-                                    Search above and use the buttons below to grant organizer access:
+                                    {t('searchAboveAndUseTheButtonsBelowToGrantOrganizerAccess', 'Search above and use the buttons below to grant organizer access:')}
                                 </div>
 
                                 {searchRes.length > 0 && (
@@ -1684,10 +1648,10 @@ function TournamentRoute() {
                                                 </span>
 
                                                 <Button
-                                                    onClick={() => void run(() => grantTournamentOrganizer(t.id, u.id), `Granted organizer.`)}
+                                                    onClick={() => void run(() => grantTournamentOrganizer(tournament.id, u.id), `Granted organizer.`)}
                                                     variant="warning" size="xs"
                                                 >
-                                                    Grant
+                                                    {t('grant', 'Grant')}
                                                 </Button>
                                             </div>
                                         ))}
@@ -1697,29 +1661,29 @@ function TournamentRoute() {
                         )}
 
                         {/* Whitelist */}
-                        {t.viewer.canManage && (
-                            <div className="border-t border-white/6 pt-3">
+                        {tournament.viewer.canManage && (
+                            <div className="border-tournament border-white/6 pt-3">
                                 <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300/60">
-                                    Whitelist
-                                    {t.whitelist.length > 0 && <span className="ml-1 text-slate-600">({t.whitelist.length})</span>}
+                                    {t('whitelist', 'Whitelist')}
+                                    {tournament.whitelist.length > 0 && <span className="ml-1 text-slate-600">{t('length', '({{length}})', { length: tournament.whitelist.length })}</span>}
                                 </div>
 
                                 <p className="mb-2 text-[10px] text-slate-600">
-                                    Only whitelisted users can register. Leave empty to allow everyone.
+                                    {t('onlyWhitelistedUsersCanRegisterLeaveEmptyToAllowEveryone', 'Only whitelisted users can register. Leave empty to allow everyone.')}
                                 </p>
 
-                                {t.whitelist.map((entry) => (
+                                {tournament.whitelist.map((entry) => (
                                     <div key={entry.profileId} className="flex items-center justify-between gap-2 rounded-lg bg-white/4 px-3 py-1.5 mb-1">
                                         <span className="text-[13px] font-medium text-white">{entry.displayName}</span>
                                         <Confirm
-                                            label="Remove" onConfirm={() => void run(() => removeFromAccessList(t.id, `whitelist`, entry.profileId), `Removed.`)}
+                                            label={t('remove', 'Remove')} onConfirm={() => void run(() => removeFromAccessList(tournament.id, `whitelist`, entry.profileId), `Removed.`)}
                                         />
                                     </div>
                                 ))}
 
                                 <textarea
                                     value={wlText} onChange={(e) => { setWlText(e.target.value); setWlResult(null); }}
-                                    rows={3} placeholder="Paste usernames, one per line"
+                                    rows={3} placeholder={t('pasteUsernamesOnePerLine', 'Paste usernames, one per line')}
                                     className="mt-2 w-full rounded-md border border-white/8 bg-slate-950/60 px-2.5 py-1.5 text-[12px] text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-400/30"
                                 />
                                 <Button
@@ -1729,7 +1693,7 @@ function TournamentRoute() {
                                         if (names.length === 0) return;
                                         try {
                                             setBusy(true);
-                                            const result = await bulkAddToAccessList(t.id, `whitelist`, names);
+                                            const result = await bulkAddToAccessList(tournament.id, `whitelist`, names);
                                             setWlResult(result);
                                             setWlText(``);
                                             await tQ.refetch();
@@ -1740,19 +1704,19 @@ function TournamentRoute() {
                                     }}
                                     variant="success-soft" size="xs" className="mt-1"
                                 >
-                                    + Add Whitelist
+                                    {t('addWhitelist', '+ Add Whitelist')}
                                 </Button>
 
                                 {wlResult && (
                                     <div className="mt-2 space-y-1 text-[11px]">
                                         {wlResult.matched.length > 0 && (
                                             <div className="text-emerald-300">
-                                                Matched: {wlResult.matched.join(`, `)}
+                                                {t('matched', 'Matched:')} {wlResult.matched.join(`, `)}
                                             </div>
                                         )}
                                         {wlResult.unmatched.length > 0 && (
                                             <div className="text-rose-300">
-                                                Not found: {wlResult.unmatched.join(`, `)}
+                                                {t('notFound', 'Not found:')} {wlResult.unmatched.join(`, `)}
                                             </div>
                                         )}
                                     </div>
@@ -1760,14 +1724,14 @@ function TournamentRoute() {
 
                                 {searchRes.length > 0 && (
                                     <div className="mt-1 space-y-1">
-                                        {searchRes.filter((u) => !t.whitelist.some((e) => e.profileId === u.id)).map((u) => (
+                                        {searchRes.filter((u) => !tournament.whitelist.some((e) => e.profileId === u.id)).map((u) => (
                                             <div key={`wl-${u.id}`} className="flex items-center justify-between gap-2 rounded-lg bg-white/3 px-3 py-1.5">
                                                 <span className="text-[12px] text-slate-300">{u.username}</span>
                                                 <Button
-                                                    onClick={() => void run(() => addToAccessList(t.id, `whitelist`, u.id), `Added to whitelist.`)}
+                                                    onClick={() => void run(() => addToAccessList(tournament.id, `whitelist`, u.id), `Added to whitelist.`)}
                                                     variant="success-soft" size="xs"
                                                 >
-                                                    + Whitelist
+                                                    {t('whitelist2', '+ Whitelist')}
                                                 </Button>
                                             </div>
                                         ))}
@@ -1777,29 +1741,29 @@ function TournamentRoute() {
                         )}
 
                         {/* Blacklist */}
-                        {t.viewer.canManage && (
-                            <div className="border-t border-white/6 pt-3">
+                        {tournament.viewer.canManage && (
+                            <div className="border-tournament border-white/6 pt-3">
                                 <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-300/60">
-                                    Blacklist
-                                    {t.blacklist.length > 0 && <span className="ml-1 text-slate-600">({t.blacklist.length})</span>}
+                                    {t('blacklist', 'Blacklist')}
+                                    {tournament.blacklist.length > 0 && <span className="ml-1 text-slate-600">{t('length', '({{length}})', { length: tournament.blacklist.length })}</span>}
                                 </div>
 
                                 <p className="mb-2 text-[10px] text-slate-600">
-                                    Blacklisted users cannot register for this tournament.
+                                    {t('blacklistedUsersCannotRegisterForThisTournament', 'Blacklisted users cannot register for this tournament.')}
                                 </p>
 
-                                {t.blacklist.map((entry) => (
+                                {tournament.blacklist.map((entry) => (
                                     <div key={entry.profileId} className="flex items-center justify-between gap-2 rounded-lg bg-white/4 px-3 py-1.5 mb-1">
                                         <span className="text-[13px] font-medium text-white">{entry.displayName}</span>
                                         <Confirm
-                                            label="Remove" onConfirm={() => void run(() => removeFromAccessList(t.id, `blacklist`, entry.profileId), `Removed.`)}
+                                            label={t('remove', 'Remove')} onConfirm={() => void run(() => removeFromAccessList(tournament.id, `blacklist`, entry.profileId), `Removed.`)}
                                         />
                                     </div>
                                 ))}
 
                                 <textarea
                                     value={blText} onChange={(e) => { setBlText(e.target.value); setBlResult(null); }}
-                                    rows={3} placeholder="Paste usernames, one per line"
+                                    rows={3} placeholder={t('pasteUsernamesOnePerLine', 'Paste usernames, one per line')}
                                     className="mt-2 w-full rounded-md border border-white/8 bg-slate-950/60 px-2.5 py-1.5 text-[12px] text-white outline-none transition placeholder:text-slate-600 focus:border-rose-400/30"
                                 />
                                 <Button
@@ -1809,7 +1773,7 @@ function TournamentRoute() {
                                         if (names.length === 0) return;
                                         try {
                                             setBusy(true);
-                                            const result = await bulkAddToAccessList(t.id, `blacklist`, names);
+                                            const result = await bulkAddToAccessList(tournament.id, `blacklist`, names);
                                             setBlResult(result);
                                             setBlText(``);
                                             await tQ.refetch();
@@ -1820,19 +1784,19 @@ function TournamentRoute() {
                                     }}
                                     variant="destructive-soft" size="xs" className="mt-1"
                                 >
-                                    + Add Blacklist
+                                    {t('addBlacklist', '+ Add Blacklist')}
                                 </Button>
 
                                 {blResult && (
                                     <div className="mt-2 space-y-1 text-[11px]">
                                         {blResult.matched.length > 0 && (
                                             <div className="text-emerald-300">
-                                                Matched: {blResult.matched.join(`, `)}
+                                                {t('matched', 'Matched:')} {blResult.matched.join(`, `)}
                                             </div>
                                         )}
                                         {blResult.unmatched.length > 0 && (
                                             <div className="text-rose-300">
-                                                Not found: {blResult.unmatched.join(`, `)}
+                                                {t('notFound', 'Not found:')} {blResult.unmatched.join(`, `)}
                                             </div>
                                         )}
                                     </div>
@@ -1840,14 +1804,14 @@ function TournamentRoute() {
 
                                 {searchRes.length > 0 && (
                                     <div className="mt-1 space-y-1">
-                                        {searchRes.filter((u) => !t.blacklist.some((e) => e.profileId === u.id)).map((u) => (
+                                        {searchRes.filter((u) => !tournament.blacklist.some((e) => e.profileId === u.id)).map((u) => (
                                             <div key={`bl-${u.id}`} className="flex items-center justify-between gap-2 rounded-lg bg-white/3 px-3 py-1.5">
                                                 <span className="text-[12px] text-slate-300">{u.username}</span>
                                                 <Button
-                                                    onClick={() => void run(() => addToAccessList(t.id, `blacklist`, u.id), `Added to blacklist.`)}
+                                                    onClick={() => void run(() => addToAccessList(tournament.id, `blacklist`, u.id), `Added to blacklist.`)}
                                                     variant="destructive-soft" size="xs"
                                                 >
-                                                    + Blacklist
+                                                    {t('blacklist2', '+ Blacklist')}
                                                 </Button>
                                             </div>
                                         ))}
@@ -1857,24 +1821,24 @@ function TournamentRoute() {
                         )}
 
                         {/* Transfer ownership + leave (creator only) */}
-                        {t.viewer.isCreator && t.organizers.length > 0 && t.status !== `completed` && t.status !== `cancelled` && (
-                            <div className="border-t border-white/6 pt-3">
+                        {tournament.viewer.isCreator && tournament.organizers.length > 0 && tournament.status !== `completed` && tournament.status !== `cancelled` && (
+                            <div className="border-tournament border-white/6 pt-3">
                                 <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-rose-300/60">
-                                    Transfer Ownership
+                                    {t('transferOwnership', 'Transfer Ownership')}
                                 </div>
 
                                 <p className="mb-2 text-[11px] text-slate-500">
-                                    Transfer your role as primary organizer to another organizer and unsubscribe from this tournament.
+                                    {t('transferYourRoleAsPrimaryOrganizerToAnotherOrganizerAndUnsubscribeFromThisTournament', 'Transfer your role as primary organizer to another organizer and unsubscribe from this tournament.')}
                                 </p>
 
                                 <div className="space-y-1">
-                                    {t.organizers.map((org) => (
+                                    {tournament.organizers.map((org) => (
                                         <Confirm
                                             key={`transfer-${org.profileId}`}
-                                            label={`Transfer to ${org.displayName} & Leave`}
+                                            label={t('transferToDisplaynameLeave', 'Transfer to {{displayName}} & Leave', { displayName: org.displayName })}
                                             onConfirm={() => void run(
-                                                () => unsubscribeFromTournament(t.id, org.profileId),
-                                                `Ownership transferred to ${org.displayName}.`,
+                                                () => unsubscribeFromTournament(tournament.id, org.profileId),
+                                                t('ownershipTransferredToDisplayname', 'Ownership transferred to {{displayName}}.', { displayName: org.displayName }),
                                             )}
                                             size="sm"
                                             className="block w-full text-left"
@@ -1885,15 +1849,15 @@ function TournamentRoute() {
                         )}
 
                         {/* Dev seeder */}
-                        {import.meta.env.DEV && t.status !== `live` && t.status !== `completed` && t.status !== `cancelled` && (
-                            <div className="border-t border-white/6 pt-3">
+                        {import.meta.env.DEV && tournament.status !== `live` && tournament.status !== `completed` && tournament.status !== `cancelled` && (
+                            <div className="border-tournament border-white/6 pt-3">
                                 <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-300/60">
-                                    Dev Seed
+                                    {t('devSeed', 'Dev Seed')}
                                 </div>
 
                                 <div className="flex items-center gap-3">
                                     <input
-                                        type="number" min={1} max={t.maxPlayers} value={devCount}
+                                        type="number" min={1} max={tournament.maxPlayers} value={devCount}
                                         onChange={(e) => setDevCount(Number.parseInt(e.target.value, 10) || 1)}
                                         className="w-16 rounded border border-white/8 bg-slate-950/60 px-2 py-1 text-center text-sm text-white outline-none"
                                     />
@@ -1903,62 +1867,62 @@ function TournamentRoute() {
                                         className="rounded border border-white/8 bg-slate-950/60 px-2 py-1 text-sm text-white outline-none"
                                     >
                                         <option value="checked-in">
-                                            Checked In
+                                            {t('checkedIn', 'Checked In')}
                                         </option>
 
                                         <option value="registered">
-                                            Registered
+                                            {t('registered', 'Registered')}
                                         </option>
                                     </select>
 
                                     <Button
-                                        onClick={() => void run(() => seedTournamentWithDevUsers(t.id, { count: Math.max(1, Math.min(devCount, t.maxPlayers)), state: devState }), `Seeded.`)}
+                                        onClick={() => void run(() => seedTournamentWithDevUsers(tournament.id, { count: Math.max(1, Math.min(devCount, tournament.maxPlayers)), state: devState }), `Seeded.`)}
                                         disabled={busy}
                                         variant="success" size="xs"
                                     >
-                                        Seed
+                                        {t('seed', 'Seed')}
                                     </Button>
                                 </div>
                             </div>
                         )}
                         {/* Dev match resolver */}
-                        {import.meta.env.DEV && t.status === `live` && (
-                            <div className="border-t border-white/6 pt-3">
+                        {import.meta.env.DEV && tournament.status === `live` && (
+                            <div className="border-tournament border-white/6 pt-3">
                                 <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-300/60">
-                                    Dev Resolve
+                                    {t('devResolve', 'Dev Resolve')}
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
                                     <Button
-                                        onClick={() => void run(() => devResolveN(t.id, 1), `Resolved 1 match.`)}
+                                        onClick={() => void run(() => devResolveN(tournament.id, 1), `Resolved 1 match.`)}
                                         disabled={busy}
                                         variant="secondary" size="xs"
                                     >
-                                        Resolve 1
+                                        {t('resolve1', 'Resolve 1')}
                                     </Button>
 
                                     <Button
-                                        onClick={() => void run(() => devResolveN(t.id, 5), `Resolved up to 5.`)}
+                                        onClick={() => void run(() => devResolveN(tournament.id, 5), `Resolved up to 5.`)}
                                         disabled={busy}
                                         variant="secondary" size="xs"
                                     >
-                                        Resolve 5
+                                        {t('resolve5', 'Resolve 5')}
                                     </Button>
 
                                     <Button
-                                        onClick={() => void run(() => devResolveCurrentRound(t.id), `Round resolved.`)}
+                                        onClick={() => void run(() => devResolveCurrentRound(tournament.id), `Round resolved.`)}
                                         disabled={busy}
                                         variant="secondary" size="xs"
                                     >
-                                        Resolve Round
+                                        {t('resolveRound', 'Resolve Round')}
                                     </Button>
 
                                     <Button
-                                        onClick={() => void run(() => devResolveAll(t.id), `All resolved.`)}
+                                        onClick={() => void run(() => devResolveAll(tournament.id), `All resolved.`)}
                                         disabled={busy}
                                         variant="destructive" size="xs"
                                     >
-                                        Resolve All
+                                        {t('resolveAll', 'Resolve All')}
                                     </Button>
                                 </div>
                             </div>

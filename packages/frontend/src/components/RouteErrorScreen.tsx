@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 
 import AppErrorScreen from './AppErrorScreen';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 function getRouteErrorMessage(error: unknown) {
     if (isRouteErrorResponse(error)) {
@@ -10,17 +12,17 @@ function getRouteErrorMessage(error: unknown) {
         }
 
         if (error.status === 404) {
-            return `The page you requested could not be found.`;
+            return i18next.t('thePageYouRequestedCouldNotBeFound', 'The page you requested could not be found.');
         }
 
-        return `The router could not render this page (${error.status} ${error.statusText}).`;
+        return i18next.t('theRouterCouldNotRenderThisPageStatusStatustext', 'The router could not render this page ({{status}} {{statusText}}).', { status: error.status, statusText: error.statusText });
     }
 
     if (error instanceof Error && error.message.trim().length > 0) {
         return error.message;
     }
 
-    return `An unexpected error prevented this page from rendering.`;
+    return i18next.t('anUnexpectedErrorPreventedThisPageFromRendering', 'An unexpected error prevented this page from rendering.');
 }
 
 function getRouteErrorDetail(error: unknown) {
@@ -33,7 +35,7 @@ function getRouteErrorDetail(error: unknown) {
             return error.data;
         }
 
-        return `${error.status} ${error.statusText}`;
+        return i18next.t('statusStatustext', '{{status}} {{statusText}}', { status: error.status, statusText: error.statusText });
     }
 
     if (error instanceof Error) {
@@ -44,6 +46,7 @@ function getRouteErrorDetail(error: unknown) {
 }
 
 function RouteErrorScreen() {
+    const { t } = useTranslation()
     const error = useRouteError();
 
     useEffect(() => {
@@ -53,7 +56,7 @@ function RouteErrorScreen() {
     return (
         <AppErrorScreen
             badge="Route Error"
-            title="This screen could not be displayed."
+            title={t('thisScreenCouldNotBeDisplayed', 'This screen could not be displayed.')}
             message={getRouteErrorMessage(error)}
             detail={getRouteErrorDetail(error)}
         />

@@ -2,6 +2,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Link } from 'react-router';
 
 import PageCorpus from './PageCorpus';
+import { useTranslation } from 'react-i18next'
 
 const TURN_FLOW = [
     `Player 1 starts with 1 hex at the center.`,
@@ -25,62 +26,60 @@ const MATCH_NOTES = [
 ];
 
 function RulesScreen() {
+    const { t } = useTranslation()
     return (
         <PageCorpus
             category="How To Play"
-            title="Game Rules"
-            description="A two-player connection game on an infinite hex grid. Make a straight line of 6 before your opponent."
+            title={t('gameRules', 'Game Rules')}
+            description={t('aTwoplayerConnectionGameOnAnInfiniteHexGridMakeAStraightLineOf6BeforeYourOpponent', 'A two-player connection game on an infinite hex grid. Make a straight line of 6 before your opponent.')}
         >
             <div className="flex flex-1 flex-col gap-4 overflow-auto overscroll-contain px-4 pb-4 sm:px-6 sm:pb-6">
                 <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/45 p-5 sm:p-6">
                     <div className="flex flex-wrap gap-2">
                         <div className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-amber-100">
-                            2 Players
+                            {t('2Players', '2 Players')}
                         </div>
 
                         <div className="rounded-full border border-sky-300/20 bg-sky-400/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-sky-100">
-                            2 Hexes Per Turn
+                            {t('2HexesPerTurn', '2 Hexes Per Turn')}
                         </div>
 
                         <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-emerald-100">
-                            6 In A Row Wins
+                            {t('6InARowWins', '6 In A Row Wins')}
                         </div>
                     </div>
 
                     <div className="mt-6 grid gap-6">
                         <section>
                             <p className="text-xs uppercase tracking-[0.3em] text-sky-200/75">
-                                Game Play
+                                {t('gamePlay', 'Game Play')}
                             </p>
 
                             <ol className="mt-3 grid gap-2">
                                 {TURN_FLOW.map((step, index) => (
                                     <li key={step} className="flex gap-3 text-sm leading-6 text-slate-100 sm:text-base">
-                                        {index + 1}
-                                        .
-                                        {step}
-                                    </li>
+                                        {index + 1}{t('step', '.\n                                        {{step}}', { step })}</li>
                                 ))}
                             </ol>
                         </section>
 
                         <section className="border-t border-white/10 pt-6">
                             <p className="text-xs uppercase tracking-[0.3em] text-emerald-200/75">
-                                Win Condition
+                                {t('winCondition', 'Win Condition')}
                             </p>
 
                             <p className="mt-3 text-sm leading-6 text-slate-100 sm:text-base">
-                                Connect 6 of your own hexes in one straight line on any of the 3 board axes.
+                                {t('connect6OfYourOwnHexesInOneStraightLineOnAnyOfThe3BoardAxes', 'Connect 6 of your own hexes in one straight line on any of the 3 board axes.')}
                             </p>
 
                             <p className="mt-2 text-sm leading-6 text-slate-300 sm:text-base">
-                                Horizontal and both diagonal directions count.
+                                {t('horizontalAndBothDiagonalDirectionsCount', 'Horizontal and both diagonal directions count.')}
                             </p>
                         </section>
 
                         <section className="border-t border-white/10 pt-6">
                             <p className="text-xs uppercase tracking-[0.3em] text-amber-200/75">
-                                Legal Placements
+                                {t('legalPlacements', 'Legal Placements')}
                             </p>
 
                             <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-100 sm:text-base">
@@ -100,7 +99,7 @@ function RulesScreen() {
 
                         <section className="border-t border-white/10 pt-6">
                             <p className="text-xs uppercase tracking-[0.3em] text-sky-200/75">
-                                Match Settings
+                                {t('matchSettings', 'Match Settings')}
                             </p>
 
                             <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-100 sm:text-base">
@@ -124,15 +123,15 @@ function RulesScreen() {
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <p className="text-xs uppercase tracking-[0.3em] text-sky-100/80">
-                                Ready To Try It
+                                {t('readyToTryIt', 'Ready To Try It')}
                             </p>
 
                             <h2 className="mt-2 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl">
-                                Jump Into A Match
+                                {t('jumpIntoAMatch', 'Jump Into A Match')}
                             </h2>
 
                             <p className="mt-3 max-w-3xl text-sm leading-6 text-sky-50/90 sm:text-base">
-                                Start a live lobby or use Sandbox Mode to test openings first.
+                                {t('startALiveLobbyOrUseSandboxModeToTestOpeningsFirst', 'Start a live lobby or use Sandbox Mode to test openings first.')}
                             </p>
                         </div>
 
@@ -141,14 +140,14 @@ function RulesScreen() {
                                 to="/sandbox"
                                 className={buttonVariants({ variant: `outline`, size: `lg` })}
                             >
-                                Open Sandbox
+                                {t('openSandbox', 'Open Sandbox')}
                             </Link>
 
                             <Link
                                 to="/"
                                 className={buttonVariants({ variant: `secondary`, size: `lg` })}
                             >
-                                Find a game
+                                {t('findAGame', 'Find a game')}
                             </Link>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
 import type { GameState, SessionPlayer } from '@ih3t/shared';
 
 import { getPlayerLabel, getPlayerTileColor } from '../../utils/gameBoard';
+import { useTranslation } from 'react-i18next'
 
 type SandboxTurnIndicatorProps = {
     players: SessionPlayer[]
@@ -17,6 +18,7 @@ function SandboxTurnIndicator({
     botPlayerIds = [],
     isBotThinking = false,
 }: Readonly<SandboxTurnIndicatorProps>) {
+    const { t } = useTranslation()
     const playerIds = players.map(player => player.id);
     const playerNames = Object.fromEntries(players.map(player => [player.id, player.displayName]));
     const focusPlayerId = winnerId ?? gameState.currentTurnPlayerId;
@@ -28,15 +30,15 @@ function SandboxTurnIndicator({
     const isBotTurn = !winnerId && Boolean(focusPlayerId && botPlayerIds.includes(focusPlayerId));
 
     const headline = winnerId
-        ? `${focusPlayerLabel} Wins`
-        : `${focusPlayerLabel} To Move`;
+        ? t('focusplayerlabelWins', '{{focusPlayerLabel}} Wins', { focusPlayerLabel })
+        : t('focusplayerlabelToMove', '{{focusPlayerLabel}} To Move', { focusPlayerLabel });
     const detail = winnerId
-        ? `Start a new board to keep exploring lines.`
+        ? t('startANewBoardToKeepExploringLines', 'Start a new board to keep exploring lines.')
         : isBotTurn && isBotThinking
-            ? `Bot is thinking with ${placementsRemaining} ${placementsRemaining === 1 ? `placement` : `placements`} left this turn.`
+            ? t('botIsThinkingWithPlacementsremainingValLeftThisTurn', 'Bot is thinking with {{placementsRemaining}} {{val}} left this turn.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` })
             : isBotTurn
-                ? `Bot-controlled turn with ${placementsRemaining} ${placementsRemaining === 1 ? `placement` : `placements`} left.`
-                : `${placementsRemaining} ${placementsRemaining === 1 ? `placement` : `placements`} left this turn.`;
+                ? t('botcontrolledTurnWithPlacementsremainingValLeft', 'Bot-controlled turn with {{placementsRemaining}} {{val}} left.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` })
+                : t('placementsremainingValLeftThisTurn', '{{placementsRemaining}} {{val}} left this turn.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` });
 
     return (
         <div className="absolute left-3 right-3 top-3 flex justify-center md:left-0 md:right-0">

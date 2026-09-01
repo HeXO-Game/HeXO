@@ -14,9 +14,10 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchJson, fetchOptionalJson } from './apiClient';
 import { queryClient } from './queryClient';
 import { queryKeys } from './queryDefinitions';
+import i18next from 'i18next'
 
 async function fetchTournaments(pastPage = 1) {
-    const params = pastPage > 1 ? `?pastPage=${pastPage}` : ``;
+    const params = pastPage > 1 ? i18next.t('pastpagepastpage', '?pastPage={{pastPage}}', { pastPage }) : ``;
     return await fetchJson<TournamentListingResponse>(`/api/tournaments${params}`);
 }
 

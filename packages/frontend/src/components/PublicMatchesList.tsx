@@ -14,6 +14,8 @@ import { useQueryAccount } from '../query/accountClient';
 import { PlusIcon, ScanSearchIcon } from 'lucide-react';
 import { useQueryServerShutdown } from '../query/serverClient';
 import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 type PublicMatchesListProps = {
     liveSessions: LobbyInfo[]
@@ -81,11 +83,11 @@ function isJoinBlockedForOwnRatedSeat(session: LobbyInfo, account: AccountProfil
 
 function getJoinButtonLabel(session: LobbyInfo, account: AccountProfile | null, isAccountLoading: boolean) {
     if (isJoinBlockedForGuest(session, account)) {
-        return isAccountLoading ? `Checking Account` : `Sign In Required`;
+        return isAccountLoading ? `Checking Account` : i18next.t('signInRequired', 'Sign In Required');
     }
 
     if (isJoinBlockedForOwnRatedSeat(session, account)) {
-        return `Already Joined`;
+        return i18next.t('alreadyJoined', 'Already Joined');
     }
 
     return canJoinSession(session) ? `Join Lobby` : `Spectate`;
@@ -100,25 +102,26 @@ function formatPlayerLabel(player: LobbyInfo[`players`][number] | undefined, rat
         return null;
     }
 
-    return rated ? `${player.displayName} (${player.elo})` : player.displayName;
+    return rated ? i18next.t('displaynameElo', '{{displayName}} ({{elo}})', { displayName: player.displayName, elo: player.elo }) : player.displayName;
 }
 
 function formatSessionStatusLabel(session: LobbyInfo, now: number) {
     const duration = formatLobbyLiveDuration(session.startedAt, now);
 
     if (session.startedAt) {
-        return duration ? `In game for ${duration}` : `Game in progress`;
+        return duration ? i18next.t('inGameForDuration', 'In game for {{duration}}', { duration }) : i18next.t('gameInProgress', 'Game in progress');
     }
 
-    return `Waiting for players`;
+    return i18next.t('waitingForPlayers', 'Waiting for players');
 }
 
 function PlayerMatchup({ session }: { session: LobbyInfo }) {
+    const { t } = useTranslation()
     const [playerOne, playerTwo] = session.players;
     if (!playerOne) {
         return (
             <div className="text-xl font-bold text-white sm:text-2xl">
-                Waiting for players
+                {t('waitingForPlayers', 'Waiting for players')}
             </div>
         );
     } else if (!playerTwo) {
@@ -238,6 +241,7 @@ export default function PublicMatchesList({
     onJoinGame,
     onCreate,
 }: Readonly<PublicMatchesListProps>) {
+    const { t } = useTranslation()
     const navigate = useNavigate();
     const shutdown = useQueryServerShutdown().data ?? null;
 
@@ -274,18 +278,18 @@ export default function PublicMatchesList({
     let emptyTitle: string;
     switch (activeFilter) {
         case `all`:
-            filterSummaryLabel = `Showing all public lobbies and ongoing matches`;
-            emptyTitle = `No matches available right now`;
+            filterSummaryLabel = t('showingAllPublicLobbiesAndOngoingMatches', 'Showing all public lobbies and ongoing matches');
+            emptyTitle = t('noMatchesAvailableRightNow', 'No matches available right now');
             break;
 
         case `rated`:
-            filterSummaryLabel = `Showing rated public lobbies and ongoing matches only`;
-            emptyTitle = `No rated matches are available right now`;
+            filterSummaryLabel = t('showingRatedPublicLobbiesAndOngoingMatchesOnly', 'Showing rated public lobbies and ongoing matches only');
+            emptyTitle = t('noRatedMatchesAreAvailableRightNow', 'No rated matches are available right now');
             break;
 
         case `unrated`:
-            filterSummaryLabel = `Showing casual public lobbies and ongoing matches only`;
-            emptyTitle = `No casual matches are available right now`;
+            filterSummaryLabel = t('showingCasualPublicLobbiesAndOngoingMatchesOnly', 'Showing casual public lobbies and ongoing matches only');
+            emptyTitle = t('noCasualMatchesAreAvailableRightNow', 'No casual matches are available right now');
             break;
     }
 
@@ -298,14 +302,12 @@ export default function PublicMatchesList({
             className
         )}>
             <CardHeader>
-                <CardTitle>Available Matches</CardTitle>
+                <CardTitle>{t('availableMatches', 'Available Matches')}</CardTitle>
                 <CardDescription className={"flex flex-col gap-2"}>
                     <div>{filterSummaryLabel}</div>
                 </CardDescription>
                 <CardAction>
-                    <Badge>
-                        {liveSessions.length} Live Now
-                    </Badge>
+                    <Badge>{t('lengthLiveNow', '{{length}} Live Now', { length: liveSessions.length })}</Badge>
                 </CardAction>
             </CardHeader>
             <CardContent className={"flex-1 flex flex-col border-y sm:mx-4 overflow-y-auto scrollbar-gutter-stable"}>
@@ -321,7 +323,7 @@ export default function PublicMatchesList({
                                 className={"w-full sm:w-40"}
                                 onClick={() => navigate("/sandbox")}
                             >
-                                <ScanSearchIcon className={"mr-2"} /> Open Sandbox
+                                <ScanSearchIcon className={"mr-2"} /> {t('openSandbox', 'Open Sandbox')}
                             </Button>
                             <Button
                                 variant={"secondary"}
@@ -329,7 +331,7 @@ export default function PublicMatchesList({
                                 onClick={hostMatch}
                                 disabled={shutdown !== null}
                             >
-                                <PlusIcon className={"mr-2"} /> Create Match
+                                <PlusIcon className={"mr-2"} /> {t('createMatch', 'Create Match')}
                             </Button>
                         </div>
                     </div>
@@ -352,13 +354,11 @@ export default function PublicMatchesList({
                         value={activeFilter}
                         onChange={setActiveFilter}
                     />
-                    <div className={"text-foreground/50 text-xs"}>
-                        Showing {filteredSessions.length} / {liveSessions.length} matches
-                    </div>
+                    <div className={"text-foreground/50 text-xs"}>{t('showingLengthLength2Matches', 'Showing {{length}} / {{length2}} matches', { length: filteredSessions.length, length2: liveSessions.length })}</div>
                 </div>
                 <div className={cn("flex flex-col justify-end", filteredSessions.length === 0 && "hidden")}>
                     <Button variant={"secondary"} onClick={hostMatch} disabled={shutdown !== null}>
-                        <PlusIcon /> <span className={"hidden sm:inline"}>Create Match</span>
+                        <PlusIcon /> <span className={"hidden sm:inline"}>{t('createMatch', 'Create Match')}</span>
                     </Button>
                 </div>
             </CardFooter>

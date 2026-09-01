@@ -1,5 +1,6 @@
 import { getOrCreateDeviceId } from "../deviceId";
 import { createTrackedHeaders } from "../openReplay";
+import i18next from 'i18next'
 
 let cachedDeviceId: string | null = null;
 
@@ -57,7 +58,7 @@ export async function fetchJson<T>(
             `error` in data &&
             typeof data.error === `string`
                 ? data?.error
-                : `Request failed: ${response.status}`;
+                : i18next.t('requestFailedStatus', 'Request failed: {{status}}', { status: response.status });
         throw new ApiError(response.status, message);
     }
 

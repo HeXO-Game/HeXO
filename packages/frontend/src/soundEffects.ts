@@ -2,6 +2,7 @@ import kSoundChatMessage from './assets/sound-chat-message.aac';
 import kSoundGameLoss from './assets/sound-game-loss.aac';
 import kSoundGameStart from './assets/sound-game-start.aac';
 import kSoundGameWin from './assets/sound-game-win.aac';
+import i18next from 'i18next'
 
 type ToneOptions = {
     frequency: number
@@ -165,7 +166,7 @@ export function playMatchStartAlert() {
     if (typeof window.Notification !== `undefined` && window.Notification.permission === `granted`) {
         try {
             new window.Notification(`Game started`, {
-                body: `Your game has started.`,
+                body: i18next.t('yourGameHasStarted', 'Your game has started.'),
                 icon: `/favicon.png`,
                 tag: `game-start`,
             });

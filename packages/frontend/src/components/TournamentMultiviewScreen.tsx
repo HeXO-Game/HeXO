@@ -7,6 +7,7 @@ import GameBoardView from './game-screen/GameBoardView';
 import { formatMinutesSeconds } from '../utils/duration';
 import { getPlayerTileColor } from '../utils/gameBoard';
 import { formatTimeControl } from '../utils/gameTimeControl';
+import { useTranslation } from 'react-i18next'
 
 export type TournamentMultiviewAvailableMatch = {
     sessionId: string
@@ -116,6 +117,7 @@ function MultiviewTimerStrip({
     gameState: GameState | null
     players: SessionPlayer[]
 }>) {
+    const { t } = useTranslation()
     const currentTurnExpiresInMs = gameState?.currentTurnExpiresInMs ?? null;
     const shouldTick = status === `live` && currentTurnExpiresInMs !== null;
     const [nowMs, setNowMs] = useState(() => Date.now());
@@ -209,7 +211,7 @@ function MultiviewTimerStrip({
                 <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-slate-400">
                     {gameState.placementsRemaining}
                     {` `}
-                    {gameState.placementsRemaining === 1 ? `placement left` : `placements left`}
+                    {t('placementsLeft', { defaultValue_one: 'placement left', defaultValue_other: 'placements left', count: gameState.placementsRemaining })}
                 </span>
             </div>
         );
@@ -217,7 +219,7 @@ function MultiviewTimerStrip({
 
     return (
         <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] text-slate-400">
-            Unlimited
+            {t('unlimited', 'Unlimited')}
         </span>
     );
 }
@@ -231,6 +233,7 @@ function TournamentMultiviewTile({
     onRemove: (sessionId: string) => void
     onMove: (sessionId: string, direction: -1 | 1) => void
 }>) {
+    const { t } = useTranslation()
     const badgeColor = tile.status === `live`
         ? `sky`
         : tile.status === `finished`
@@ -255,7 +258,7 @@ function TournamentMultiviewTile({
 
                         <TileChip label={tile.statusLabel} color={badgeColor} />
 
-                        <TileChip label={`BO${tile.bestOf}`} color="slate" />
+                        <TileChip label={t('bobestof', 'BO{{bestOf}}', { bestOf: tile.bestOf })} color="slate" />
                     </div>
 
                     <div className="mt-2.5 text-lg font-black uppercase tracking-[0.06em] text-white">
@@ -274,7 +277,7 @@ function TournamentMultiviewTile({
                         <span className="text-slate-600">|</span>
 
                         <span>
-                            Game
+                            {t('game', 'Game')}
                             {` `}
                             {tile.currentGameNumber}
                         </span>
@@ -294,7 +297,7 @@ function TournamentMultiviewTile({
                         disabled={!tile.canMoveLeft}
                         variant="outline" size="xs"
                     >
-                        Move Left
+                        {t('moveLeft', 'Move Left')}
                     </Button>
 
                     <Button
@@ -302,21 +305,21 @@ function TournamentMultiviewTile({
                         disabled={!tile.canMoveRight}
                         variant="outline" size="xs"
                     >
-                        Move Right
+                        {t('moveRight', 'Move Right')}
                     </Button>
 
                     <Button
                         onClick={() => onRemove(tile.sessionId)}
                         variant="destructive-soft" size="xs"
                     >
-                        Remove
+                        {t('remove', 'Remove')}
                     </Button>
 
                     <Link
                         to={`/session/${tile.sessionId}`}
                         className={buttonVariants({ variant: `default`, size: `xxs` })}
                     >
-                        Open Full View
+                        {t('openFullView', 'Open Full View')}
                     </Link>
                 </div>
             </div>
@@ -338,7 +341,7 @@ function TournamentMultiviewTile({
                                         onClick={resetView}
                                         variant="outline" size="xs" className="pointer-events-auto"
                                     >
-                                        Reset View
+                                        {t('resetView', 'Reset View')}
                                     </Button>
                                 </div>
 
@@ -346,7 +349,7 @@ function TournamentMultiviewTile({
                                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
                                         <div className="pointer-events-auto w-full max-w-[30rem] rounded-[24px] border border-sky-200/16 bg-slate-950/84 p-5 shadow-[0_26px_80px_rgba(8,47,73,0.36)] backdrop-blur-md">
                                             <div className="inline-flex items-center rounded-full border border-sky-200/30 bg-sky-400/12 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-100">
-                                                Game Ended
+                                                {t('gameEnded2', 'Game Ended')}
                                             </div>
 
                                             <div className="mt-3 text-2xl font-black uppercase tracking-[0.06em] text-white">
@@ -363,7 +366,7 @@ function TournamentMultiviewTile({
                                                         to={tile.reviewPath}
                                                         className={buttonVariants({ variant: `info`, size: `xs` })}
                                                     >
-                                                        Review Game
+                                                        {t('reviewGame', 'Review Game')}
                                                     </Link>
                                                 )}
 
@@ -371,14 +374,14 @@ function TournamentMultiviewTile({
                                                     to={`/session/${tile.sessionId}`}
                                                     className={buttonVariants({ variant: `outline`, size: `xs` })}
                                                 >
-                                                    Open Full View
+                                                    {t('openFullView', 'Open Full View')}
                                                 </Link>
 
                                                 <Button
                                                     onClick={resetView}
                                                     variant="outline" size="sm"
                                                 >
-                                                    Reset View
+                                                    {t('resetView', 'Reset View')}
                                                 </Button>
                                             </div>
                                         </div>
@@ -391,16 +394,16 @@ function TournamentMultiviewTile({
                     <div className="flex h-full min-h-[240px] items-center justify-center px-6 text-center">
                         <div>
                             <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                                Multiview Tile
+                                {t('multiviewTile', 'Multiview Tile')}
                             </div>
 
                             <div className="mt-3 text-lg font-bold text-white">
                                 {tile.status === `loading`
-                                    ? `Joining live board`
+                                    ? t('joiningLiveBoard', 'Joining live board')
                                     : tile.status === `unavailable`
                                         ? `Session unavailable`
                                         : tile.status === `error`
-                                            ? `Could not load this session`
+                                            ? t('couldNotLoadThisSession2', 'Could not load this session')
                                             : `Board unavailable`}
                             </div>
 
@@ -430,6 +433,7 @@ function TournamentMultiviewScreen({
     onRemoveMatch,
     onMoveMatch,
 }: Readonly<TournamentMultiviewScreenProps>) {
+    const { t } = useTranslation()
     const gridClassName = tiles.length <= 1 ? `grid-cols-1` : `grid-cols-2`;
     const [isSelectorCollapsed, setIsSelectorCollapsed] = useState(true);
 
@@ -441,12 +445,12 @@ function TournamentMultiviewScreen({
                         to={`/tournaments/${tournamentId}`}
                         className="text-[11px] font-medium text-slate-400 transition hover:text-white"
                     >
-                        &larr; Back
+                        {t('larrBack', '&larr; Back')}
                     </Link>
 
                     <div className="min-w-0 flex-1">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-200/70">
-                            Multiview (Beta)
+                            {t('multiviewBeta', 'Multiview (Beta)')}
                         </div>
 
                         <h1 className="truncate text-sm font-bold text-white sm:text-base">
@@ -455,16 +459,16 @@ function TournamentMultiviewScreen({
                     </div>
 
                     <div className="hidden items-center gap-2 text-[10px] text-slate-500 lg:flex">
-                        <span>{liveMatchCount} live matches</span>
+                        <span>{t('livematchcountLiveMatches', '{{liveMatchCount}} live matches', { liveMatchCount })}</span>
                         <span>·</span>
-                        <span>Desktop only</span>
+                        <span>{t('desktopOnly', 'Desktop only')}</span>
                     </div>
 
                     <Button
                         onClick={onRefresh}
                         variant="outline" size="sm"
                     >
-                        Refresh
+                        {t('refresh', 'Refresh')}
                     </Button>
                 </div>
             </div>
@@ -473,11 +477,11 @@ function TournamentMultiviewScreen({
                 <div className="lg:hidden">
                     <div className="rounded-[28px] border border-white/10 bg-slate-950/82 p-6 shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
                         <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sky-200/70">
-                            Desktop Beta
+                            {t('desktopBeta', 'Desktop Beta')}
                         </div>
 
                         <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.06em] text-white">
-                            Mobile is unsupported currently
+                            {t('mobileIsUnsupportedCurrently', 'Mobile is unsupported currently')}
                         </h2>
                     </div>
                 </div>
@@ -487,19 +491,16 @@ function TournamentMultiviewScreen({
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
                                 <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                    Available Live Matches
+                                    {t('availableLiveMatches', 'Available Live Matches')}
                                 </div>
 
                                 <div className="mt-2 text-[12px] text-slate-300">
-                                    Add or swap live boards into the grid. Multiview is read-only and capped at four matches.
+                                    {t('addOrSwapLiveBoardsIntoTheGridMultiviewIsReadonlyAndCappedAtFourMatches', 'Add or swap live boards into the grid. Multiview is read-only and capped at four matches.')}
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                                    {tiles.length}
-                                    /4 selected
-                                </div>
+                                <div className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{t('length4Selected', '{{length}}\n                                    /4 selected', { length: tiles.length })}</div>
 
                                 <Button
                                     onClick={() => setIsSelectorCollapsed(currentState => !currentState)}
@@ -521,11 +522,11 @@ function TournamentMultiviewScreen({
                                         onClick={() => onAddMatch(match.sessionId)}
                                         disabled={match.isDisabled}
                                     >
-                                        {match.isSelected ? `${match.matchLabel} added` : `Add ${match.matchLabel}`}
+                                        {match.isSelected ? t('matchlabelAdded', '{{matchLabel}} added', { matchLabel: match.matchLabel }) : t('addMatchlabel', 'Add {{matchLabel}}', { matchLabel: match.matchLabel })}
                                     </Button>
                                 )) : (
                                     <div className="rounded-full border border-dashed border-white/10 px-4 py-2 text-[11px] text-slate-500">
-                                        No live matches are available right now.
+                                        {t('noLiveMatchesAreAvailableRightNow', 'No live matches are available right now.')}
                                     </div>
                                 )}
                             </div>
@@ -547,15 +548,15 @@ function TournamentMultiviewScreen({
                         <div className="mt-5 flex flex-1 items-center justify-center rounded-[32px] border border-dashed border-white/8 bg-slate-950/50 px-8 py-16 text-center">
                             <div>
                                 <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                                    Empty Grid
+                                    {t('emptyGrid', 'Empty Grid')}
                                 </div>
 
                                 <div className="mt-3 text-2xl font-black uppercase tracking-[0.06em] text-white">
-                                    Pick live matches to begin
+                                    {t('pickLiveMatchesToBegin', 'Pick live matches to begin')}
                                 </div>
 
                                 <p className="mt-3 max-w-xl text-sm leading-6 text-slate-400">
-                                    Add any live tournament match from the strip above. Each tile opens into the normal full spectator page when you want a closer look.
+                                    {t('addAnyLiveTournamentMatchFromTheStripAboveEachTileOpensIntoTheNormalFullSpectatorPageWhenYouWantACloserLook', 'Add any live tournament match from the strip above. Each tile opens into the normal full spectator page when you want a closer look.')}
                                 </p>
                             </div>
                         </div>

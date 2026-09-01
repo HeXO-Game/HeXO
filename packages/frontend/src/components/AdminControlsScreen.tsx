@@ -8,6 +8,8 @@ import { formatCountdownDuration } from '../utils/duration';
 import { formatTimeControl } from '../utils/gameTimeControl';
 import { formatActiveSessionDuration, formatLobbyPlayers } from '../utils/lobby';
 import PageCorpus from './PageCorpus';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 type AdminControlsScreenProps = {
     isAuthorizing: boolean
@@ -37,18 +39,19 @@ type AdminControlsScreenProps = {
 
 function renderConcurrentGamesSummary(maxConcurrentGames: string, currentConcurrentGames: number | null) {
     if (currentConcurrentGames === null) {
-        return `Loading current usage...`;
+        return i18next.t('loadingCurrentUsage', 'Loading current usage...');
     }
 
     const trimmedLimit = maxConcurrentGames.trim();
     if (!trimmedLimit) {
-        return `${currentConcurrentGames} concurrent session${currentConcurrentGames === 1 ? `` : `s`} running with no cap configured.`;
+        return i18next.t('currentconcurrentgamesConcurrentSessionvalRunningWithNoCapConfigured', '{{currentConcurrentGames}} concurrent session{{val}} running with no cap configured.', { currentConcurrentGames, val: currentConcurrentGames === 1 ? `` : `s` });
     }
 
-    return `${currentConcurrentGames} of ${trimmedLimit} concurrent session${trimmedLimit === `1` ? `` : `s`} currently in use.`;
+    return i18next.t('currentconcurrentgamesOfTrimmedlimitConcurrentSessionvalCurrentlyInUse', '{{currentConcurrentGames}} of {{trimmedLimit}} concurrent session{{val}} currently in use.', { currentConcurrentGames, trimmedLimit, val: trimmedLimit === `1` ? `` : `s` });
 }
 
 function ShutdownSummary({ shutdown }: { shutdown: ShutdownState | null }) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
 
     const [now, setNow] = useState(useSsrCompatibleNow());
@@ -69,7 +72,7 @@ function ShutdownSummary({ shutdown }: { shutdown: ShutdownState | null }) {
     if (!shutdown) {
         return (
             <div className="rounded-[1.35rem] border border-dashed border-white/10 bg-slate-950/35 px-5 py-5 text-sm text-slate-400">
-                No shutdown is currently scheduled.
+                {t('noShutdownIsCurrentlyScheduled', 'No shutdown is currently scheduled.')}
             </div>
         );
     }
@@ -77,7 +80,7 @@ function ShutdownSummary({ shutdown }: { shutdown: ShutdownState | null }) {
     return (
         <div className="rounded-[1.35rem] border border-amber-300/25 bg-amber-300/10 px-5 py-5">
             <div className="text-xs uppercase tracking-[0.24em] text-amber-100">
-                Scheduled Restart
+                {t('scheduledRestart', 'Scheduled Restart')}
             </div>
 
             <div className="mt-2 text-2xl font-black text-white">
@@ -85,7 +88,7 @@ function ShutdownSummary({ shutdown }: { shutdown: ShutdownState | null }) {
             </div>
 
             <div className="mt-3 text-sm text-amber-50/90">
-                {`Goes down at `}
+                {t('goesDownAt', 'Goes down at')}
                 {formatDateTime(intlFormatProvider, shutdown.gracefulTimeout)}
             </div>
 
@@ -122,6 +125,7 @@ function AdminControlsScreen({
     onSendMessage,
     onTerminateGame,
 }: AdminControlsScreenProps) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const [now, setNow] = useState(useSsrCompatibleNow());
 
@@ -141,26 +145,26 @@ function AdminControlsScreen({
     return (
         <PageCorpus
             category="Admin Area"
-            title="Site Controls"
-            description="Schedule a restart, send a global announcement, or terminate a live game that needs intervention."
+            title={t('siteControls', 'Site Controls')}
+            description={t('scheduleARestartSendAGlobalAnnouncementOrTerminateALiveGameThatNeedsIntervention', 'Schedule a restart, send a global announcement, or terminate a live game that needs intervention.')}
         >
             {isAuthorizing ? (
                 <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-white/6 px-6 py-10 text-center text-slate-300">
-                    Loading admin tools...
+                    {t('loadingAdminTools', 'Loading admin tools...')}
                 </div>
             ) : (
                 <div className="mt-6 px-6 grid gap-6 pb-6 xl:grid-cols-[1fr_1fr]">
                     <section className="rounded-[1.75rem] border border-white/10 bg-white/6 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.35)]">
                         <div className="text-xs uppercase tracking-[0.3em] text-emerald-200/80">
-                            Capacity
+                            {t('capacity', 'Capacity')}
                         </div>
 
                         <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-white">
-                            Concurrent Game Cap
+                            {t('concurrentGameCap', 'Concurrent Game Cap')}
                         </h2>
 
                         <p className="mt-3 text-sm leading-6 text-slate-300">
-                            Limit how many unfinished sessions can exist at once. This is enforced only on the server when a new game or rematch is created.
+                            {t('limitHowManyUnfinishedSessionsCanExistAtOnceThisIsEnforcedOnlyOnTheServerWhenANewGameOrRematchIsCreated', 'Limit how many unfinished sessions can exist at once. This is enforced only on the server when a new game or rematch is created.')}
                         </p>
 
                         {serverSettingsErrorMessage ? (
@@ -170,7 +174,7 @@ function AdminControlsScreen({
                         ) : (
                             <div className="mt-5 rounded-[1.35rem] border border-dashed border-white/10 bg-slate-950/35 px-5 py-5 text-sm text-slate-300">
                                 {isLoadingServerSettings
-                                    ? `Loading concurrent game limit...`
+                                    ? t('loadingConcurrentGameLimit', 'Loading concurrent game limit...')
                                     : renderConcurrentGamesSummary(maxConcurrentGames, currentConcurrentGames)}
                             </div>
                         )}
@@ -178,7 +182,7 @@ function AdminControlsScreen({
                         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
                             <label className="block flex-1">
                                 <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
-                                    Max Concurrent Games
+                                    {t('maxConcurrentGames', 'Max Concurrent Games')}
                                 </div>
 
                                 <input
@@ -188,7 +192,7 @@ function AdminControlsScreen({
                                     value={maxConcurrentGames}
                                     onChange={(event) => onMaxConcurrentGamesChange(event.target.value)}
                                     className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-base text-white outline-none transition focus:border-emerald-300/50"
-                                    placeholder="Leave blank for no limit"
+                                    placeholder={t('leaveBlankForNoLimit', 'Leave blank for no limit')}
                                 />
                             </label>
 
@@ -197,22 +201,22 @@ function AdminControlsScreen({
                                 disabled={isSavingServerSettings || isLoadingServerSettings}
                                 variant="success" size="lg"
                             >
-                                {isSavingServerSettings ? `Saving...` : `Save Limit`}
+                                {isSavingServerSettings ? `Saving...` : t('saveLimit', 'Save Limit')}
                             </Button>
                         </div>
                     </section>
 
                     <section className="flex flex-col rounded-[1.75rem] border border-white/10 bg-white/6 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.35)]">
                         <div className="text-xs uppercase tracking-[0.3em] text-amber-200/80">
-                            Shutdown
+                            {t('shutdown', 'Shutdown')}
                         </div>
 
                         <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-white">
-                            Server Restart
+                            {t('serverRestart', 'Server Restart')}
                         </h2>
 
                         <p className="mt-3 text-sm leading-6 text-slate-300">
-                            Scheduling a shutdown disables new matches immediately and closes remaining games when the timer ends.
+                            {t('schedulingAShutdownDisablesNewMatchesImmediatelyAndClosesRemainingGamesWhenTheTimerEnds', 'Scheduling a shutdown disables new matches immediately and closes remaining games when the timer ends.')}
                         </p>
 
                         <div className="mt-5">
@@ -222,7 +226,7 @@ function AdminControlsScreen({
                         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
                             <label className="block flex-1">
                                 <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
-                                    Grace Timeout
+                                    {t('graceTimeout', 'Grace Timeout')}
                                 </div>
 
                                 <input
@@ -255,20 +259,20 @@ function AdminControlsScreen({
 
                     <section className="col-span-2 rounded-[1.75rem] border border-white/10 bg-white/6 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.35)]">
                         <div className="text-xs uppercase tracking-[0.3em] text-sky-200/80">
-                            Broadcast
+                            {t('broadcast', 'Broadcast')}
                         </div>
 
                         <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-white">
-                            Global Message
+                            {t('globalMessage', 'Global Message')}
                         </h2>
 
                         <p className="mt-3 text-sm leading-6 text-slate-300">
-                            Send a short announcement that appears as a toast for everyone currently connected to the server.
+                            {t('sendAShortAnnouncementThatAppearsAsAToastForEveryoneCurrentlyConnectedToTheServer', 'Send a short announcement that appears as a toast for everyone currently connected to the server.')}
                         </p>
 
                         <label className="mt-5 block">
                             <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
-                                Message
+                                {t('message', 'Message')}
                             </div>
 
                             <textarea
@@ -277,22 +281,19 @@ function AdminControlsScreen({
                                 maxLength={280}
                                 rows={6}
                                 className="mt-2 min-h-40 w-full rounded-[1.4rem] border border-white/10 bg-slate-900/80 px-4 py-4 text-base text-white outline-none transition focus:border-sky-300/50"
-                                placeholder="Server maintenance starts soon. Please finish your current turn."
+                                placeholder={t('serverMaintenanceStartsSoonPleaseFinishYourCurrentTurn', 'Server maintenance starts soon. Please finish your current turn.')}
                             />
                         </label>
 
                         <div className="mt-3 flex items-center justify-between gap-3">
-                            <div className="text-sm text-slate-400">
-                                {messageDraft.trim().length}
-                                /280 characters
-                            </div>
+                            <div className="text-sm text-slate-400">{t('length280Characters', '{{length}}\n                                /280 characters', { length: messageDraft.trim().length })}</div>
 
                             <Button
                                 onClick={onSendMessage}
                                 disabled={isSendingMessage || messageDraft.trim().length === 0}
                                 variant="default" size="lg"
                             >
-                                {isSendingMessage ? `Sending...` : `Send Message`}
+                                {isSendingMessage ? `Sending...` : t('sendMessage', 'Send Message')}
                             </Button>
                         </div>
                     </section>
@@ -301,15 +302,15 @@ function AdminControlsScreen({
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                             <div>
                                 <div className="text-xs uppercase tracking-[0.3em] text-rose-200/80">
-                                    Intervention
+                                    {t('intervention', 'Intervention')}
                                 </div>
 
                                 <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em] text-white">
-                                    Active Games
+                                    {t('activeGames', 'Active Games')}
                                 </h2>
 
                                 <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-                                    Manually end an in-progress match and send both players to the terminated result screen.
+                                    {t('manuallyEndAnInprogressMatchAndSendBothPlayersToTheTerminatedResultScreen', 'Manually end an in-progress match and send both players to the terminated result screen.')}
                                 </p>
                             </div>
 
@@ -319,7 +320,7 @@ function AdminControlsScreen({
                                 </div>
 
                                 <div className="text-xs uppercase tracking-[0.2em] text-slate-400">
-                                    In Progress
+                                    {t('inProgress', 'In Progress')}
                                 </div>
                             </div>
                         </div>
@@ -327,11 +328,11 @@ function AdminControlsScreen({
                         <div className="mt-5">
                             {isLoadingActiveGames ? (
                                 <div className="rounded-[1.35rem] border border-dashed border-white/10 bg-slate-950/35 px-5 py-5 text-sm text-slate-400">
-                                    Loading active games...
+                                    {t('loadingActiveGames', 'Loading active games...')}
                                 </div>
                             ) : activeGames.length === 0 ? (
                                 <div className="rounded-[1.35rem] border border-dashed border-white/10 bg-slate-950/35 px-5 py-5 text-sm text-slate-400">
-                                    No live games are running right now.
+                                    {t('noLiveGamesAreRunningRightNow', 'No live games are running right now.')}
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -343,7 +344,7 @@ function AdminControlsScreen({
                                             <div className="min-w-0">
                                                 <div className="flex flex-wrap items-center gap-2">
                                                     <span className="rounded-full bg-rose-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-100">
-                                                        Active Game
+                                                        {t('activeGame', 'Active Game')}
                                                     </span>
 
                                                     <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${session.rated

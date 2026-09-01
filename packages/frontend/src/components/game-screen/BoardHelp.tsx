@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { InfoIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next'
 
 type DisplayShortcuts = {
     showNthLastMoveShortcuts?: boolean
@@ -100,26 +101,27 @@ function BoardHelpOverlay({
 }: Readonly<DisplayShortcuts & {
     onClose: () => void
 }>) {
+    const { t } = useTranslation()
     return (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/76 backdrop-blur-sm">
             <div
                 role="dialog"
                 aria-modal="true"
-                aria-label="Board help"
+                aria-label={t('boardHelp', 'Board help')}
                 className="w-full max-w-4xl max-h-full rounded-[2rem] overflow-y-auto border border-white/10 bg-slate-950/96 p-5 text-white shadow-[0_30px_120px_rgba(2,6,23,0.7)] sm:p-6"
             >
                 <div className="flex items-start justify-between gap-4">
                     <div>
                         <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-sky-200/75">
-                            Board Help
+                            {t('boardHelp2', 'Board Help')}
                         </div>
 
                         <h2 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-                            Shortcuts and markup
+                            {t('shortcutsAndMarkup', 'Shortcuts and markup')}
                         </h2>
 
                         <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
-                            Review recent moves, mark up candidate lines, and navigate the board without leaving the game.
+                            {t('reviewRecentMovesMarkUpCandidateLinesAndNavigateTheBoardWithoutLeavingTheGame', 'Review recent moves, mark up candidate lines, and navigate the board without leaving the game.')}
                         </p>
                     </div>
 
@@ -128,7 +130,7 @@ function BoardHelpOverlay({
                         onClick={() => onClose()}
                         variant="outline" size="sm"
                     >
-                        Close
+                        {t('close', 'Close')}
                     </Button>
                 </div>
 
@@ -141,7 +143,7 @@ function BoardHelpOverlay({
                                         1-9
                                     </ShortcutKey>
                                 )}
-                                description="Show and center the nth last move on the board."
+                                description={t('showAndCenterTheNthLastMoveOnTheBoard', 'Show and center the nth last move on the board.')}
                             />
                         )}
 
@@ -150,19 +152,19 @@ function BoardHelpOverlay({
                                 <ShortcutRow
                                     label={(
                                         <ShortcutKey>
-                                            Arrow Left
+                                            {t('arrowLeft', 'Arrow Left')}
                                         </ShortcutKey>
                                     )}
-                                    description="Undo the last move."
+                                    description={t('undoTheLastMove', 'Undo the last move.')}
                                 />
 
                                 <ShortcutRow
                                     label={(
                                         <ShortcutKey>
-                                            Arrow Right
+                                            {t('arrowRight', 'Arrow Right')}
                                         </ShortcutKey>
                                     )}
-                                    description="Redo the next move."
+                                    description={t('redoTheNextMove', 'Redo the next move.')}
                                 />
                             </>
                         )}
@@ -175,20 +177,20 @@ function BoardHelpOverlay({
                                     </ShortcutKey>
 
                                     <ShortcutKey>
-                                        F1
+                                        {t('f1', 'F1')}
                                     </ShortcutKey>
                                 </>
                             )}
-                            description="Open this help card."
+                            description={t('openThisHelpCard', 'Open this help card.')}
                         />
 
                         <ShortcutRow
                             label={(
                                 <ShortcutKey>
-                                    Esc
+                                    {t('esc', 'Esc')}
                                 </ShortcutKey>
                             )}
-                            description="Close this help card."
+                            description={t('closeThisHelpCard', 'Close this help card.')}
                         />
                     </ShortcutSection>
 
@@ -196,82 +198,82 @@ function BoardHelpOverlay({
                         <ShortcutRow
                             label={(
                                 <ShortcutKey>
-                                    Right Drag
+                                    {t('rightDrag', 'Right Drag')}
                                 </ShortcutKey>
                             )}
-                            description="Draw a markup line or mark a single cell."
+                            description={t('drawAMarkupLineOrMarkASingleCell', 'Draw a markup line or mark a single cell.')}
                         />
 
                         <ShortcutRow
                             label={(
                                 <ShortcutKey>
-                                    Right Click
+                                    {t('rightClick', 'Right Click')}
                                 </ShortcutKey>
                             )}
-                            description="Remove an existing mark."
+                            description={t('removeAnExistingMark', 'Remove an existing mark.')}
                         />
 
                         <ShortcutRow
                             label={(
                                 <>
                                     <ShortcutKey>
-                                        Shift
+                                        {t('shift', 'Shift')}
                                     </ShortcutKey>
 
                                     /
 
                                     <ShortcutKey>
-                                        Ctrl
+                                        {t('ctrl', 'Ctrl')}
                                     </ShortcutKey>
 
                                     +
 
                                     <ShortcutKey>
-                                        Right Drag
+                                        {t('rightDrag', 'Right Drag')}
                                     </ShortcutKey>
                                 </>
                             )}
-                            description="Draw markup in yellow."
+                            description={t('drawMarkupInYellow', 'Draw markup in yellow.')}
                         />
 
                         <ShortcutRow
                             label={(
                                 <>
                                     <ShortcutKey>
-                                        Alt
+                                        {t('alt', 'Alt')}
                                     </ShortcutKey>
 
                                     +
 
                                     <ShortcutKey>
-                                        Right Drag
+                                        {t('rightDrag', 'Right Drag')}
                                     </ShortcutKey>
                                 </>
                             )}
-                            description="Draw markup in blue."
+                            description={t('drawMarkupInBlue', 'Draw markup in blue.')}
                         />
 
                         <ShortcutRow
                             label={(
                                 <>
                                     <ShortcutKey>
-                                        Shift
+                                        {t('shift', 'Shift')}
                                     </ShortcutKey>
 
                                     +
 
                                     <ShortcutKey>
-                                        Left Drag
+                                        {t('leftDrag', 'Left Drag')}
                                     </ShortcutKey>
                                 </>
                             )}
-                            description="Start drawing without using the right mouse button."
+                            description={t('startDrawingWithoutUsingTheRightMouseButton', 'Start drawing without using the right mouse button.')}
                         />
                     </ShortcutSection>
                 </div>
 
                 <div className="mt-4 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm leading-6 text-slate-300">
-                    Drag to pan, use the mouse wheel or pinch to zoom, and click or tap an empty hex on your turn to place a tile.
+                    {t('dragToPanUseTheMouseWheelOrPinchToZoomAndClickOrTapAnEmptyHexOnYourTurnToPlaceATile', 'Drag to pan, use the mouse wheel or pinch to zoom, and click or tap an empty hex on your turn to place a tile.')}
                 </div>
 
                 <div className="mt-5 flex justify-end">
@@ -280,7 +282,7 @@ function BoardHelpOverlay({
                         onClick={() => onClose()}
                         variant="default" size="default"
                     >
-                        Continue Game
+                        {t('continueGame', 'Continue Game')}
                     </Button>
                 </div>
             </div>
@@ -293,10 +295,11 @@ function HelpButton({
 }: Readonly<{
     onClick: () => void
 }>) {
+    const { t } = useTranslation()
     return (
         <Button
             variant="ghost" size="icon" className="absolute bottom-2 left-2"
-            title="Board help"
+            title={t('boardHelp', 'Board help')}
             onClick={(event) => {
                 onClick();
                 event.currentTarget.blur();

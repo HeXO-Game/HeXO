@@ -6,6 +6,8 @@ import { NavLink } from 'react-router';
 import { buildFinishedGamePath } from '../routes/archiveRouteState';
 import { formatEloChange } from '../utils/elo';
 import { getPlayerResultMessage } from '../utils/sessionResult';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 
 type GameOverlayFinishedPlayerProps = {
@@ -84,32 +86,32 @@ function getRematchState(state: SessionStateFinished, players: SessionPlayer[], 
     if (state.finishReason === `terminated`) {
         return {
             enabled: false,
-            status: `This result does not support a rematch.`,
-            label: `Rematch Unavailable`,
+            status: i18next.t('thisResultDoesNotSupportARematch', 'This result does not support a rematch.'),
+            label: i18next.t('rematchUnavailable', 'Rematch Unavailable'),
         };
     } else if (!players.every(player => player.connection.status !== `disconnected`)) {
         return {
             enabled: false,
-            status: `Rematch is unavailable because the other player already left the session.`,
-            label: `Opponent Left`,
+            status: i18next.t('rematchIsUnavailableBecauseTheOtherPlayerAlreadyLeftTheSession', 'Rematch is unavailable because the other player already left the session.'),
+            label: i18next.t('opponentLeft', 'Opponent Left'),
         };
     } else if (state.rematchAcceptedPlayerIds.includes(localPlayerId)) {
         return {
             enabled: false,
-            status: `Your rematch request has been sent. Waiting for the opponent to accept.`,
-            label: `Waiting For Opponent`,
+            status: i18next.t('yourRematchRequestHasBeenSentWaitingForTheOpponentToAccept', 'Your rematch request has been sent. Waiting for the opponent to accept.'),
+            label: i18next.t('waitingForOpponent2', 'Waiting For Opponent'),
         };
     } else if (state.rematchAcceptedPlayerIds.length > 0) {
         return {
             enabled: true,
-            status: `The other player wants another round. Accept the rematch and fight again.`,
-            label: `Accept Rematch`,
+            status: i18next.t('theOtherPlayerWantsAnotherRoundAcceptTheRematchAndFightAgain', 'The other player wants another round. Accept the rematch and fight again.'),
+            label: i18next.t('acceptRematch', 'Accept Rematch'),
         };
     } else {
         return {
             enabled: true,
-            status: `You can return to the lobby, inspect the replay, or request a rematch.`,
-            label: `Rematch`,
+            status: i18next.t('youCanReturnToTheLobbyInspectTheReplayOrRequestARematch', 'You can return to the lobby, inspect the replay, or request a rematch.'),
+            label: i18next.t('rematch', 'Rematch'),
         };
     }
 }
@@ -123,6 +125,7 @@ function GameOverlayFinishedPlayer({
     onReturnToLobby,
     onRequestRematch,
 }: Readonly<GameOverlayFinishedPlayerProps>) {
+    const { t } = useTranslation()
     const isDraw = state.finishReason === `draw-agreement`;
     const isWin = state.winningPlayerId === localPlayerId;
     const currentPlayer = players.find(player => player.id === localPlayerId) ?? null;
@@ -144,28 +147,28 @@ function GameOverlayFinishedPlayer({
         ? getRematchState(state, players, localPlayerId)
         : {
             enabled: false,
-            status: `This result feeds back into the tournament bracket instead of offering a rematch.`,
-            label: `Rematch Unavailable`,
+            status: t('thisResultFeedsBackIntoTheTournamentBracketInsteadOfOfferingARematch', 'This result feeds back into the tournament bracket instead of offering a rematch.'),
+            label: t('rematchUnavailable', 'Rematch Unavailable'),
         };
     const theme = isDraw ? {
         shell: `bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(253,224,71,0.14),_transparent_28%),rgba(2,6,23,0.72)]`,
         card: `border-sky-200/20 bg-slate-950/80 shadow-[0_28px_120px_rgba(8,47,73,0.52)]`,
         badge: `border-sky-200/30 text-sky-100`,
-        accent: `from-sky-300/90 via-sky-200/40 to-amber-200/0`,
+        accent: t('fromsky30090Viasky20040Toamber2000', 'from-sky-300/90 via-sky-200/40 to-amber-200/0'),
         eloValue: `text-sky-50`,
         eloChangeValue: `text-sky-200`,
     } : isWin ? {
         shell: `bg-[radial-gradient(circle_at_top,_rgba(52,211,153,0.22),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.16),_transparent_28%),rgba(2,6,23,0.72)]`,
         card: `border-emerald-200/20 bg-slate-950/80 shadow-[0_28px_120px_rgba(5,46,22,0.52)]`,
         badge: `border-emerald-200/30 text-emerald-100`,
-        accent: `from-emerald-300/90 via-emerald-200/40 to-amber-200/0`,
+        accent: t('fromemerald30090Viaemerald20040Toamber2000', 'from-emerald-300/90 via-emerald-200/40 to-amber-200/0'),
         eloValue: `text-emerald-50`,
         eloChangeValue: `text-emerald-200`,
     } : {
         shell: `bg-[radial-gradient(circle_at_top,_rgba(251,113,133,0.24),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(251,191,36,0.14),_transparent_28%),rgba(2,6,23,0.74)]`,
         card: `border-rose-200/20 bg-slate-950/80 shadow-[0_28px_120px_rgba(76,5,25,0.54)]`,
         badge: `border-rose-200/30 text-rose-100`,
-        accent: `from-rose-300/90 via-rose-200/40 to-amber-200/0`,
+        accent: t('fromrose30090Viarose20040Toamber2000', 'from-rose-300/90 via-rose-200/40 to-amber-200/0'),
         eloValue: `text-rose-50`,
         eloChangeValue: `text-rose-200`,
     };
@@ -181,7 +184,7 @@ function GameOverlayFinishedPlayer({
 
                         <div className="relative">
                             <h1 className="max-w-2xl text-4xl font-black uppercase tracking-[0.08em] text-white sm:text-5xl lg:text-6xl">
-                                {isDraw ? `Match Drawn` : isWin ? `You've Won` : `You Lost`}
+                                {isDraw ? `Match Drawn` : isWin ? t('youveWon', 'You\'ve Won') : t('youLost', 'You Lost')}
                             </h1>
 
                             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
@@ -191,7 +194,7 @@ function GameOverlayFinishedPlayer({
                             {eloSummary && (
                                 <div className="mt-10 max-w-2xl">
                                     <div className="mb-3 text-xs font-semibold uppercase tracking-[0.3em] text-white/55">
-                                        ELO Rating
+                                        {t('eloRating', 'ELO Rating')}
                                     </div>
 
                                     <div className="flex items-end gap-3">
@@ -206,10 +209,10 @@ function GameOverlayFinishedPlayer({
 
                                     <p className="mt-3 max-w-sm text-sm leading-6 text-white/62">
                                         {eloSummary.eloChange === 0
-                                            ? `The match ended level, so your rating stayed where it is.`
+                                            ? t('theMatchEndedLevelSoYourRatingStayedWhereItIs', 'The match ended level, so your rating stayed where it is.')
                                             : eloSummary.eloChange >= 0
-                                                ? `Strong finish. Your rating climbed, and you are building momentum.`
-                                                : `Tough result, but every match sharpens your game. The next climb starts here.`}
+                                                ? t('strongFinishYourRatingClimbedAndYouAreBuildingMomentum', 'Strong finish. Your rating climbed, and you are building momentum.')
+                                                : t('toughResultButEveryMatchSharpensYourGameTheNextClimbStartsHere', 'Tough result, but every match sharpens your game. The next climb starts here.')}
                                     </p>
                                 </div>
                             )}
@@ -218,7 +221,7 @@ function GameOverlayFinishedPlayer({
 
                     <aside className="flex flex-col justify-center border-t border-white/10 bg-black/16 px-6 py-7 sm:px-8 sm:py-8 md:border-l md:border-t-0 lg:px-9">
                         <div className="text-sm font-semibold uppercase tracking-[0.22em] text-white/65">
-                            Continue
+                            {t('continue', 'Continue')}
                         </div>
 
                         <p className="mt-3 text-sm leading-6 text-slate-200">
@@ -243,7 +246,7 @@ function GameOverlayFinishedPlayer({
                                 className={`${buttonVariants({ variant: isDraw ? `info` : isWin ? `success-soft` : `destructive-soft`, size: `xl` })} w-full`}
                                 target="_blank"
                             >
-                                Review Game
+                                {t('reviewGame', 'Review Game')}
                             </NavLink>
 
                             <Button
@@ -252,7 +255,7 @@ function GameOverlayFinishedPlayer({
                                 onClick={onReturnToLobby}
                                 className="w-full"
                             >
-                                {isTournament ? `Return To Tournament` : `Return To Lobby`}
+                                {isTournament ? t('returnToTournament', 'Return To Tournament') : t('returnToLobby', 'Return To Lobby')}
                             </Button>
                         </div>
                     </aside>

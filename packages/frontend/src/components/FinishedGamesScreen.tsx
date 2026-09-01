@@ -14,6 +14,7 @@ import { getVisiblePageNumbers } from '../utils/pagination';
 import PageCorpus from './PageCorpus';
 import RatedFilterTabs from './RatedFilterTabs';
 import { Badge } from './ui/badge';
+import { useTranslation } from 'react-i18next'
 
 type FinishedGamesScreenProps = {
     archive: FinishedGamesPage | null
@@ -83,6 +84,7 @@ function FinishedGamesScreen({
     ratedFilter,
     onChangeRatedFilter,
 }: Readonly<FinishedGamesScreenProps>) {
+    const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const isOwnArchive = archiveView === `mine`;
     const games = archive?.games ?? [];
@@ -98,15 +100,15 @@ function FinishedGamesScreen({
     return (
         <PageCorpus
             category="Finished Games"
-            title={isOwnArchive ? `My Match History` : `Match Archive`}
+            title={isOwnArchive ? t('myMatchHistory', 'My Match History') : `Match Archive`}
             description={isOwnArchive
-                ? `Review the finished matches you played while signed in and open any replay move by move.`
-                : `Browse completed matches and open any game to step through every move on the board.`}
+                ? t('reviewTheFinishedMatchesYouPlayedWhileSignedInAndOpenAnyReplayMoveByMove', 'Review the finished matches you played while signed in and open any replay move by move.')
+                : t('browseCompletedMatchesAndOpenAnyGameToStepThroughEveryMoveOnTheBoard', 'Browse completed matches and open any game to step through every move on the board.')}
         >
             <div className="grid gap-2 sm:gap-3 grid-cols-2 lg:grid-cols-[auto_auto_1fr] px-4 sm:px-6">
                 <div className="inline-flex items-center rounded-md border border-white/10 bg-white/6 px-3 py-1.5 text-xs text-slate-200 sm:px-4 sm:py-2 sm:text-sm">
                     <span className="uppercase tracking-[0.18em] text-slate-400 sm:tracking-[0.22em]">
-                        Games
+                        {t('games', 'Games')}
                     </span>
 
                     <span className="ml-2 text-base font-black text-white sm:ml-3 sm:text-lg">
@@ -116,7 +118,7 @@ function FinishedGamesScreen({
 
                 <div className="inline-flex items-center rounded-md border border-white/10 bg-white/6 px-3 py-1.5 text-xs text-slate-200 sm:px-4 sm:py-2 sm:text-sm">
                     <span className="uppercase tracking-[0.18em] text-slate-400 sm:tracking-[0.22em]">
-                        Moves
+                        {t('moves2', 'Moves')}
                     </span>
 
                     <span className="ml-2 text-base font-black text-white sm:ml-3 sm:text-lg">
@@ -137,11 +139,11 @@ function FinishedGamesScreen({
                 {showSignInHint && (
                     <div className="col-span-2 w-full rounded-[1.35rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-50 sm:px-5 lg:col-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1 lg:ml-auto lg:max-w-md lg:text-right">
                         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/90">
-                            Personal Match History
+                            {t('personalMatchHistory', 'Personal Match History')}
                         </div>
 
                         <div className="mt-2 leading-6 text-amber-50/85">
-                            Sign in with Discord to unlock your own match history.
+                            {t('signInWithDiscordToUnlockYourOwnMatchHistory', 'Sign in with Discord to unlock your own match history.')}
                         </div>
                     </div>
                 )}
@@ -150,24 +152,24 @@ function FinishedGamesScreen({
             <section className="flex md:min-h-0 md:h-full min-w-0 flex-col p-0 scrollbar-gutter-stable py-2 px-4 sm:px-6">
                 {isLoading ? (
                     <div className="flex flex-1 items-center justify-center rounded-3xl border border-dashed border-white/15 bg-white/5 px-6 py-12 text-center text-slate-300">
-                        Loading finished games...
+                        {t('loadingFinishedGames', 'Loading finished games...')}
                     </div>
                 ) : requiresSignIn ? (
                     <div className="flex flex-1 items-center justify-center rounded-3xl border border-amber-300/20 bg-amber-400/10 px-6 py-8 text-center text-amber-50">
                         <div>
                             <p className="text-lg font-semibold text-white">
-                                Sign in to view your own match history.
+                                {t('signInToViewYourOwnMatchHistory', 'Sign in to view your own match history.')}
                             </p>
 
                             <p className="mt-3 text-sm leading-6 text-amber-50/80">
-                                You have to login in order to view your personal match history.
+                                {t('youHaveToLoginInOrderToViewYourPersonalMatchHistory', 'You have to login in order to view your personal match history.')}
                             </p>
                         </div>
                     </div>
                 ) : errorMessage ? (
                     <div className="flex flex-col flex-1 items-center justify-center rounded-3xl border border-rose-300/20 bg-rose-500/10 px-6 py-8 text-center text-rose-100">
                         <p className="text-lg font-semibold">
-                            Could not load finished games.
+                            {t('couldNotLoadFinishedGames', 'Could not load finished games.')}
                         </p>
 
                         <p className="mt-3 text-sm leading-6 text-rose-100/85">
@@ -178,13 +180,13 @@ function FinishedGamesScreen({
                     <div className="flex flex-1 items-center justify-center rounded-3xl border border-dashed border-white/15 bg-white/5 px-6 py-12 text-center text-slate-300">
                         <div>
                             <p className="text-lg font-semibold text-white">
-                                {isOwnArchive ? `You have not finished any signed-in matches yet.` : `No finished games are stored yet.`}
+                                {isOwnArchive ? t('youHaveNotFinishedAnySignedinMatchesYet', 'You have not finished any signed-in matches yet.') : t('noFinishedGamesAreStoredYet', 'No finished games are stored yet.')}
                             </p>
 
                             <p className="mt-3 text-sm leading-6 text-slate-400">
                                 {isOwnArchive
-                                    ? `Once you complete a match while logged in, it will appear here automatically.`
-                                    : `Once MongoDB-backed history is available and matches finish, they will show up here automatically.`}
+                                    ? t('onceYouCompleteAMatchWhileLoggedInItWillAppearHereAutomatically', 'Once you complete a match while logged in, it will appear here automatically.')
+                                    : t('onceMongodbbackedHistoryIsAvailableAndMatchesFinishTheyWillShowUpHereAutomatically', 'Once MongoDB-backed history is available and matches finish, they will show up here automatically.')}
                             </p>
                         </div>
                     </div>
@@ -273,7 +275,7 @@ function FinishedGamesScreen({
                                     disabled={currentPage <= 1}
                                     variant="outline" size="sm" className="w-[10em]"
                                 >
-                                    Previous
+                                    {t('previous', 'Previous')}
                                 </Button>
 
                                 <div className="row-start-2 col-span-2 flex flex-1 flex-nowrap justify-center gap-1 sm:gap-2">
@@ -296,12 +298,12 @@ function FinishedGamesScreen({
                                     disabled={currentPage >= totalPages}
                                     variant="outline" size="sm" className="ml-auto w-[10em]"
                                 >
-                                    Next
+                                    {t('next', 'Next')}
                                 </Button>
                             </div>
 
                             <div className="mt-3 text-xs text-slate-400 sm:text-right sm:text-sm">
-                                {`Showing ${pageStart} - ${pageEnd} of ${totalGames} ${isOwnArchive ? `personal matches` : `archived matches`}`}
+                                {t('showingPagestartPageendOfTotalgamesVal', 'Showing {{pageStart}} - {{pageEnd}} of {{totalGames}} {{val}}', { pageStart, pageEnd, totalGames, val: isOwnArchive ? `personal matches` : `archived matches` })}
                             </div>
                         </div>
                     </div>

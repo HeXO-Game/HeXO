@@ -7,6 +7,7 @@ import { useLiveGameStore } from '../liveGameStore';
 import { claimMatchWin, requestMatchExtension } from '../query/tournamentClient';
 import { formatTimeControl } from '../utils/gameTimeControl';
 import ScreenFooter from './ScreenFooter';
+import { useTranslation } from 'react-i18next'
 
 type WaitingScreenProps = {
     sessionId: string
@@ -61,6 +62,7 @@ function TournamentTimerSection({
     claimWinState: MatchClaimWinState | null
     opponentName: string | null
 }) {
+    const { t } = useTranslation()
     const hasTimeout = tournament.matchJoinTimeoutMs > 0;
     const joinDeadline = useMemo(
         () => tournament.matchJoinTimeoutInMs !== null ? Date.now() + tournament.matchJoinTimeoutInMs : null,
@@ -89,7 +91,7 @@ function TournamentTimerSection({
             setIsClaimPending(true);
             await claimMatchWin(tournament.tournamentId, tournament.matchId);
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : `Failed to claim win.`;
+            const message = error instanceof Error ? error.message : t('failedToClaimWin', 'Failed to claim win.');
             toast.error(message, { toastId: `claim-win-error` });
         } finally {
             setIsClaimPending(false);
@@ -100,9 +102,9 @@ function TournamentTimerSection({
         try {
             setIsExtensionPending(true);
             await requestMatchExtension(tournament.tournamentId, tournament.matchId);
-            toast.success(`Extension requested. Waiting for organizer approval.`, { toastId: `extension-requested` });
+            toast.success(t('extensionRequestedWaitingForOrganizerApproval', 'Extension requested. Waiting for organizer approval.'), { toastId: `extension-requested` });
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : `Failed to request extension.`;
+            const message = error instanceof Error ? error.message : t('failedToRequestExtension', 'Failed to request extension.');
             toast.error(message, { toastId: `extension-error` });
         } finally {
             setIsExtensionPending(false);
@@ -114,13 +116,11 @@ function TournamentTimerSection({
         return (
             <div className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 px-4 py-4 text-center">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-rose-200/80">
-                    Claiming Win
+                    {t('claimingWin', 'Claiming Win')}
                 </div>
-                <div className="mt-2 text-3xl font-black tabular-nums text-rose-100">
-                    {claimSeconds}s
-                </div>
+                <div className="mt-2 text-3xl font-black tabular-nums text-rose-100">{t('claimsecondss', '{{claimSeconds}}s', { claimSeconds })}</div>
                 <p className="mt-1 text-xs text-rose-200/70">
-                    {opponentName ?? `Opponent`} has {claimSeconds} second{claimSeconds !== 1 ? `s` : ``} to join before the match is forfeited.
+                    {opponentName ?? `Opponent`}{t('hasClaimsecondsSecond', 'has {{claimSeconds}} second', { claimSeconds })}{claimSeconds !== 1 ? `s` : ``} {t('toJoinBeforeTheMatchIsForfeited', 'to join before the match is forfeited.')}
                 </p>
             </div>
         );
@@ -130,12 +130,12 @@ function TournamentTimerSection({
         return (
             <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-400/10 px-4 py-4 text-center">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200/80">
-                    Extension Pending
+                    {t('extensionPending', 'Extension Pending')}
                 </div>
                 <p className="mt-2 text-sm text-amber-100/80">
                     {isTimedOut
-                        ? `The join timer expired, and an extension request is waiting for organizer review.`
-                        : `An extension request is waiting for organizer review.`}
+                        ? t('theJoinTimerExpiredAndAnExtensionRequestIsWaitingForOrganizerReview', 'The join timer expired, and an extension request is waiting for organizer review.')
+                        : t('anExtensionRequestIsWaitingForOrganizerReview', 'An extension request is waiting for organizer review.')}
                 </p>
             </div>
         );
@@ -146,10 +146,10 @@ function TournamentTimerSection({
             <div className="mt-4 space-y-3">
                 <div className="rounded-2xl border border-amber-300/25 bg-amber-400/10 px-4 py-4 text-center">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200/80">
-                        Join Timer Expired
+                        {t('joinTimerExpired', 'Join Timer Expired')}
                     </div>
                     <p className="mt-2 text-sm text-amber-100/80">
-                        {opponentName ?? `Your opponent`} did not join in time.
+                        {opponentName ?? t('yourOpponent', 'Your opponent')} {t('didNotJoinInTime', 'did not join in time.')}
                     </p>
                 </div>
 
@@ -168,7 +168,7 @@ function TournamentTimerSection({
                     disabled={isExtensionPending}
                     variant="outline" size="lg" className="w-full"
                 >
-                    {isExtensionPending ? `Requesting...` : `Request Extension (+${extensionMinutes} min)`}
+                    {isExtensionPending ? `Requesting...` : t('requestExtensionExtensionminutesMin', 'Request Extension (+{{extensionMinutes}} min)', { extensionMinutes })}
                 </Button>
             </div>
         );
@@ -178,7 +178,7 @@ function TournamentTimerSection({
         <div className="mt-4 space-y-3">
             <div className="rounded-2xl border border-white/10 bg-slate-950/35 px-4 py-4 text-center">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300">
-                    {opponentName ? `${opponentName} Must Join Within` : `Opponent Must Join Within`}
+                    {opponentName ? t('opponentnameMustJoinWithin', '{{opponentName}} Must Join Within', { opponentName }) : t('opponentMustJoinWithin', 'Opponent Must Join Within')}
                 </div>
                 <div className="mt-2 text-3xl font-black tabular-nums text-white">
                     {joinRemaining !== null ? formatCountdown(joinRemaining) : `--:--`}
@@ -208,6 +208,7 @@ function WaitingScreen({
     onPlayOffline,
     onCancel,
 }: Readonly<WaitingScreenProps>) {
+    const { t } = useTranslation()
     const isTournament = tournament !== null;
     const claimWinState = useLiveGameStore((s) => s.claimWinState);
     const opponentName = isTournament
@@ -219,15 +220,15 @@ function WaitingScreen({
         <div className="flex flex-col justify-between h-full p-4 mx-8">
             <div className="flex flex-col min-w-30 w-full max-w-2xl self-center my-auto pb-[10svh]">
                 <h2 className="font-black uppercase tracking-[0.08em] text-white mt-6 text-4xl">
-                    {`Waiting for ${isTournament ? opponentName ?? `opponent` : `another player`}`}
+                    {t('waitingForVal', 'Waiting for {{val}}', { val: isTournament ? opponentName ?? `opponent` : `another player` })}
                 </h2>
 
                 <p className="mt-4 text-slate-200 text-base leading-7">
                     {isTournament
-                        ? `Your opponent has been notified. The match will start automatically once they join.`
+                        ? t('yourOpponentHasBeenNotifiedTheMatchWillStartAutomaticallyOnceTheyJoin', 'Your opponent has been notified. The match will start automatically once they join.')
                         : gameOptions.visibility === `private`
-                            ? `Keep this session open and share the invite link with the player you want to join. The match will launch automatically once they arrive.`
-                            : `Keep this session open. As soon as the second player joins, the match will launch automatically.`}
+                            ? t('keepThisSessionOpenAndShareTheInviteLinkWithThePlayerYouWantToJoinTheMatchWillLaunchAutomaticallyOnceTheyArrive', 'Keep this session open and share the invite link with the player you want to join. The match will launch automatically once they arrive.')
+                            : t('keepThisSessionOpenAsSoonAsTheSecondPlayerJoinsTheMatchWillLaunchAutomatically', 'Keep this session open. As soon as the second player joins, the match will launch automatically.')}
                 </p>
 
                 <div className="relative flex flex-1 flex-col justify-center">
@@ -236,7 +237,7 @@ function WaitingScreen({
                             <>
                                 <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
                                     <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                        Tournament
+                                        {t('tournament', 'Tournament')}
                                     </div>
                                     <div className="mt-2 break-words text-lg font-bold leading-tight text-white">
                                         {tournament.tournamentName}
@@ -244,21 +245,20 @@ function WaitingScreen({
                                 </div>
                                 <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
                                     <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                        Time Control
+                                        {t('timeControl', 'Time Control')}
                                     </div>
                                     <div className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">
                                         {formatTimeControl(gameOptions.timeControl)}
                                     </div>
                                     <div className="mt-1 whitespace-nowrap text-sm tabular-nums text-slate-400">
-                                        {tournament.bracket.replace(/-/g, ` `)} R{tournament.round} · BO{tournament.bestOf} · Game {tournament.currentGameNumber} · Score {tournament.leftWins}‑{tournament.rightWins}
-                                    </div>
+                                        {tournament.bracket.replace(/-/g, ` `)}{t('rroundBobestofGameCurrentgamenumberScoreLeftwinsrightwins', 'R{{round}} · BO{{bestOf}} · Game {{currentGameNumber}} · Score {{leftWins}}‑{{rightWins}}', { round: tournament.round, bestOf: tournament.bestOf, currentGameNumber: tournament.currentGameNumber, leftWins: tournament.leftWins, rightWins: tournament.rightWins })}</div>
                                 </div>
                             </>
                         ) : (
                             <>
                                 <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
                                     <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                        Session ID
+                                        {t('sessionId', 'Session ID')}
                                     </div>
                                     <div className="mt-2 break-all text-2xl font-bold text-amber-200 sm:text-3xl">
                                         {sessionId}
@@ -266,7 +266,7 @@ function WaitingScreen({
                                 </div>
                                 <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
                                     <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                        Visibility
+                                        {t('visibility', 'Visibility')}
                                     </div>
                                     <div className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">
                                         {gameOptions.visibility === `private` ? `Private Lobby` : `Public Lobby`}
@@ -274,7 +274,7 @@ function WaitingScreen({
                                 </div>
                                 <div className="min-w-0 rounded-[1.5rem] border border-white/10 bg-slate-950/35 p-4 sm:rounded-3xl sm:p-5">
                                     <div className="text-xs uppercase tracking-[0.28em] text-slate-300">
-                                        Time Control
+                                        {t('timeControl', 'Time Control')}
                                     </div>
                                     <div className="mt-2 break-words text-xl font-bold leading-tight text-white sm:text-2xl">
                                         {formatTimeControl(gameOptions.timeControl)}
@@ -299,7 +299,7 @@ function WaitingScreen({
                                 variant="default" size="lg"
                                 className={"w-full"}
                             >
-                                Invite Friend
+                                {t('inviteFriend', 'Invite Friend')}
                             </Button>
 
                             <Button
@@ -307,7 +307,7 @@ function WaitingScreen({
                                 variant="destructive" size="lg"
                                 className={"w-full"}
                             >
-                                Cancel Lobby
+                                {t('cancelLobby', 'Cancel Lobby')}
                             </Button>
 
                             {showOfflinePlayButton && (
@@ -316,7 +316,7 @@ function WaitingScreen({
                                     variant="success-soft" size="lg"
                                     className={"w-full"}
                                 >
-                                    Play Offline Vs Bot
+                                    {t('playOfflineVsBot', 'Play Offline Vs Bot')}
                                 </Button>
                             )}
                         </div>

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 
 import GameHudShell from '../game-screen/GameHudShell';
+import { useTranslation } from 'react-i18next'
 
 type SandboxHudProps = {
     positionName: string | null
@@ -30,11 +31,12 @@ function SandboxHud({
     canSharePosition,
     isSharingPosition,
 }: Readonly<SandboxHudProps>) {
+    const { t } = useTranslation()
     const [isHudOpen, setIsHudOpen] = useState(true);
-    const resetBoardLabel = positionName ? `Restore Position` : `Clear Board`;
+    const resetBoardLabel = positionName ? `Restore Position` : t('clearBoard', 'Clear Board');
     const description = positionName
-        ? `Play from this saved position locally with no clock. Assign either side to a bot or control both players yourself.`
-        : `Local sandbox with no clock. Control both players yourself or let a bot take either side.`;
+        ? t('playFromThisSavedPositionLocallyWithNoClockAssignEitherSideToABotOrControlBothPlayersYourself', 'Play from this saved position locally with no clock. Assign either side to a bot or control both players yourself.')
+        : t('localSandboxWithNoClockControlBothPlayersYourselfOrLetABotTakeEitherSide', 'Local sandbox with no clock. Control both players yourself or let a bot take either side.');
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -74,8 +76,8 @@ function SandboxHud({
                 <Button
                     onClick={() => setIsHudOpen(false)}
                     aria-expanded={isHudOpen}
-                    aria-label="Close sandbox HUD"
-                    title="Close sandbox HUD"
+                    aria-label={t('closeSandboxHud', 'Close sandbox HUD')}
+                    title={t('closeSandboxHud', 'Close sandbox HUD')}
                     variant="muted" size="icon"
                 >
                     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -86,11 +88,11 @@ function SandboxHud({
             </div>
 
             <div className="text-sm uppercase tracking-[0.25em] text-emerald-300">
-                Sandbox Mode
+                {t('sandboxMode', 'Sandbox Mode')}
             </div>
 
             <h1 className="mt-1 text-2xl font-bold">
-                Infinite Hex Tic-Tac-Toe
+                {t('infiniteHexTictactoe', 'Infinite Hex Tic-Tac-Toe')}
             </h1>
 
             <div className="mt-2 text-sm text-slate-300">
@@ -100,7 +102,7 @@ function SandboxHud({
             <div className="mt-4 grid grid-cols-2 gap-4 text-sm md:grid-cols-1">
                 <div className="border-l border-white/18 pl-3">
                     <div className="text-[11px] uppercase tracking-[0.28em] text-slate-400">
-                        Cells
+                        {t('cells', 'Cells')}
                     </div>
 
                     <div className="mt-1 text-white">
@@ -128,17 +130,17 @@ function SandboxHud({
                             </div>
 
                             <div className="text-slate-300">
-                                Shared starting position
+                                {t('sharedStartingPosition', 'Shared starting position')}
                             </div>
                         </>
                     ) : (
                         <>
                             <div className="mt-1 text-white">
-                                Clean board
+                                {t('cleanBoard', 'Clean board')}
                             </div>
 
                             <div className="text-slate-300">
-                                Local free play
+                                {t('localFreePlay2', 'Local free play')}
                             </div>
                         </>
                     )}
@@ -152,7 +154,7 @@ function SandboxHud({
                     onClick={onResetView}
                     className="min-w-[9rem] flex-1 md:flex-none"
                 >
-                    Reset View
+                    {t('resetView', 'Reset View')}
                 </Button>
 
                 <Button
@@ -183,7 +185,7 @@ function SandboxHud({
                     disabled={!canUndo}
                     className="min-w-[9rem] flex-1 md:flex-none"
                 >
-                    Undo
+                    {t('undo', 'Undo')}
                 </Button>
 
                 <Button
@@ -193,13 +195,13 @@ function SandboxHud({
                     disabled={!canRedo}
                     className="min-w-[9rem] flex-1 md:flex-none"
                 >
-                    Redo
+                    {t('redo', 'Redo')}
                 </Button>
             </div>
 
             {!isAuthenticated && (
                 <div className="w-full content-center mt-3 inline-flex items-center gap-2 rounded-full border border-amber-300/20 bg-amber-400/10 px-5 py-1 text-sm text-amber-100">
-                    Sign in to share positions.
+                    {t('signInToSharePositions', 'Sign in to share positions.')}
                 </div>
             )}
         </GameHudShell>

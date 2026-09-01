@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 
 import { listDevAuthUsers, signInWithDevUser, signOutDevUser } from '../query/devAuthClient';
+import { useTranslation } from 'react-i18next'
 
 function PermissionBadge({
     label,
@@ -26,6 +27,7 @@ function PermissionBadge({
 }
 
 function DevAuthPanel({ account }: { account: AccountProfile | null }) {
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     const [users, setUsers] = useState<AccountProfile[]>([]);
@@ -41,7 +43,7 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
             const response = await listDevAuthUsers();
             setUsers(response.users);
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : `Failed to load development users.`;
+            const message = error instanceof Error ? error.message : t('failedToLoadDevelopmentUsers', 'Failed to load development users.');
             toast.error(message, {
                 toastId: `error:${message}`,
             });
@@ -62,12 +64,12 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
         try {
             setPendingUserId(userId);
             const response = await signInWithDevUser(userId);
-            toast.success(`Signed in as ${response.user?.username ?? `development user`}.`, {
+            toast.success(t('signedInAsVal', 'Signed in as {{val}}.', { val: response.user?.username ?? `development user` }), {
                 toastId: `success:dev-sign-in:${userId}`,
             });
             setIsOpen(false);
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : `Failed to sign in as the selected development user.`;
+            const message = error instanceof Error ? error.message : t('failedToSignInAsTheSelectedDevelopmentUser', 'Failed to sign in as the selected development user.');
             toast.error(message, {
                 toastId: `error:${message}`,
             });
@@ -80,12 +82,12 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
         try {
             setPendingUserId(`logout`);
             await signOutDevUser();
-            toast.success(`Signed out of the development session.`, {
+            toast.success(t('signedOutOfTheDevelopmentSession', 'Signed out of the development session.'), {
                 toastId: `success:dev-sign-out`,
             });
             setIsOpen(false);
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : `Failed to sign out of the development session.`;
+            const message = error instanceof Error ? error.message : t('failedToSignOutOfTheDevelopmentSession', 'Failed to sign out of the development session.');
             toast.error(message, {
                 toastId: `error:${message}`,
             });
@@ -101,23 +103,23 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
                 onClick={handleToggle}
                 variant="success-soft" size="sm"
             >
-                {account ? `Switch Mock User` : `Mock Sign In`}
+                {account ? t('switchMockUser', 'Switch Mock User') : t('mockSignIn', 'Mock Sign In')}
             </Button>
 
             {isOpen && (
                 <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-88 max-w-[calc(100vw-2rem)] rounded-[1.5rem] border border-emerald-300/18 bg-slate-950/95 p-4 shadow-[0_20px_60px_rgba(2,6,23,0.5)] backdrop-blur-xl">
                     <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/80">
-                        Development Auth
+                        {t('developmentAuth', 'Development Auth')}
                     </div>
 
                     <p className="mt-2 text-sm leading-6 text-slate-300">
-                        Seeded local users for testing community events, official organizer access, and player check-in flows.
+                        {t('seededLocalUsersForTestingCommunityEventsOfficialOrganizerAccessAndPlayerCheckinFlows', 'Seeded local users for testing community events, official organizer access, and player check-in flows.')}
                     </p>
 
                     <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
                         {isLoadingUsers ? (
                             <div className="rounded-2xl border border-white/10 bg-white/6 px-4 py-4 text-sm text-slate-300">
-                                Loading mock users...
+                                {t('loadingMockUsers', 'Loading mock users...')}
                             </div>
                         ) : users.map((user) => {
                             const isSelected = account?.id === user.id;
@@ -146,7 +148,7 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
                                         </div>
 
                                         <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                                            {user.role === `admin` && <PermissionBadge label="Admin" tone="warning" />}
+                                            {user.role === `admin` && <PermissionBadge label={t('admin', 'Admin')} tone="warning" />}
                                             {user.role !== `admin` && user.permissions.length === 0 && (
                                                 <PermissionBadge label="Player" tone="default" />
                                             )}
@@ -164,7 +166,7 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
                             disabled={pendingUserId === `logout`}
                             variant="destructive-soft" size="default" className="mt-4 w-full"
                         >
-                            Clear Mock Session
+                            {t('clearMockSession', 'Clear Mock Session')}
                         </Button>
                     )}
                 </div>

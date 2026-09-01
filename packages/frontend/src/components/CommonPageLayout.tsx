@@ -9,6 +9,7 @@ import { cn } from '../utils/cn';
 import AccountPicture from './AccountPicture';
 import AppErrorBoundary from './AppErrorBoundary';
 import DevAuthPanel from './DevAuthPanel';
+import { useTranslation } from 'react-i18next'
 
 function showErrorToast(message: string) {
     toast.error(message, {
@@ -84,12 +85,13 @@ function DiscordLink({
 }: Readonly<{
     className?: string
 }>) {
+    const { t } = useTranslation()
     return (
         <a
             href={OFFICIAL_DISCORD_INVITE_URL}
             target="_blank"
             rel="noreferrer"
-            title="Open the official Discord server in a new tab"
+            title={t('openTheOfficialDiscordServerInANewTab', 'Open the official Discord server in a new tab')}
             className={cn("flex flex-row gap-1 rounded-sm px-3 py-2.5 text-sm transition text-slate-300 hover:text-sky-50 fill-slate-300 hover:fill-sky-50", "py-2 hover:bg-[#5865F2]", className)}
         >
             <svg
@@ -105,7 +107,7 @@ function DiscordLink({
             </svg>
 
             <span className={"self-center"}>
-                Discord
+                {t('discord', 'Discord')}
             </span>
         </a>
     );
@@ -113,6 +115,7 @@ function DiscordLink({
 
 
 function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hideMobile?: boolean }) {
+    const { t } = useTranslation()
     const location = useLocation();
     const accountQuery = useQueryAccount({ enabled: true });
     const account = accountQuery.data?.user ?? null;
@@ -195,16 +198,16 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
 
                         <span className="min-w-0 text-left leading-tight">
                             <span className="font-semibold text-sky-100">
-                                HEXO
+                                {t('hexo2', 'HEXO')}
                             </span>
 
                             <span className="block text-xs font-semibold text-sky-100">
                                 <span className="mr-1">
-                                    Infinite Hexagonal
+                                    {t('infiniteHexagonal', 'Infinite Hexagonal')}
                                 </span>
 
                                 <span className="inline-block">
-                                    Tic-Tac-Toe
+                                    {t('tictactoe', 'Tic-Tac-Toe')}
                                 </span>
                             </span>
                         </span>
@@ -214,7 +217,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                         <nav className="hidden xl:flex flex-wrap items-center gap-2" aria-label="Primary">
                             <NavigationLink to="/rules" label="Rules" />
                             <NavigationLink to="/sandbox" label="Sandbox" />
-                            <NavigationLink to="/games" label="Match History" />
+                            <NavigationLink to="/games" label={t('matchHistory', 'Match History')} />
                             <NavigationLink to="/leaderboard" label="Leaderboard" />
                             <NavigationLink to="/tournaments" label="Tournaments" />
                             <DiscordLink />
@@ -224,7 +227,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
 
                         {accountQuery.isLoading ? (
                             <div className="self-start rounded-lg px-3 py-2 text-sm text-slate-400 lg:self-auto">
-                                Loading Account
+                                {t('loadingAccount', 'Loading Account')}
                             </div>
                         ) : account ? (
                             <div className="self-start lg:relative lg:self-auto">
@@ -243,7 +246,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                         </div>
 
                                         <div className="text-xs text-sky-200/70">
-                                            Account
+                                            {t('account', 'Account')}
                                         </div>
                                     </div>
 
@@ -271,15 +274,15 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                         >
                                             <div className="space-y-1">
                                                 <MenuLink to="/tournaments" label="Tournaments" onSelect={() => setIsAccountMenuOpen(false)} />
-                                                <MenuLink to="/account/games" label="Match History" onSelect={() => setIsAccountMenuOpen(false)} />
+                                                <MenuLink to="/account/games" label={t('matchHistory', 'Match History')} onSelect={() => setIsAccountMenuOpen(false)} />
                                                 <MenuLink to="/account/preferences" label="Preferences" onSelect={() => setIsAccountMenuOpen(false)} />
                                                 <MenuLink to="/account/profile" label="Profile" onSelect={() => setIsAccountMenuOpen(false)} />
                                             </div>
 
                                             {account.role === `admin` && (
                                                 <div className="mt-2 border-t border-amber-300/10 pt-2">
-                                                    <MenuLink to="/admin/controls" label="Admin Controls" onSelect={() => setIsAccountMenuOpen(false)} />
-                                                    <MenuLink to="/admin/stats" label="Admin Statistics" onSelect={() => setIsAccountMenuOpen(false)} />
+                                                    <MenuLink to="/admin/controls" label={t('adminControls', 'Admin Controls')} onSelect={() => setIsAccountMenuOpen(false)} />
+                                                    <MenuLink to="/admin/stats" label={t('adminStatistics', 'Admin Statistics')} onSelect={() => setIsAccountMenuOpen(false)} />
                                                 </div>
                                             )}
 
@@ -294,7 +297,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                                     size="sm"
                                                     className="block py-2.5 w-full text-left lg:text-right rounded-sm"
                                                 >
-                                                    Logout
+                                                    {t('logout', 'Logout')}
                                                 </Button>
                                             </div>
                                         </div>
@@ -304,7 +307,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                         ) : (
                             <Button
                                 type="button"
-                                aria-label="Sign In With Discord"
+                                aria-label={t('signInWithDiscord', 'Sign In With Discord')}
                                 onClick={() => void handleSignIn()}
                                 variant="discord" size="sm" className="self-start lg:self-auto"
                             >
@@ -312,14 +315,14 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                     <path d="M20.32 4.37A18.13 18.13 0 0 0 15.8 3a12.2 12.2 0 0 0-.58 1.18 16.56 16.56 0 0 0-6.43 0A12.2 12.2 0 0 0 8.21 3a18.05 18.05 0 0 0-4.53 1.37C.81 8.65.03 12.83.42 16.96A18.24 18.24 0 0 0 5.98 19.8c.45-.61.85-1.26 1.2-1.95-.66-.25-1.3-.56-1.9-.92.16-.12.31-.25.46-.38 3.67 1.69 7.65 1.69 11.27 0 .15.13.3.26.46.38-.61.36-1.25.67-1.91.92.35.69.75 1.34 1.2 1.95a18.17 18.17 0 0 0 5.57-2.84c.45-4.79-.77-8.93-3.66-12.59ZM8.68 14.46c-1.1 0-2-.99-2-2.21s.88-2.21 2-2.21c1.11 0 2.01 1 2 2.21 0 1.22-.89 2.21-2 2.21Zm6.64 0c-1.1 0-2-.99-2-2.21s.88-2.21 2-2.21c1.11 0 2.01 1 2 2.21 0 1.22-.89 2.21-2 2.21Z" />
                                 </svg>
 
-                                Sign In
+                                {t('signIn', 'Sign In')}
                             </Button>
                         )}
                     </div>
 
                     <Button
                         type="button"
-                        aria-label={isMobileMenuOpen ? `Close navigation menu` : `Open navigation menu`}
+                        aria-label={isMobileMenuOpen ? t('closeNavigationMenu', 'Close navigation menu') : t('openNavigationMenu', 'Open navigation menu')}
                         aria-expanded={isMobileMenuOpen}
                         onClick={() => {
                             setIsAccountMenuOpen(false);
@@ -353,11 +356,11 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                     <div className="border-t border-white/10 px-4 py-4 sm:px-6 xl:hidden absolute bg-slate-950 right-0 left-0 z-50 shadow-[0_18px_50px_rgba(2,6,23,0.45)] backdrop-blur-xl">
                         <div className="mx-auto w-full max-w-368 space-y-2 rounded-2xl p-2 shadow-[0_18px_50px_rgba(2,6,23,0.4)]">
                             <MenuLink to="/rules" label="Rules" onSelect={() => setIsMobileMenuOpen(false)} />
-                            <MenuLink to="/games" label="Match History" onSelect={() => setIsMobileMenuOpen(false)} />
+                            <MenuLink to="/games" label={t('matchHistory', 'Match History')} onSelect={() => setIsMobileMenuOpen(false)} />
                             <MenuLink to="/sandbox" label="Sandbox" onSelect={() => setIsMobileMenuOpen(false)} />
                             <MenuLink to="/leaderboard" label="Leaderboard" onSelect={() => setIsMobileMenuOpen(false)} />
                             <MenuLink to="/tournaments" label="Tournaments" onSelect={() => setIsMobileMenuOpen(false)} />
-                            <MenuLink to={OFFICIAL_DISCORD_INVITE_URL} label="Discord Server" target="_blank" />
+                            <MenuLink to={OFFICIAL_DISCORD_INVITE_URL} label={t('discordServer', 'Discord Server')} target="_blank" />
                         </div>
                     </div>
                 )}

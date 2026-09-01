@@ -5,6 +5,7 @@ import { playCountdownWarningSound } from '../../soundEffects';
 import { getPlayerLabel, getPlayerTileColor } from '../../utils/gameBoard';
 import ClockCard from './ClockCard';
 import TurnIndicator from './TurnIndicator';
+import { useTranslation } from 'react-i18next'
 
 type TurnTimerHudProps = {
     gameOptions: LobbyOptions
@@ -19,6 +20,7 @@ function TurnTimerHud({
     gameState,
     localPlayerId,
 }: Readonly<TurnTimerHudProps>) {
+    const { t } = useTranslation()
     const [activeClockCountdownMs, setActiveClockCountdownMs] = useState<number | null>(null);
     const lastCountdownWarningSecondRef = useRef<number | null>(null);
     const effectiveTimeControl = gameOptions.timeControl;
@@ -121,7 +123,7 @@ function TurnTimerHud({
                                     isHighlighted={isActivePlayer}
                                     trailingBadge={isLocalPlayer && !isSpectator ? (
                                         <div className="rounded bg-white/10 px-1 py-0.5 text-[8px] font-semibold uppercase tracking-[0.12em] text-slate-200 sm:text-[9px]">
-                                            You
+                                            {t('you', 'You')}
                                         </div>
                                     ) : undefined}
                                 />

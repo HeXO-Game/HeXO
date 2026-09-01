@@ -4,6 +4,7 @@ import { NavLink } from 'react-router';
 
 import { buildFinishedGamePath } from '../routes/archiveRouteState';
 import { getSpectatorRematchStatus, getSpectatorResultMessage, getSpectatorResultTitle } from '../utils/sessionResult';
+import { useTranslation } from 'react-i18next'
 
 
 type GameOverlayFinishedSpectatorProps = {
@@ -20,6 +21,7 @@ function GameOverlayFinishedSpectator({
 
     onReturnToLobby,
 }: Readonly<GameOverlayFinishedSpectatorProps>) {
+    const { t } = useTranslation()
     const winnerName = players.find(player => player.id === state.winningPlayerId)?.displayName ?? null;
 
     const title = getSpectatorResultTitle(state.finishReason, winnerName);
@@ -37,7 +39,7 @@ function GameOverlayFinishedSpectator({
 
                         <div className="relative">
                             <div className="inline-flex items-center rounded-full border border-sky-200/30 bg-sky-400/12 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-sky-100">
-                                Match Ended
+                                {t('matchEnded', 'Match Ended')}
                             </div>
 
                             <h1 className="mt-5 max-w-2xl wrap-break-word text-4xl font-black uppercase tracking-[0.08em] text-white sm:text-5xl lg:text-6xl">
@@ -52,11 +54,11 @@ function GameOverlayFinishedSpectator({
 
                     <aside className="flex flex-col justify-center border-t border-white/10 bg-black/16 px-6 py-7 text-left sm:px-8 sm:py-8 md:border-l md:border-t-0 lg:px-9">
                         <div className="text-sm font-semibold uppercase tracking-[0.22em] text-white/65">
-                            Continue
+                            {t('continue', 'Continue')}
                         </div>
 
                         <p className="mt-3 text-sm leading-6 text-slate-200">
-                            You can return to the lobby, open the replay, or stay here for a last look at the final board.
+                            {t('youCanReturnToTheLobbyOpenTheReplayOrStayHereForALastLookAtTheFinalBoard', 'You can return to the lobby, open the replay, or stay here for a last look at the final board.')}
                         </p>
 
                         <div className={`mt-5 rounded-[1.25rem] border px-4 py-3 text-sm ${rematchStatus.className}`}>
@@ -75,14 +77,14 @@ function GameOverlayFinishedSpectator({
                                 className={`${buttonVariants({ variant: `info`, size: `xl` })} w-full`}
                                 target="_blank"
                             >
-                                Review Game
+                                {t('reviewGame', 'Review Game')}
                             </NavLink>
 
                             <Button
                                 onClick={onReturnToLobby}
                                 variant="outline" size="xl" className="w-full"
                             >
-                                Return To Lobby
+                                {t('returnToLobby', 'Return To Lobby')}
                             </Button>
                         </div>
                     </aside>

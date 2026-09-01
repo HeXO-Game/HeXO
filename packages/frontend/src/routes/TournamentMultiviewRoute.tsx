@@ -18,6 +18,8 @@ import {
     TOURNAMENT_MULTIVIEW_MAX_TILES,
     getTournamentMultiviewEligibleMatches,
 } from '../utils/tournamentMultiview';
+import { useTranslation } from 'react-i18next'
+import i18next from 'i18next'
 
 function getMatchBySessionId(matches: readonly TournamentMatch[], sessionId: string) {
     return matches.find((match) => match.sessionId === sessionId) ?? null;
@@ -26,7 +28,7 @@ function getMatchBySessionId(matches: readonly TournamentMatch[], sessionId: str
 function buildAvailableMatchDescription(match: TournamentMatch): string {
     const leftName = match.slots[0].displayName ?? `TBD`;
     const rightName = match.slots[1].displayName ?? `TBD`;
-    return `${leftName} vs ${rightName}`;
+    return i18next.t('leftnameVsRightname', '{{leftName}} vs {{rightName}}', { leftName, rightName });
 }
 
 function buildTileStatusLabel(status: TournamentMultiviewTileViewModel[`status`]): string {
@@ -63,33 +65,34 @@ function buildTileStatusLine({
     players: TournamentMultiviewTileViewModel[`players`]
 }) {
     if (tileStatus === `loading`) {
-        return `Connecting to the live board...`;
+        return i18next.t('connectingToTheLiveBoard', 'Connecting to the live board...');
     }
 
     if (tileStatus === `unavailable` || tileStatus === `error`) {
         return tileStatus === `unavailable`
             ? `session unavailable`
-            : errorMessage ?? `Could not load this session.`;
+            : errorMessage ?? i18next.t('couldNotLoadThisSession', 'Could not load this session.');
     }
 
     if (!gameState) {
-        return `Waiting for live game state...`;
+        return i18next.t('waitingForLiveGameState', 'Waiting for live game state...');
     }
 
     if (tileStatus === `finished`) {
         if (gameState.winner) {
             const winnerName = players.find((player) => player.id === gameState.winner?.playerId)?.displayName ?? `Winner decided`;
-            return `Game ended. ${winnerName} won this board.`;
+            return i18next.t('gameEndedWinnernameWonThisBoard', 'Game ended. {{winnerName}} won this board.', { winnerName });
         }
 
-        return `Game ended.`;
+        return i18next.t('gameEnded', 'Game ended.');
     }
 
-    const turnName = players.find((player) => player.id === gameState.currentTurnPlayerId)?.displayName ?? `Waiting for next move`;
-    return `Game ${currentGameNumber} · Turn: ${turnName}`;
+    const turnName = players.find((player) => player.id === gameState.currentTurnPlayerId)?.displayName ?? i18next.t('waitingForNextMove', 'Waiting for next move');
+    return i18next.t('gameCurrentgamenumberTurnTurnname', 'Game {{currentGameNumber}} · Turn: {{turnName}}', { currentGameNumber, turnName });
 }
 
 function TournamentMultiviewRoute() {
+    const { t } = useTranslation()
     const { tournamentId } = useParams<{ tournamentId: string }>();
 
     const tournamentQuery = useQueryTournament(tournamentId ?? null, { enabled: true });
@@ -180,8 +183,8 @@ function TournamentMultiviewRoute() {
     }
 
     const pageTitle = tournament
-        ? `${tournament.name} Multiview • ${DEFAULT_PAGE_TITLE}`
-        : `Tournament Multiview • ${DEFAULT_PAGE_TITLE}`;
+        ? t('nameMultiviewDefault_page_title', '{{name}} Multiview • {{DEFAULT_PAGE_TITLE}}', { name: tournament.name, DEFAULT_PAGE_TITLE })
+        : t('tournamentMultiviewDefault_page_title', 'Tournament Multiview • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE });
 
     const availableMatches: TournamentMultiviewAvailableMatch[] = eligibleMatches.map((match) => ({
         sessionId: match.sessionId!,
@@ -261,7 +264,7 @@ function TournamentMultiviewRoute() {
         content = (
             <div className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4 py-10 text-center">
                 <div className="rounded-[28px] border border-white/10 bg-slate-950/75 px-8 py-10 text-sm text-slate-400 shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
-                    Loading multiview...
+                    {t('loadingMultiview', 'Loading multiview...')}
                 </div>
             </div>
         );
@@ -270,11 +273,11 @@ function TournamentMultiviewRoute() {
             <div className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-4 py-10 text-center">
                 <div className="rounded-[28px] border border-white/10 bg-slate-950/75 px-8 py-10 shadow-[0_20px_60px_rgba(2,6,23,0.35)]">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        Tournament
+                        {t('tournament', 'Tournament')}
                     </div>
 
                     <div className="mt-3 text-2xl font-black uppercase tracking-[0.06em] text-white">
-                        Tournament not found
+                        {t('tournamentNotFound', 'Tournament not found')}
                     </div>
                 </div>
             </div>
@@ -299,7 +302,7 @@ function TournamentMultiviewRoute() {
         <>
             <PageMetadata
                 title={pageTitle}
-                description="Watch multiple live tournament matches at once in beta multiview mode."
+                description={t('watchMultipleLiveTournamentMatchesAtOnceInBetaMultiviewMode', 'Watch multiple live tournament matches at once in beta multiview mode.')}
             />
 
             {content}

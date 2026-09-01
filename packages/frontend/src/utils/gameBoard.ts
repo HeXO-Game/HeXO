@@ -17,6 +17,7 @@ import {
     kBoardThemeMarker,
     kBoardThemeBlackAndWhite,
 } from "@ih3t/shared";
+import i18next from 'i18next'
 
 type PlayerReference = string | DatabaseGamePlayer;
 
@@ -58,7 +59,7 @@ export function getPlayerLabel(
     players: readonly PlayerReference[],
     playerId: string | null,
     playerNames?: PlayerNames,
-    fallbackName = `A player`,
+    fallbackName = i18next.t('aPlayer', 'A player'),
 ): string {
     if (!playerId) {
         return fallbackName;
@@ -85,5 +86,5 @@ export function getPlayerLabel(
             (typeof player === `string` ? player : player.playerId) ===
             playerId,
     );
-    return playerIndex === -1 ? fallbackName : `Player ${playerIndex + 1}`;
+    return playerIndex === -1 ? fallbackName : i18next.t('playerVal', 'Player {{val}}', { val: playerIndex + 1 });
 }

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { useRenderMode } from "../ssrState";
+import i18next from 'i18next'
 
 type DateTimeValue = Date | number;
 
@@ -100,7 +101,7 @@ export function formatRelativeTimeFrom(provider: IntlFormatProvider, value: Date
     });
 
     if (absDiffMs < 60_000) {
-        return diffMs <= 0 ? `just now` : `in a moment`;
+        return diffMs <= 0 ? `just now` : i18next.t('inAMoment', 'in a moment');
     }
 
     if (absDiffMs < 3_600_000) {

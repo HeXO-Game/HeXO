@@ -15,6 +15,7 @@ import {
 import { useQueryAdminServerSettings } from '../query/adminClient';
 import { useQueryServerShutdown } from '../query/serverClient';
 import { useQueryAvailableSessions } from '../query/sessionClient';
+import { useTranslation } from 'react-i18next'
 
 function showSuccessToast(message: string) {
     toast.success(message, {
@@ -29,6 +30,7 @@ function showErrorToast(message: string) {
 }
 
 function AdminControlsRoute() {
+    const { t } = useTranslation()
     const shutdown = useQueryServerShutdown().data ?? null;
     const accountQuery = useQueryAccount({ enabled: true });
     const isAdmin = accountQuery.data?.user?.role === `admin`;
@@ -126,8 +128,8 @@ function AdminControlsRoute() {
             setMaxConcurrentGames(response.settings.maxConcurrentGames === null ? `` : String(response.settings.maxConcurrentGames));
             showSuccessToast(
                 response.settings.maxConcurrentGames === null
-                    ? `Concurrent game limit removed.`
-                    : `Concurrent game limit set to ${response.settings.maxConcurrentGames}.`,
+                    ? t('concurrentGameLimitRemoved', 'Concurrent game limit removed.')
+                    : t('concurrentGameLimitSetToMaxconcurrentgames', 'Concurrent game limit set to {{maxConcurrentGames}}.', { maxConcurrentGames: response.settings.maxConcurrentGames }),
             );
         } catch (error) {
             showErrorToast(error instanceof Error ? error.message : `Failed to save concurrent game limit.`);
@@ -158,8 +160,8 @@ function AdminControlsRoute() {
         return (
             <>
                 <PageMetadata
-                    title={`Admin Controls • ${DEFAULT_PAGE_TITLE}`}
-                    description="Administrative controls for HeXO."
+                    title={t('adminControlsDefault_page_title', 'Admin Controls • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                    description={t('administrativeControlsForHexo', 'Administrative controls for HeXO.')}
                     robots="noindex, nofollow"
                 />
 
@@ -199,8 +201,8 @@ function AdminControlsRoute() {
     return (
         <>
             <PageMetadata
-                title={`Admin Controls • ${DEFAULT_PAGE_TITLE}`}
-                description="Administrative controls for HeXO."
+                title={t('adminControlsDefault_page_title', 'Admin Controls • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE })}
+                description={t('administrativeControlsForHexo', 'Administrative controls for HeXO.')}
                 robots="noindex, nofollow"
             />
 

@@ -17,6 +17,7 @@ import { buildSessionPath } from "./routes/archiveRouteState";
 import { playMatchStartSound } from "./soundEffects";
 import { useTournamentMultiviewStore } from "./tournamentMultiviewStore";
 import { sortLobbySessions } from "./utils/lobby";
+import i18next from 'i18next'
 
 let socket: Socket<ServerToClientEvents, ClientToServerEvents> | null = null;
 
@@ -176,7 +177,7 @@ export function startLiveGameClient() {
     });
 
     socket.on(`connect_error`, (error) => {
-        const message = error.message || `Failed to connect to the server.`;
+        const message = error.message || i18next.t('failedToConnectToTheServer', 'Failed to connect to the server.');
         useLiveGameStore.getState().onSocketDisconnected();
 
         if (isVersionMismatchMessage(message)) {
@@ -261,7 +262,7 @@ export function startLiveGameClient() {
                 `/tournaments/${event.tournamentId}`,
             )
         ) {
-            toast.info(`Tournament updated. Refreshing...`, {
+            toast.info(i18next.t('tournamentUpdatedRefreshing', 'Tournament updated. Refreshing...'), {
                 toastId: `tournament-refresh:${event.tournamentId}`,
                 autoClose: 2000,
             });

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '../../utils/cn';
 import GameHudShell from './GameHudShell';
+import { useTranslation } from 'react-i18next'
 
 type SessionChatBoxProps = {
     currentParticipantId: string
@@ -37,6 +38,7 @@ function GameChatBox({
     onOpenChange,
     onSendMessage,
 }: Readonly<SessionChatBoxProps>) {
+    const { t } = useTranslation()
     const [draft, setDraft] = useState(``);
     const [unreadCount, setUnreadCount] = useState(0);
     const panelRef = useRef<HTMLDivElement | null>(null);
@@ -106,7 +108,7 @@ function GameChatBox({
             isOpen={isOpen}
             onOpen={() => openChat(true)}
             onClose={() => onOpenChange(false)}
-            openTitle={unreadCount > 0 ? `${unreadCount} unread chat messages` : `Open chat`}
+            openTitle={unreadCount > 0 ? t('unreadcountUnreadChatMessages', '{{unreadCount}} unread chat messages', { unreadCount }) : t('openChat', 'Open chat')}
             openIcon={<ChatIcon />}
             closeTitle="Close chat"
             panelRef={panelRef}
@@ -119,11 +121,11 @@ function GameChatBox({
                 : undefined}
         >
             <div className="text-sm uppercase tracking-[0.25em] text-sky-300">
-                Chat Box
+                {t('chatBox', 'Chat Box')}
             </div>
 
             <h1 className="mt-1 text-2xl font-bold">
-                Player Chat
+                {t('playerChat', 'Player Chat')}
             </h1>
 
             <div
@@ -132,7 +134,7 @@ function GameChatBox({
             >
                 {chat.messages.length === 0 ? (
                     <div className="px-2 py-5 text-sm leading-6 text-slate-300">
-                        No messages yet. Say something to your opponent while the match is live.
+                        {t('noMessagesYetSaySomethingToYourOpponentWhileTheMatchIsLive', 'No messages yet. Say something to your opponent while the match is live.')}
                     </div>
                 ) : chat.messages.map((message, index) => {
                     const isSameSender = index > 0 && chat.messages[index - 1].senderId === message.senderId && message.sentAt - chat.messages[index - 1].sentAt < 60_000;
@@ -186,7 +188,7 @@ function GameChatBox({
                 className="pointer-events-auto mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-2"
             >
                 <label className="sr-only" htmlFor="session-chat-input">
-                    Send a chat message
+                    {t('sendAChatMessage', 'Send a chat message')}
                 </label>
 
                 <input
@@ -195,7 +197,7 @@ function GameChatBox({
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
                     maxLength={280}
-                    placeholder={onSendMessage ? `Send a message` : `You can not send a message`}
+                    placeholder={onSendMessage ? t('sendAMessage', 'Send a message') : t('youCanNotSendAMessage', 'You can not send a message')}
                     className={cn(
                         `min-h-11 rounded-full border border-white/10 bg-slate-950/35 px-4 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-400/70 focus:border-sky-300/40 focus:bg-slate-950/55`,
                         !onSendMessage && `bg-slate-950/10`,
@@ -209,7 +211,7 @@ function GameChatBox({
                     disabled={!onSendMessage || draft.trim().length === 0}
                     variant="default" size="default" className="min-w-28"
                 >
-                    Send
+                    {t('send', 'Send')}
                 </Button>
             </form>
         </GameHudShell>

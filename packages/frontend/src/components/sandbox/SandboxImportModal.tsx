@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next'
 
 type SandboxImportModalProps = {
     isOpen: boolean
@@ -20,6 +21,7 @@ function SandboxImportModal({
     onImport,
     onInputChange,
 }: Readonly<SandboxImportModalProps>) {
+    const { t } = useTranslation()
     const [inputValue, setInputValue] = useState(``);
 
     useEffect(() => {
@@ -35,7 +37,7 @@ function SandboxImportModal({
     const parsedPositionId = parsePositionId(inputValue);
     const hasInput = inputValue.trim().length > 0;
     const validationMessage = hasInput && !parsedPositionId
-        ? `Enter a valid sandbox position id or link.`
+        ? t('enterAValidSandboxPositionIdOrLink', 'Enter a valid sandbox position id or link.')
         : null;
     const visibleErrorMessage = validationMessage ?? errorMessage;
 
@@ -43,15 +45,15 @@ function SandboxImportModal({
         <div className="absolute inset-0 flex items-center justify-center px-4">
             <div className="pointer-events-auto w-full max-w-lg rounded-3xl border border-sky-300/20 bg-slate-900/95 px-6 py-6 text-center shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
                 <div className="inline-flex rounded-full border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-emerald-100">
-                    Sandbox Mode
+                    {t('sandboxMode', 'Sandbox Mode')}
                 </div>
 
                 <h1 className="mt-5 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
-                    Import Position
+                    {t('importPosition', 'Import Position')}
                 </h1>
 
                 <p className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
-                    Paste a shared sandbox ID or a full sandbox link to load that position onto your board.
+                    {t('pasteASharedSandboxIdOrAFullSandboxLinkToLoadThatPositionOntoYourBoard', 'Paste a shared sandbox ID or a full sandbox link to load that position onto your board.')}
                 </p>
 
                 <input
@@ -60,7 +62,7 @@ function SandboxImportModal({
                         setInputValue(event.target.value);
                         onInputChange();
                     }}
-                    placeholder="abc1234 or https://..."
+                    placeholder={t('abc1234OrHttps', 'abc1234 or https://...')}
                     autoFocus
                     className="mt-6 w-full rounded-2xl border border-sky-300/15 bg-slate-950/80 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-slate-500 focus:border-sky-300/40 focus:bg-slate-950 focus:ring-2 focus:ring-sky-300/12"
                     style={{ colorScheme: `dark` }}
@@ -78,7 +80,7 @@ function SandboxImportModal({
                         disabled={isLoading}
                         variant="outline" size="lg"
                     >
-                        Cancel
+                        {t('cancel', 'Cancel')}
                     </Button>
 
                     <Button

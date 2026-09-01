@@ -16,6 +16,7 @@ import { updateAccountPreferences, useQueryAccountPreferences } from '../query/a
 import PageCorpus from './PageCorpus';
 import { Switch } from './ui/switch';
 import { cn } from '../utils/cn';
+import { useTranslation } from 'react-i18next'
 
 type BooleanPreference = {
     [Key in keyof AccountPreferences]: AccountPreferences[Key] extends boolean ? Key : never
@@ -105,6 +106,7 @@ function ThemePreview({ theme }: { theme: BoardTheme }) {
 }
 
 function ThemePreferenceCard() {
+    const { t } = useTranslation()
     const queryPreferences = useQueryAccountPreferences();
     const mutatePreference = useMutation({ mutationFn: updateAccountPreferences });
     const savedTheme = queryPreferences.data?.preferences.boardTheme ?? `normal`;
@@ -117,10 +119,10 @@ function ThemePreferenceCard() {
     return (
         <section className="max-w-xl rounded-3xl border border-white/10 bg-slate-950/45 p-5">
             <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-white">
-                Board Theme
+                {t('boardTheme', 'Board Theme')}
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-                Choose how cells and board colors are rendered.
+                {t('chooseHowCellsAndBoardColorsAreRendered', 'Choose how cells and board colors are rendered.')}
             </p>
 
             <div className={"flex flex-col gap-4 mt-4 md:flex-row"}>
@@ -162,7 +164,7 @@ function ThemePreferenceCard() {
                 {mutatePreference.isPending
                     ? `Saving...`
                     : mutatePreference.isError
-                        ? `Could not save`
+                        ? t('couldNotSave', 'Could not save')
                         : `Saved`}
             </div>
         </section >
@@ -212,30 +214,31 @@ function PreferenceSwitchCard({
 }
 
 function AccountPreferencesScreen() {
+    const { t } = useTranslation()
     return (
         <PageCorpus
             category="Preferences"
-            title="Account Preferences"
-            description="Manage your personal gameplay, display, and matchmaking settings."
+            title={t('accountPreferences', 'Account Preferences')}
+            description={t('manageYourPersonalGameplayDisplayAndMatchmakingSettings', 'Manage your personal gameplay, display, and matchmaking settings.')}
         >
             <div className="grid gap-4 lg:grid-cols-1 mx-4">
                 <ThemePreferenceCard />
 
                 <PreferenceSwitchCard
-                    label="Zen Mode In-Game"
-                    description="Hide Elo numbers from the live match HUD so you can focus on the board while playing."
+                    label={t('zenModeIngame', 'Zen Mode In-Game')}
+                    description={t('hideEloNumbersFromTheLiveMatchHudSoYouCanFocusOnTheBoardWhilePlaying', 'Hide Elo numbers from the live match HUD so you can focus on the board while playing.')}
                     preference="zenModeInGame"
                 />
 
                 <PreferenceSwitchCard
-                    label="Auto-Place Opening Tile"
-                    description={`Automatically place the opening tile at "0,0" when a new match starts and it is your turn.`}
+                    label={t('autoplaceOpeningTile', 'Auto-Place Opening Tile')}
+                    description={t('automaticallyPlaceTheOpeningTileAt00WhenANewMatchStartsAndItIsYourTurn', 'Automatically place the opening tile at "0,0" when a new match starts and it is your turn.')}
                     preference="autoPlaceOriginTile"
                 />
 
                 <PreferenceSwitchCard
-                    label="Allow Self-Joining Casual Lobbies"
-                    description="Allow you to join your own online casual lobby as the second player."
+                    label={t('allowSelfjoiningCasualLobbies', 'Allow Self-Joining Casual Lobbies')}
+                    description={t('allowYouToJoinYourOwnOnlineCasualLobbyAsTheSecondPlayer', 'Allow you to join your own online casual lobby as the second player.')}
                     preference="allowSelfJoinCasualGames"
                 />
             </div>

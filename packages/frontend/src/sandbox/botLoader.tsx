@@ -1,8 +1,10 @@
 import type { BotEngineInterface } from '@ih3t/shared';
 import React from 'react';
 import { NavLink } from 'react-router';
+import { Trans } from 'react-i18next';
 
 import { WorkerBotClient, WorkerBotInterface } from './botWorkerClient';
+import i18next from 'i18next'
 
 export type SandboxBotEngineInfo = {
     name: string,
@@ -14,24 +16,17 @@ export const kSandboxBotEngines: readonly SandboxBotEngineInfo[] = [
     {
         name: `dummy`,
         displayName: `Dummy Bot`,
-        description: () => `A dummy bot implementation just placing cells as close to the center as possible.`,
+        description: () => i18next.t('aDummyBotImplementationJustPlacingCellsAsCloseToTheCenterAsPossible', 'A dummy bot implementation just placing cells as close to the center as possible.'),
     },
     {
         name: `seal`,
         displayName: `Seal Bot`,
         description: () => (
-            <React.Fragment>
-                Imaseal
-                &apos;
-                s bot implementation based of a minimax search with alpha-beta pruning
-                (
-
-                <NavLink to="https://github.com/Ramora0/HexTicTacToe" target="_blank" >
-                    available on GitHub
-                </NavLink >
-
-                ).
-            </React.Fragment>
+            <Trans
+                i18nKey="sealBotDescription"
+                defaults="Imaseal's bot implementation based on a minimax search with alpha-beta pruning (<link>available on GitHub</link>)."
+                components={{ link: <NavLink to="https://github.com/Ramora0/HexTicTacToe" target="_blank" /> }}
+            />
         ),
     },
 ];

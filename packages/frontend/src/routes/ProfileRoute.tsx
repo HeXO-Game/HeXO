@@ -9,8 +9,10 @@ import {
 } from '../query/accountClient';
 import { useQueryPublicProfileGames as useQueryProfileGames } from '../query/finishedGamesClient';
 import { useQueryAvailableSessions } from '../query/sessionClient';
+import { useTranslation } from 'react-i18next'
 
 function ProfileRoute() {
+    const { t } = useTranslation()
     const { profileId } = useParams<{ profileId: string }>();
     const isPublicProfileRoute = Boolean(profileId);
 
@@ -34,26 +36,26 @@ function ProfileRoute() {
                 {...(isPublicProfileRoute
                     ? profileQuery.data?.user
                         ? {
-                            title: `${profileQuery.data.user.username} • Player Profile • ${DEFAULT_PAGE_TITLE}`,
-                            description: `View ${profileQuery.data.user.username}'s public HeXO profile and competitive standing.`,
+                            title: t('usernamePlayerProfileDefault_page_title', '{{username}} • Player Profile • {{DEFAULT_PAGE_TITLE}}', { username: profileQuery.data.user.username, DEFAULT_PAGE_TITLE }),
+                            description: t('viewUsernamesPublicHexoProfileAndCompetitiveStanding', 'View {{username}}\'s public HeXO profile and competitive standing.', { username: profileQuery.data.user.username }),
                             ogType: `article` as const,
                         }
                         : !profileQuery.isLoading
                             ? {
-                                title: `Profile Not Found • ${DEFAULT_PAGE_TITLE}`,
-                                description: `The requested player profile could not be found.`,
+                                title: t('profileNotFoundDefault_page_title', 'Profile Not Found • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+                                description: t('theRequestedPlayerProfileCouldNotBeFound', 'The requested player profile could not be found.'),
                                 ogType: `article` as const,
-                                robots: `noindex, nofollow` as const,
+                                robots: 'noindex, nofollow' as const,
                             }
                             : {
-                                title: `Player Profile • ${DEFAULT_PAGE_TITLE}`,
-                                description: `View a public HeXO player profile.`,
+                                title: t('playerProfileDefault_page_title', 'Player Profile • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+                                description: t('viewAPublicHexoPlayerProfile', 'View a public HeXO player profile.'),
                                 ogType: `article` as const,
                             }
                     : {
-                        title: `My Profile • ${DEFAULT_PAGE_TITLE}`,
-                        description: `Sign in to open your own HeXO profile.`,
-                        robots: `noindex, nofollow` as const,
+                        title: t('myProfileDefault_page_title', 'My Profile • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+                        description: t('signInToOpenYourOwnHexoProfile', 'Sign in to open your own HeXO profile.'),
+                        robots: 'noindex, nofollow' as const,
                     })}
             />
 
