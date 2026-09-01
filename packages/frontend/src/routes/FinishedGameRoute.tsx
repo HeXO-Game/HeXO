@@ -4,6 +4,7 @@ import FinishedGameReviewScreen from '../components/FinishedGameReviewScreen';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import { useQueryAccount, useQueryAccountPreferences } from '../query/accountClient';
 import { useQueryFinishedGame } from '../query/finishedGamesClient';
+import { getBoardTheme } from '../utils/gameBoard';
 import { describeFinishedGameMetadata } from '../utils/routeMetadata';
 
 function FinishedGameRoute() {
@@ -48,7 +49,7 @@ function FinishedGameRoute() {
                 game={finishedGameQuery.data ?? null}
                 isLoading={finishedGameQuery.isLoading}
                 errorMessage={finishedGameQuery.error instanceof Error ? finishedGameQuery.error.message : null}
-                showTilePieceMarkers={accountPreferencesQuery.data?.preferences.tilePieceMarkers ?? false}
+                theme={getBoardTheme(accountPreferencesQuery.data?.preferences.boardTheme)}
                 onRetry={() => void finishedGameQuery.refetch()}
             />
         </>

@@ -6,6 +6,7 @@ import { sandboxPositionsMigration } from './005-sandbox-positions';
 import { serverSettingsMigration } from './006-server-settings';
 import k007 from "./007-fix-elo-new-users";
 import { tournamentsMigration } from './008-tournaments';
+import { boardThemePreferencesMigration } from './009-board-theme-preferences';
 import type { DatabaseMigration } from './types';
 
 export const databaseMigrations: readonly DatabaseMigration[] = [
@@ -17,4 +18,5 @@ export const databaseMigrations: readonly DatabaseMigration[] = [
     serverSettingsMigration,
     k007,
     tournamentsMigration,
+    boardThemePreferencesMigration,
 ];

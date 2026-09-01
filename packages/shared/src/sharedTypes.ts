@@ -767,20 +767,27 @@ export const zAccountStatistics = z.object({
 });
 export type AccountStatistics = z.infer<typeof zAccountStatistics>;
 
+export const zBoardThemeId = z.string().brand("theme");
+export type BoardThemeId = z.infer<typeof zBoardThemeId>;
+
+export const kBoardThemeNormal = `normal` as BoardThemeId;
+export const kBoardThemeMarker = `marker` as BoardThemeId;
+export const kBoardThemeBlackAndWhite = `black-and-white` as BoardThemeId;
+
 export const zAccountPreferences = z.object({
     moveConfirmation: z.boolean(),
     autoPlaceOriginTile: z.boolean(),
-    tilePieceMarkers: z.boolean(),
+    boardTheme: zBoardThemeId,
     zenModeInGame: z.boolean(),
     allowSelfJoinCasualGames: z.boolean(),
     changelogReadAt: z.number().int().nonnegative().nullable(),
 });
 export type AccountPreferences = z.infer<typeof zAccountPreferences>;
 
-export const DEFAULT_ACCOUNT_PREFERENCES: AccountPreferences = {
+export const kDefaultAccountPreferences: AccountPreferences = {
     moveConfirmation: false,
     autoPlaceOriginTile: false,
-    tilePieceMarkers: false,
+    boardTheme: `normal` as BoardThemeId,
     zenModeInGame: false,
     allowSelfJoinCasualGames: false,
     changelogReadAt: null,

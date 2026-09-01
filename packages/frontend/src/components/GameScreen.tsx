@@ -1,3 +1,4 @@
+import type { BoardTheme } from '@ih3t/board-renderer';
 import type { GameState, LobbyOptions, SessionChat, SessionParticipantRole, SessionPlayer, ShutdownState } from '@ih3t/shared';
 import type { SessionTournamentInfo } from '@ih3t/shared';
 import type { ReactNode } from 'react';
@@ -28,7 +29,7 @@ type GameScreenProps = {
     leaveLabel?: string
     overlay?: ReactNode
     interactionEnabled?: boolean
-    showTilePieceMarkers?: boolean
+    theme?: BoardTheme
     hideEloInHud?: boolean
     tournament: SessionTournamentInfo | null
 
@@ -59,7 +60,7 @@ function GameScreen({
     leaveLabel,
     overlay,
     interactionEnabled = true,
-    showTilePieceMarkers = false,
+    theme,
     hideEloInHud = false,
     tournament,
 
@@ -117,7 +118,7 @@ function GameScreen({
             localPlayerId={isSpectator ? null : currentPlayerId}
             interactionEnabled={interactionEnabled}
             focusRecentMovesOnNumberKeys={interactionEnabled}
-            showTilePieceMarkers={showTilePieceMarkers}
+            theme={theme}
             onPlaceCell={canPlaceCell ? onPlaceCell : undefined}
         >
             {({ renderableCellCount, resetView }) => (

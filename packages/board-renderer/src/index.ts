@@ -5,8 +5,7 @@ import { axialToUnitPoint, clampScale, kDefaultScale } from "./utils";
 export type CellMarker = `X` | `O`;
 
 export type PlacedCell = HexCoordinate & {
-    color: string;
-    marker?: CellMarker;
+    marker: CellMarker;
 };
 
 export type CellLabel = HexCoordinate & {
@@ -113,5 +112,17 @@ export class BoardController {
     }
 }
 
-export { GameBoardRenderer, type GameBoardRendererProps } from "./renderer";
-export { getRenderableCellCount } from "./utils";
+export {
+    GameBoardRenderer,
+    type GameBoardRendererProps,
+    type GameBoardRenderOptions,
+} from "./renderer";
+export {
+    blackAndWhiteBoardTheme,
+    markerBoardTheme,
+    normalBoardTheme,
+    type BoardCellRenderOptions,
+    type BoardTheme,
+    type BoardThemeColors,
+} from "./themes";
+export { getRenderableCellCount, traceHexPath } from "./utils";

@@ -1,16 +1,21 @@
-import { ExpressAuth, type ExpressAuthConfig } from '@auth/express';
-import _Discord, { type DiscordProfile } from '@auth/express/providers/discord';
-import { type AccountPreferences, type ClientToServerEvents, DEFAULT_ACCOUNT_PREFERENCES, type ServerToClientEvents } from '@ih3t/shared';
-import type { Request } from 'express';
-import type { Socket } from 'socket.io';
-import { inject, injectable } from 'tsyringe';
+import { ExpressAuth, type ExpressAuthConfig } from "@auth/express";
+import _Discord, { type DiscordProfile } from "@auth/express/providers/discord";
+import {
+    type AccountPreferences,
+    type ClientToServerEvents,
+    kDefaultAccountPreferences,
+    type ServerToClientEvents,
+} from "@ih3t/shared";
+import type { Request } from "express";
+import type { Socket } from "socket.io";
+import { inject, injectable } from "tsyringe";
 
-import { ServerConfig } from '../config/serverConfig';
-import { getCookieValue } from '../network/clientInfo';
-import { CorsConfiguration } from '../network/cors';
-import { type AccountUserProfile, AuthRepository } from './authRepository';
-import type { Logger } from 'pino';
-import { ROOT_LOGGER } from '../logger';
+import { ServerConfig } from "../config/serverConfig";
+import { getCookieValue } from "../network/clientInfo";
+import { CorsConfiguration } from "../network/cors";
+import { type AccountUserProfile, AuthRepository } from "./authRepository";
+import type { Logger } from "pino";
+import { ROOT_LOGGER } from "../logger";
 
 /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 const Discord: typeof _Discord = (_Discord as any).default ?? _Discord;
@@ -73,18 +78,24 @@ export class AuthService {
             callbacks: {
                 async signIn({ profile, account, user }) {
                     if (!profile?.email || profile.email.trim().length === 0) {
-                        throw new Error(`Discord did not provide a verified email address for this account.`);
+                        throw new Error(
+                            `Discord did not provide a verified email address for this account.`,
+                        );
                     }
 
                     if (account?.provider === `discord` && profile?.avatar) {
-                        const avatarUrl = getDiscordAvatarUrl(profile as DiscordProfile);
+                        const avatarUrl = getDiscordAvatarUrl(
+                            profile as DiscordProfile,
+                        );
                         if (user.image !== avatarUrl) {
                             user.image = avatarUrl;
 
-                            logger.info(`Updated user ${user.id} Discord avatar.`);
+                            logger.info(
+                                `Updated user ${user.id} Discord avatar.`,
+                            );
                             void authRepository.updateUser({
                                 id: user.id!,
-                                image: user.image
+                                image: user.image,
                             });
                         }
                     }
@@ -98,7 +109,10 @@ export class AuthService {
 
                     try {
                         const target = new URL(url);
-                        if (target.origin === baseUrl || corsConfiguration.isAllowedOrigin(target.origin)) {
+                        if (
+                            target.origin === baseUrl ||
+                            corsConfiguration.isAllowedOrigin(target.origin)
+                        ) {
                             return target.toString();
                         }
                     } catch {
@@ -108,7 +122,8 @@ export class AuthService {
                     return baseUrl;
                 },
                 async session({ session, user }) {
-                    const sessionUser = session.user as typeof session.user & SessionUserShape;
+                    const sessionUser = session.user as typeof session.user &
+                        SessionUserShape;
                     sessionUser.id = user.id;
                     sessionUser.name = user.name;
                     sessionUser.email = user.email;
@@ -121,8 +136,13 @@ export class AuthService {
         this.handler = ExpressAuth(this.config);
     }
 
-    async getUserFromRequest(request: Request): Promise<AccountUserProfile | null> {
-        const sessionToken = getCookieValue(request.get(`cookie`), this.sessionCookieName);
+    async getUserFromRequest(
+        request: Request,
+    ): Promise<AccountUserProfile | null> {
+        const sessionToken = getCookieValue(
+            request.get(`cookie`),
+            this.sessionCookieName,
+        );
         if (!sessionToken) {
             return null;
         }
@@ -130,9 +150,13 @@ export class AuthService {
         return this.authRepository.getUserProfileBySessionToken(sessionToken);
     }
 
-    async getUserFromSocket(socket: Socket<ClientToServerEvents, ServerToClientEvents>): Promise<AccountUserProfile | null> {
+    async getUserFromSocket(
+        socket: Socket<ClientToServerEvents, ServerToClientEvents>,
+    ): Promise<AccountUserProfile | null> {
         const sessionToken = getCookieValue(
-            typeof socket.handshake.headers.cookie === `string` ? socket.handshake.headers.cookie : null,
+            typeof socket.handshake.headers.cookie === `string`
+                ? socket.handshake.headers.cookie
+                : null,
             this.sessionCookieName,
         );
 
@@ -143,16 +167,23 @@ export class AuthService {
         return this.authRepository.getUserProfileBySessionToken(sessionToken);
     }
 
-    async getUserPreferences(userId: string): Promise<AccountPreferences> {
-        return await this.authRepository.getAccountPreferences(userId) ?? DEFAULT_ACCOUNT_PREFERENCES;
+    async getUserPreferences(
+        userId: string | null,
+    ): Promise<AccountPreferences> {
+        if (!userId) {
+            return kDefaultAccountPreferences;
+        }
+
+        return await this.authRepository.getAccountPreferences(userId);
     }
 }
 
 function getDiscordAvatarUrl(profile: DiscordProfile): string {
     if (profile.avatar === null) {
-        const defaultAvatarNumber = profile.discriminator === `0`
-            ? Number(BigInt(profile.id) >> BigInt(22)) % 6
-            : Number.parseInt(profile.discriminator, 10) % 5;
+        const defaultAvatarNumber =
+            profile.discriminator === `0`
+                ? Number(BigInt(profile.id) >> BigInt(22)) % 6
+                : Number.parseInt(profile.discriminator, 10) % 5;
         return `https://cdn.discordapp.com/embed/avatars/${defaultAvatarNumber}.png`;
     }
 

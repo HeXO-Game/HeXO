@@ -1,5 +1,6 @@
 import {
     BoardController,
+    type BoardTheme,
     GameBoardRenderer,
     getRenderableCellCount,
 } from '@ih3t/board-renderer';
@@ -18,7 +19,7 @@ type GameBoardViewProps = {
     viewInteractionEnabled?: boolean
     focusRecentMovesOnNumberKeys?: boolean
     onPlaceCell?: (x: number, y: number) => void
-    showTilePieceMarkers?: boolean
+    theme?: BoardTheme
     controller?: BoardController
     children?: (context: {
         renderableCellCount: number
@@ -35,7 +36,7 @@ function GameBoardView({
     viewInteractionEnabled,
     focusRecentMovesOnNumberKeys = false,
     onPlaceCell,
-    showTilePieceMarkers = false,
+    theme,
     controller: suppliedController,
     children,
 }: Readonly<GameBoardViewProps>) {
@@ -48,8 +49,8 @@ function GameBoardView({
         && gameState.currentTurnPlayerId === localPlayerId;
 
     const boardState = useMemo(
-        () => toRendererBoardState(gameState, showTilePieceMarkers),
-        [gameState, showTilePieceMarkers],
+        () => toRendererBoardState(gameState),
+        [gameState],
     );
 
     const emphasizedCells = useMemo(() => {
@@ -124,11 +125,16 @@ function GameBoardView({
     return (
         <div className={className}>
             <GameBoardRenderer
+                className="absolute inset-0 h-full w-full"
+
                 state={boardState}
                 controller={controller}
-                className="absolute inset-0 h-full w-full"
-                viewInteractionEnabled={viewInteractionEnabled ?? interactionEnabled}
-                cellInteractionEnabled={canPlaceCell}
+                options={{
+                    viewInteractions: viewInteractionEnabled ?? interactionEnabled,
+                    cellInteractions: canPlaceCell,
+                    theme,
+                }}
+
                 onPlaceCell={cell => onPlaceCell?.(cell.x, cell.y)}
             />
 

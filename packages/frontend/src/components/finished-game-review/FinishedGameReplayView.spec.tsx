@@ -1,3 +1,4 @@
+import { normalBoardTheme } from '@ih3t/board-renderer'
 import type { FinishedGameRecord } from '@ih3t/shared'
 import { expect, test } from '@playwright/experimental-ct-react'
 import FinishedGameReplayView from './FinishedGameReplayView'
@@ -73,7 +74,7 @@ test('steps through replay moves with the left and right arrow keys', async ({ m
   const component = await mount(
     <FinishedGameReplayView
       game={finishedGame}
-      showTilePieceMarkers={false}
+      theme={normalBoardTheme}
       onRetry={() => { /* empty */ }}
     />
   )
@@ -124,7 +125,7 @@ test('renders replay when the second listed player made the opening move', async
   const component = await mount(
     <FinishedGameReplayView
       game={guestOpeningGame}
-      showTilePieceMarkers={false}
+      theme={normalBoardTheme}
       onRetry={() => { /* empty */ }}
     />
   )

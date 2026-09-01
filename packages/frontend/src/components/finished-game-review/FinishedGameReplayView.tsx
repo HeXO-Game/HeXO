@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import type { BoardTheme } from '@ih3t/board-renderer';
 import {
     applyGameMove,
     type BoardState,
@@ -23,7 +24,7 @@ import FinishedGameReviewLayout from './FinishedGameReviewLayout';
 
 type FinishedGameReplayViewProps = {
     game: FinishedGameRecord
-    showTilePieceMarkers: boolean
+    theme: BoardTheme
     onRetry: () => void
 };
 
@@ -186,7 +187,7 @@ function getProfileHref(profileId: string | null | undefined): string | null {
 
 function FinishedGameReplayView({
     game,
-    showTilePieceMarkers,
+    theme,
     onRetry,
 }: Readonly<FinishedGameReplayViewProps>) {
     const intlFormatProvider = useIntlFormatProvider();
@@ -301,7 +302,7 @@ function FinishedGameReplayView({
                         highlightedCells={boardState.winner?.cells ?? highlightedCells}
                         localPlayerId={null}
                         interactionEnabled
-                        showTilePieceMarkers={showTilePieceMarkers}
+                        theme={theme}
                     >
                         {({ renderableCellCount, resetView }) => (
                             <div className="pointer-events-none absolute inset-0 flex flex-col justify-between gap-2 p-2.5 sm:gap-3 sm:p-4">

@@ -7,7 +7,7 @@ import type {
 import {
     type AccountPermission,
     type AccountPreferences,
-    DEFAULT_ACCOUNT_PREFERENCES,
+    kDefaultAccountPreferences,
     type UserRole,
     zAccountPermission,
     zAccountPreferences,
@@ -126,7 +126,7 @@ export class AuthRepository implements Adapter {
             permissions: [],
             elo: DEFAULT_PLAYER_ELO,
             preferences: {
-                ...DEFAULT_ACCOUNT_PREFERENCES,
+                ...kDefaultAccountPreferences,
                 changelogReadAt: Date.now(),
             },
             registeredAt: now,
@@ -415,22 +415,24 @@ export class AuthRepository implements Adapter {
             : null;
     }
 
-    async getAccountPreferences(
-        userId: string,
-    ): Promise<AccountPreferences | null> {
+    async getAccountPreferences(userId: string): Promise<AccountPreferences> {
         const collection = await this.getUsersCollection();
         const objectId = this.parseObjectId(userId);
         if (!objectId) {
-            return null;
+            return kDefaultAccountPreferences;
         }
 
         const document = await collection.findOne(
             { _id: objectId },
             { projection: { preferences: 1 } },
         );
-        return document
-            ? this.normalizeAccountPreferences(document.preferences)
-            : null;
+
+        return (
+            zAccountPreferences.safeParse({
+                kDefaultAccountPreferences,
+                ...document?.preferences,
+            }).data ?? kDefaultAccountPreferences
+        );
     }
 
     async updateAccountPreferences(
@@ -460,7 +462,7 @@ export class AuthRepository implements Adapter {
             throw new Error(`user not found`);
         }
 
-        return zAccountPreferences.parse(document.preferences);
+        return this.normalizeAccountPreferences(document.preferences);
     }
 
     async getUserProfilesByIds(
@@ -625,7 +627,7 @@ export class AuthRepository implements Adapter {
             role: params.role ?? `user`,
             permissions: this.normalizeAccountPermissions(params.permissions),
             preferences: {
-                ...DEFAULT_ACCOUNT_PREFERENCES,
+                ...kDefaultAccountPreferences,
                 changelogReadAt: now,
             },
             elo: DEFAULT_PLAYER_ELO,
@@ -957,9 +959,14 @@ export class AuthRepository implements Adapter {
         };
     }
 
-    private normalizeAccountPreferences(value: unknown): AccountPreferences {
-        const result = zAccountPreferences.safeParse(value ?? {});
-        return result.success ? result.data : DEFAULT_ACCOUNT_PREFERENCES;
+    private normalizeAccountPreferences(
+        value: object | undefined,
+    ): AccountPreferences {
+        const result = zAccountPreferences.safeParse({
+            ...kDefaultAccountPreferences,
+            ...value,
+        });
+        return result.success ? result.data : kDefaultAccountPreferences;
     }
 
     private normalizeAccountPermissions(value: unknown): AccountPermission[] {

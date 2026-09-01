@@ -39,7 +39,7 @@ import {
 } from '../sandbox/sandboxBotSettings';
 import { useSandboxBotController } from '../sandbox/useSandboxBotController';
 import { playTilePlacedSound } from '../soundEffects';
-import { toRendererBoardState } from '../utils/gameBoard';
+import { getBoardTheme, toRendererBoardState } from '../utils/gameBoard';
 import { formatPlacementSummary, formatSandboxPlayerLabel } from '../utils/routeMetadata';
 import type { SandboxRouteState } from './sandboxRouteState';
 import BoardHelp from "../components/game-screen/BoardHelp.tsx";
@@ -275,9 +275,8 @@ function SandboxRoute() {
     const rendererBoardState = useMemo(
         () => toRendererBoardState(
             currentGameState,
-            accountPreferences?.preferences.tilePieceMarkers ?? false,
         ),
-        [accountPreferences?.preferences.tilePieceMarkers, currentGameState],
+        [currentGameState],
     );
     const renderableCellCount = useMemo(
         () => getRenderableCellCount(rendererBoardState),
@@ -695,7 +694,7 @@ function SandboxRoute() {
                         localPlayerId={localPlayerId}
                         interactionEnabled={isSandboxInteractionEnabled}
                         onPlaceCell={currentGameState.winner === null ? handlePlaceCell : undefined}
-                        showTilePieceMarkers={accountPreferences?.preferences.tilePieceMarkers ?? false}
+                        theme={getBoardTheme(accountPreferences?.preferences.boardTheme)}
                         controller={boardController}
                     />
                 )}

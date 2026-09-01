@@ -24,6 +24,7 @@ import { useLiveGameStore } from '../liveGameStore';
 import { useQueryAccount, useQueryAccountPreferences } from '../query/accountClient';
 import { useQueryServerShutdown } from '../query/serverClient';
 import { useQuerySessionInfo } from '../query/sessionClient';
+import { getBoardTheme } from '../utils/gameBoard';
 import { describeSessionInvite } from '../utils/routeMetadata';
 import { buildSessionPath } from './archiveRouteState';
 import type { SandboxRouteState } from './sandboxRouteState';
@@ -244,7 +245,7 @@ function SessionRoute() {
     const pendingSessionJoin = useLiveGameStore(state => state.pendingSessionJoin);
 
     const autoPlaceOriginTile = accountPreferences?.preferences.autoPlaceOriginTile ?? false;
-    const showTilePieceMarkers = accountPreferences?.preferences.tilePieceMarkers ?? false;
+    const boardTheme = getBoardTheme(accountPreferences?.preferences.boardTheme);
     const hideEloInHud = accountPreferences?.preferences.zenModeInGame ?? false;
     const shouldBlockLeave = session?.state.status === `in-game` && session.localParticipantRole === `player`;
 
@@ -537,7 +538,7 @@ function SessionRoute() {
                 onDrawDecline={session.localParticipantRole === `player` && session.state.status === `in-game` ? declineSessionDraw : undefined}
 
                 interactionEnabled={session.state.status === `in-game`}
-                showTilePieceMarkers={showTilePieceMarkers}
+                theme={boardTheme}
                 hideEloInHud={hideEloInHud}
                 tournament={session.tournament}
 

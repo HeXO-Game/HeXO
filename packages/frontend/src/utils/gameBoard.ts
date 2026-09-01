@@ -1,26 +1,48 @@
-import type { BoardState as RendererBoardState } from '@ih3t/board-renderer';
+import {
+    blackAndWhiteBoardTheme,
+    type BoardState as RendererBoardState,
+    type BoardTheme,
+    markerBoardTheme,
+    normalBoardTheme,
+} from "@ih3t/board-renderer";
 import type {
+    BoardThemeId,
     DatabaseGamePlayer,
     GameState,
     PlayerNames,
     PlayerTileConfig,
-} from '@ih3t/shared';
+} from "@ih3t/shared";
+import {
+    kBoardThemeNormal,
+    kBoardThemeMarker,
+    kBoardThemeBlackAndWhite,
+} from "@ih3t/shared";
 
 type PlayerReference = string | DatabaseGamePlayer;
 
-export function toRendererBoardState(
-    gameState: GameState,
-    showTilePieceMarkers = false,
-): RendererBoardState {
+export const kBoardThemes: Record<BoardThemeId, BoardTheme> = {
+    [kBoardThemeNormal]: normalBoardTheme,
+    [kBoardThemeMarker]: markerBoardTheme,
+    [kBoardThemeBlackAndWhite]: blackAndWhiteBoardTheme,
+};
+
+export function getBoardTheme(
+    theme: BoardThemeId | null | undefined,
+): BoardTheme {
+    return (
+        kBoardThemes[theme ?? kBoardThemeNormal] ??
+        kBoardThemes[kBoardThemeNormal]
+    );
+}
+
+export function toRendererBoardState(gameState: GameState): RendererBoardState {
     const firstPlayerId = Object.keys(gameState.playerTiles)[0];
     return {
-        placedCells: gameState.cells.map(cell => ({
+        placedCells: gameState.cells.map((cell) => ({
             x: cell.x,
             y: cell.y,
             color: gameState.playerTiles[cell.occupiedBy]?.color ?? `#FF00FF`,
-            marker: showTilePieceMarkers
-                ? (cell.occupiedBy === firstPlayerId ? `X` : `O`)
-                : undefined,
+            marker: cell.occupiedBy === firstPlayerId ? `X` : `O`,
         })),
     };
 }
@@ -43,7 +65,8 @@ export function getPlayerLabel(
     }
 
     const databasePlayer = players.find(
-        candidate => typeof candidate !== `string` && candidate.playerId === playerId,
+        (candidate) =>
+            typeof candidate !== `string` && candidate.playerId === playerId,
     );
     if (databasePlayer && typeof databasePlayer !== `string`) {
         const displayName = databasePlayer.displayName.trim();
@@ -58,7 +81,9 @@ export function getPlayerLabel(
     }
 
     const playerIndex = players.findIndex(
-        player => (typeof player === `string` ? player : player.playerId) === playerId,
+        (player) =>
+            (typeof player === `string` ? player : player.playerId) ===
+            playerId,
     );
     return playerIndex === -1 ? fallbackName : `Player ${playerIndex + 1}`;
 }

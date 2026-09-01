@@ -1,8 +1,10 @@
 import { getCellKey, type HexCoordinate } from "@ih3t/shared";
 import { useEffect, useRef } from "react";
+import deepEqual from "fast-deep-equal";
 
 import type { BoardController, BoardHighlight, BoardState } from ".";
 import { drawBoard } from "./drawing";
+import { type BoardTheme, normalBoardTheme } from "./themes";
 import {
     buildRenderableCells,
     buildStraightHexLine,
@@ -14,20 +16,6 @@ import {
 
 const DRAG_THRESHOLD_PX = 6;
 const MOUSE_AFTER_TOUCH_IGNORE_MS = 500;
-const HIGHLIGHT_COLORS = {
-    neutral: `#f472b6`,
-    yellow: `#fbbf24`,
-    blue: `#38bdf8`,
-} as const;
-
-type RendererOptions = {
-    state: BoardState
-    viewInteractionEnabled: boolean
-    cellInteractionEnabled: boolean
-    onPlaceCell?: (cell: HexCoordinate) => void
-    onCellHover?: (cell: HexCoordinate | null) => void
-};
-
 type DragState = {
     startX: number
     startY: number
@@ -56,7 +44,12 @@ type HighlightPointerState = {
 };
 
 class CanvasBoardRenderer {
-    private options: RendererOptions;
+    onPlaceCell?: (cell: HexCoordinate) => void
+    onCellHover?: (cell: HexCoordinate | null) => void
+
+    private options: GameBoardRenderOptions;
+    private state: BoardState;
+
     private cells: Map<string, RenderableCell>;
     private pendingAnimationFrame: number | null = null;
     private hoveredCell: HexCoordinate | null = null;
@@ -72,10 +65,13 @@ class CanvasBoardRenderer {
     constructor(
         private readonly canvas: HTMLCanvasElement,
         private readonly controller: BoardController,
-        options: RendererOptions,
+        options: GameBoardRenderOptions,
+        state: BoardState
     ) {
         this.options = options;
-        this.cells = buildRenderableCells(options.state);
+        this.state = state;
+
+        this.cells = buildRenderableCells(state);
         this.unsubscribeController = controller.subscribe(this.scheduleDraw);
         this.resizeObserver = new ResizeObserver(this.scheduleDraw);
         this.resizeObserver.observe(canvas);
@@ -83,14 +79,22 @@ class CanvasBoardRenderer {
         this.scheduleDraw();
     }
 
-    update(options: RendererOptions) {
-        if (options.state !== this.options.state) {
-            this.cells = buildRenderableCells(options.state);
+    updateState(state: BoardState) {
+        this.state = state;
+        this.cells = buildRenderableCells(state);
+        this.scheduleDraw();
+    }
+
+    updateOptions(options: GameBoardRenderOptions) {
+        if (deepEqual(options, this.options)) {
+            return;
         }
+
         this.options = options;
-        if (!options.cellInteractionEnabled) {
+        if (!options.cellInteractions) {
             this.clearHoveredCell();
         }
+
         this.scheduleDraw();
     }
 
@@ -115,8 +119,9 @@ class CanvasBoardRenderer {
             drawBoard({
                 canvas: this.canvas,
                 view: this.controller.getViewState(),
+                theme: this.options.theme ?? normalBoardTheme,
 
-                labels: this.options.state.labels ?? [],
+                labels: this.state.labels ?? [],
 
                 cells: this.cells,
                 hoveredCell: this.hoveredCell,
@@ -151,20 +156,21 @@ class CanvasBoardRenderer {
             return;
         }
 
-        if (this.options.viewInteractionEnabled) {
+        if (this.options.viewInteractions) {
             const isHighlightGesture = event.button === 2
                 || (event.button === 0 && event.shiftKey);
             if (isHighlightGesture) {
                 event.preventDefault();
+                const colors = (this.options.theme ?? normalBoardTheme).colors;
                 this.startHighlight(
                     event.clientX,
                     event.clientY,
                     event.button === 2 ? 2 : 1,
                     event.button === 2 && (event.shiftKey || event.ctrlKey)
-                        ? HIGHLIGHT_COLORS.yellow
+                        ? colors.highlightYellow
                         : event.altKey
-                            ? HIGHLIGHT_COLORS.blue
-                            : HIGHLIGHT_COLORS.neutral,
+                            ? colors.highlightBlue
+                            : colors.highlightNeutral,
                 );
                 return;
             }
@@ -211,7 +217,7 @@ class CanvasBoardRenderer {
             drag.moved = true;
         }
 
-        if (this.options.viewInteractionEnabled) {
+        if (this.options.viewInteractions) {
             this.controller.updateViewState({
                 offsetX: drag.originOffsetX + deltaX,
                 offsetY: drag.originOffsetY + deltaY,
@@ -259,7 +265,7 @@ class CanvasBoardRenderer {
     };
 
     private readonly onWheel = (event: WheelEvent) => {
-        if (!this.options.viewInteractionEnabled) {
+        if (!this.options.viewInteractions) {
             return;
         }
 
@@ -270,7 +276,7 @@ class CanvasBoardRenderer {
     };
 
     private readonly onTouchStart = (event: TouchEvent) => {
-        if (!this.options.viewInteractionEnabled && !this.options.cellInteractionEnabled) {
+        if (!this.options.viewInteractions && !this.options.cellInteractions) {
             return;
         }
 
@@ -298,7 +304,7 @@ class CanvasBoardRenderer {
     };
 
     private readonly onTouchMove = (event: TouchEvent) => {
-        if (!this.options.viewInteractionEnabled && !this.options.cellInteractionEnabled) {
+        if (!this.options.viewInteractions && !this.options.cellInteractions) {
             return;
         }
 
@@ -324,7 +330,7 @@ class CanvasBoardRenderer {
             drag.moved = true;
         }
 
-        if (drag.moved && this.options.viewInteractionEnabled) {
+        if (drag.moved && this.options.viewInteractions) {
             this.controller.updateViewState({
                 offsetX: drag.originOffsetX + deltaX,
                 offsetY: drag.originOffsetY + deltaY,
@@ -333,7 +339,7 @@ class CanvasBoardRenderer {
     };
 
     private readonly onTouchEnd = (event: TouchEvent) => {
-        if (!this.options.viewInteractionEnabled && !this.options.cellInteractionEnabled) {
+        if (!this.options.viewInteractions && !this.options.cellInteractions) {
             return;
         }
 
@@ -383,12 +389,12 @@ class CanvasBoardRenderer {
     };
 
     private updateHoveredCell(clientX: number, clientY: number) {
-        const nextCell = this.options.cellInteractionEnabled
+        const nextCell = this.options.cellInteractions
             ? this.screenToCell(clientX, clientY)
             : null;
         if (!sameCell(this.hoveredCell, nextCell)) {
             this.hoveredCell = nextCell;
-            this.options.onCellHover?.(nextCell);
+            this.onCellHover?.(nextCell);
             this.scheduleDraw();
         }
     }
@@ -396,12 +402,12 @@ class CanvasBoardRenderer {
     private clearHoveredCell() {
         if (this.hoveredCell !== null) {
             this.hoveredCell = null;
-            this.options.onCellHover?.(null);
+            this.onCellHover?.(null);
         }
     }
 
     private tryPlaceCell(clientX: number, clientY: number) {
-        if (!this.options.cellInteractionEnabled) {
+        if (!this.options.cellInteractions) {
             return;
         }
 
@@ -410,7 +416,7 @@ class CanvasBoardRenderer {
             return;
         }
 
-        this.options.onPlaceCell?.(target);
+        this.onPlaceCell?.(target);
     }
 
     private screenToCell(clientX: number, clientY: number): HexCoordinate {
@@ -498,7 +504,7 @@ class CanvasBoardRenderer {
     }
 
     private startPinch(touches: TouchList) {
-        if (!this.options.viewInteractionEnabled) {
+        if (!this.options.viewInteractions) {
             return;
         }
 
@@ -554,21 +560,27 @@ class CanvasBoardRenderer {
     }
 }
 
+export type GameBoardRenderOptions = {
+    viewInteractions: boolean,
+    cellInteractions: boolean,
+    theme?: BoardTheme,
+}
+
 export type GameBoardRendererProps = Readonly<{
     state: BoardState
     controller: BoardController
-    viewInteractionEnabled?: boolean
-    cellInteractionEnabled?: boolean
+    options: GameBoardRenderOptions,
+
     onPlaceCell?: (cell: HexCoordinate) => void
     onCellHover?: (cell: HexCoordinate | null) => void
+
     className?: string
 }>;
 
 export function GameBoardRenderer({
     state,
     controller,
-    viewInteractionEnabled = true,
-    cellInteractionEnabled = false,
+    options,
     onPlaceCell,
     onCellHover,
     className,
@@ -582,13 +594,11 @@ export function GameBoardRenderer({
             return;
         }
 
-        const renderer = new CanvasBoardRenderer(canvas, controller, {
-            state,
-            viewInteractionEnabled,
-            cellInteractionEnabled,
-            onPlaceCell,
-            onCellHover,
-        });
+        const renderer = new CanvasBoardRenderer(canvas, controller, options, state);
+
+        renderer.onCellHover = onCellHover;
+        renderer.onPlaceCell = onPlaceCell;
+
         rendererRef.current = renderer;
         return () => {
             renderer.destroy();
@@ -596,19 +606,33 @@ export function GameBoardRenderer({
         };
     }, [controller]);
 
-    useEffect(() => {
-        rendererRef.current?.update({
-            state,
-            viewInteractionEnabled,
-            cellInteractionEnabled,
-            onPlaceCell,
-            onCellHover,
-        });
-    }, [state, viewInteractionEnabled, cellInteractionEnabled, onPlaceCell, onCellHover]);
+    useEffect(
+        () => {
+            rendererRef.current?.updateOptions(options);
+        },
+        [options]
+    );
 
-    const cursor = viewInteractionEnabled
+    useEffect(
+        () => {
+            rendererRef.current?.updateState(state);
+        },
+        [state]
+    );
+
+    useEffect(() => {
+        const renderer = rendererRef.current;
+        if (!renderer) {
+            return;
+        }
+
+        renderer.onPlaceCell = onPlaceCell;
+        renderer.onCellHover = onCellHover;
+    }, [onPlaceCell, onCellHover]);
+
+    const cursor = options.viewInteractions
         ? `grab`
-        : cellInteractionEnabled
+        : options.cellInteractions
             ? `default`
             : `not-allowed`;
 

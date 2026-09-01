@@ -34,8 +34,7 @@ type EmptyRenderableCell = HexCoordinate & {
 
 type OccupiedRenderableCell = Omit<EmptyRenderableCell, `status`> & {
     status: `occupied`;
-    color: string;
-    marker?: CellMarker;
+    marker: CellMarker;
 };
 
 export type RenderableCell = EmptyRenderableCell | OccupiedRenderableCell;
@@ -90,7 +89,6 @@ export function buildRenderableCells(
             pointX: point.x,
             pointY: point.y,
             status: `occupied`,
-            color: placedCell.color,
             marker: placedCell.marker,
         });
     }

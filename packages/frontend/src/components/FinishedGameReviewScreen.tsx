@@ -1,3 +1,4 @@
+import type { BoardTheme } from '@ih3t/board-renderer';
 import type { FinishedGameRecord } from '@ih3t/shared';
 
 import FinishedGameReplayView from './finished-game-review/FinishedGameReplayView';
@@ -9,7 +10,7 @@ type FinishedGameReviewScreenProps = {
     game: FinishedGameRecord | null
     isLoading: boolean
     errorMessage: string | null
-    showTilePieceMarkers: boolean
+    theme: BoardTheme
     onRetry: () => void
 };
 
@@ -17,7 +18,7 @@ function FinishedGameReviewScreen({
     game,
     isLoading,
     errorMessage,
-    showTilePieceMarkers,
+    theme,
     onRetry,
 }: Readonly<FinishedGameReviewScreenProps>) {
     if (isLoading) {
@@ -32,7 +33,7 @@ function FinishedGameReviewScreen({
         return <FinishedGameReviewNotFound onRetry={onRetry} />;
     }
 
-    return <FinishedGameReplayView game={game} onRetry={onRetry} showTilePieceMarkers={showTilePieceMarkers} />;
+    return <FinishedGameReplayView game={game} onRetry={onRetry} theme={theme} />;
 }
 
 export default FinishedGameReviewScreen;
