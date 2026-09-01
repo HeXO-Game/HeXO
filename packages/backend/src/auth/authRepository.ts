@@ -3,7 +3,7 @@ import type {
     AdapterAccount,
     AdapterSession,
     AdapterUser,
-} from '@auth/express/adapters';
+} from "@auth/express/adapters";
 import {
     type AccountPermission,
     type AccountPreferences,
@@ -11,19 +11,19 @@ import {
     type UserRole,
     zAccountPermission,
     zAccountPreferences,
-} from '@ih3t/shared';
-import { Collection, ObjectId } from 'mongodb';
-import type { Logger } from 'pino';
-import { inject, injectable } from 'tsyringe';
+} from "@ih3t/shared";
+import { Collection, ObjectId } from "mongodb";
+import type { Logger } from "pino";
+import { inject, injectable } from "tsyringe";
 
-import { ROOT_LOGGER } from '../logger';
-import { MongoDatabase } from '../persistence/mongoClient';
+import { ROOT_LOGGER } from "../logger";
+import { MongoDatabase } from "../persistence/mongoClient";
 import {
     AUTH_ACCOUNTS_COLLECTION_NAME,
     AUTH_SESSIONS_COLLECTION_NAME,
     AUTH_USERS_COLLECTION_NAME,
     AUTH_VERIFICATION_TOKENS_COLLECTION_NAME,
-} from '../persistence/mongoCollections';
+} from "../persistence/mongoCollections";
 
 type AuthUserDocument = {
     _id: ObjectId;
@@ -97,10 +97,18 @@ export type AccountUserProfile = {
 export class AuthRepository implements Adapter {
     private static readonly LAST_ACTIVE_WRITE_INTERVAL_MS = 60_000;
     private readonly logger: Logger;
-    private usersCollectionPromise: Promise<Collection<AuthUserDocument>> | null = null;
-    private accountsCollectionPromise: Promise<Collection<AuthAccountDocument>> | null = null;
-    private sessionsCollectionPromise: Promise<Collection<AuthSessionDocument>> | null = null;
-    private verificationTokensCollectionPromise: Promise<Collection<AuthVerificationTokenDocument>> | null = null;
+    private usersCollectionPromise: Promise<
+        Collection<AuthUserDocument>
+    > | null = null;
+    private accountsCollectionPromise: Promise<
+        Collection<AuthAccountDocument>
+    > | null = null;
+    private sessionsCollectionPromise: Promise<
+        Collection<AuthSessionDocument>
+    > | null = null;
+    private verificationTokensCollectionPromise: Promise<
+        Collection<AuthVerificationTokenDocument>
+    > | null = null;
 
     constructor(
         @inject(ROOT_LOGGER) rootLogger: Logger,
@@ -142,28 +150,28 @@ export class AuthRepository implements Adapter {
         return document ? this.mapUserDocument(document) : null;
     };
 
-    readonly getUserByEmail: NonNullable<Adapter[`getUserByEmail`]> = async (email) => {
+    readonly getUserByEmail: NonNullable<Adapter[`getUserByEmail`]> = async (
+        email,
+    ) => {
         const collection = await this.getUsersCollection();
         const document = await collection.findOne({ email });
         return document ? this.mapUserDocument(document) : null;
     };
 
-    readonly getUserByAccount: NonNullable<Adapter[`getUserByAccount`]> = async ({
-        provider,
-        providerAccountId,
-    }) => {
-        const accountsCollection = await this.getAccountsCollection();
-        const account = await accountsCollection.findOne({
-            provider,
-            providerAccountId,
-        });
-        if (!account) {
-            return null;
-        }
+    readonly getUserByAccount: NonNullable<Adapter[`getUserByAccount`]> =
+        async ({ provider, providerAccountId }) => {
+            const accountsCollection = await this.getAccountsCollection();
+            const account = await accountsCollection.findOne({
+                provider,
+                providerAccountId,
+            });
+            if (!account) {
+                return null;
+            }
 
-        const user = await this.getUser(account.userId.toHexString());
-        return user;
-    };
+            const user = await this.getUser(account.userId.toHexString());
+            return user;
+        };
 
     readonly updateUser: NonNullable<Adapter[`updateUser`]> = async (user) => {
         const collection = await this.getUsersCollection();
@@ -190,7 +198,9 @@ export class AuthRepository implements Adapter {
         return this.mapUserDocument(document);
     };
 
-    readonly linkAccount: NonNullable<Adapter[`linkAccount`]> = async (account) => {
+    readonly linkAccount: NonNullable<Adapter[`linkAccount`]> = async (
+        account,
+    ) => {
         const collection = await this.getAccountsCollection();
         const userId = this.parseObjectId(account.userId);
         if (!userId) {
@@ -219,7 +229,9 @@ export class AuthRepository implements Adapter {
         return undefined;
     };
 
-    readonly createSession: NonNullable<Adapter[`createSession`]> = async (session) => {
+    readonly createSession: NonNullable<Adapter[`createSession`]> = async (
+        session,
+    ) => {
         const collection = await this.getSessionsCollection();
         const userId = this.parseObjectId(session.userId);
         if (!userId) {
@@ -238,26 +250,33 @@ export class AuthRepository implements Adapter {
         return this.mapSessionDocument(document);
     };
 
-    readonly getSessionAndUser: NonNullable<Adapter[`getSessionAndUser`]> = async (sessionToken) => {
-        const sessionsCollection = await this.getSessionsCollection();
-        const usersCollection = await this.getUsersCollection();
-        const sessionDocument = await sessionsCollection.findOne({ sessionToken });
-        if (!sessionDocument) {
-            return null;
-        }
+    readonly getSessionAndUser: NonNullable<Adapter[`getSessionAndUser`]> =
+        async (sessionToken) => {
+            const sessionsCollection = await this.getSessionsCollection();
+            const usersCollection = await this.getUsersCollection();
+            const sessionDocument = await sessionsCollection.findOne({
+                sessionToken,
+            });
+            if (!sessionDocument) {
+                return null;
+            }
 
-        const userDocument = await usersCollection.findOne({ _id: sessionDocument.userId });
-        if (!userDocument) {
-            return null;
-        }
+            const userDocument = await usersCollection.findOne({
+                _id: sessionDocument.userId,
+            });
+            if (!userDocument) {
+                return null;
+            }
 
-        return {
-            session: this.mapSessionDocument(sessionDocument),
-            user: this.mapUserDocument(userDocument),
+            return {
+                session: this.mapSessionDocument(sessionDocument),
+                user: this.mapUserDocument(userDocument),
+            };
         };
-    };
 
-    readonly updateSession: NonNullable<Adapter[`updateSession`]> = async (session) => {
+    readonly updateSession: NonNullable<Adapter[`updateSession`]> = async (
+        session,
+    ) => {
         const collection = await this.getSessionsCollection();
         const update: Partial<AuthSessionDocument> = {};
 
@@ -275,7 +294,9 @@ export class AuthRepository implements Adapter {
         }
 
         if (Object.keys(update).length === 0) {
-            const document = await collection.findOne({ sessionToken: session.sessionToken });
+            const document = await collection.findOne({
+                sessionToken: session.sessionToken,
+            });
             return document ? this.mapSessionDocument(document) : null;
         }
 
@@ -286,17 +307,23 @@ export class AuthRepository implements Adapter {
             },
         );
 
-        const document = await collection.findOne({ sessionToken: session.sessionToken });
+        const document = await collection.findOne({
+            sessionToken: session.sessionToken,
+        });
         return document ? this.mapSessionDocument(document) : null;
     };
 
-    readonly deleteSession: NonNullable<Adapter[`deleteSession`]> = async (sessionToken) => {
+    readonly deleteSession: NonNullable<Adapter[`deleteSession`]> = async (
+        sessionToken,
+    ) => {
         const collection = await this.getSessionsCollection();
         const result = await collection.findOneAndDelete({ sessionToken });
         return result ? this.mapSessionDocument(result) : null;
     };
 
-    readonly createVerificationToken: NonNullable<Adapter[`createVerificationToken`]> = async (verificationToken) => {
+    readonly createVerificationToken: NonNullable<
+        Adapter[`createVerificationToken`]
+    > = async (verificationToken) => {
         const collection = await this.getVerificationTokensCollection();
         const document: AuthVerificationTokenDocument = {
             _id: new ObjectId(),
@@ -314,12 +341,14 @@ export class AuthRepository implements Adapter {
         };
     };
 
-    readonly useVerificationToken: NonNullable<Adapter[`useVerificationToken`]> = async ({
-        identifier,
-        token,
-    }) => {
+    readonly useVerificationToken: NonNullable<
+        Adapter[`useVerificationToken`]
+    > = async ({ identifier, token }) => {
         const collection = await this.getVerificationTokensCollection();
-        const document = await collection.findOneAndDelete({ identifier, token });
+        const document = await collection.findOneAndDelete({
+            identifier,
+            token,
+        });
         if (!document) {
             return null;
         }
@@ -331,9 +360,14 @@ export class AuthRepository implements Adapter {
         };
     };
 
-    async getUserProfileBySessionToken(sessionToken: string): Promise<AccountUserProfile | null> {
+    async getUserProfileBySessionToken(
+        sessionToken: string,
+    ): Promise<AccountUserProfile | null> {
         const sessionAndUser = await this.getSessionAndUser(sessionToken);
-        if (!sessionAndUser || sessionAndUser.session.expires.valueOf() < Date.now()) {
+        if (
+            !sessionAndUser ||
+            sessionAndUser.session.expires.valueOf() < Date.now()
+        ) {
             return null;
         }
 
@@ -341,7 +375,9 @@ export class AuthRepository implements Adapter {
         return this.mapAccountUserProfile(user);
     }
 
-    async getUserProfileById(userId: string): Promise<AccountUserProfile | null> {
+    async getUserProfileById(
+        userId: string,
+    ): Promise<AccountUserProfile | null> {
         const collection = await this.getUsersCollection();
         const objectId = this.parseObjectId(userId);
         if (!objectId) {
@@ -349,10 +385,15 @@ export class AuthRepository implements Adapter {
         }
 
         const document = await collection.findOne({ _id: objectId });
-        return document ? this.mapAccountUserProfile(this.mapUserDocument(document)) : null;
+        return document
+            ? this.mapAccountUserProfile(this.mapUserDocument(document))
+            : null;
     }
 
-    async updateUsername(userId: string, username: string): Promise<AccountUserProfile | null> {
+    async updateUsername(
+        userId: string,
+        username: string,
+    ): Promise<AccountUserProfile | null> {
         const collection = await this.getUsersCollection();
         const objectId = this.parseObjectId(userId);
         if (!objectId) {
@@ -369,44 +410,62 @@ export class AuthRepository implements Adapter {
         );
 
         const document = await collection.findOne({ _id: objectId });
-        return document ? this.mapAccountUserProfile(this.mapUserDocument(document)) : null;
+        return document
+            ? this.mapAccountUserProfile(this.mapUserDocument(document))
+            : null;
     }
 
-    async getAccountPreferences(userId: string): Promise<AccountPreferences | null> {
+    async getAccountPreferences(
+        userId: string,
+    ): Promise<AccountPreferences | null> {
         const collection = await this.getUsersCollection();
         const objectId = this.parseObjectId(userId);
         if (!objectId) {
             return null;
         }
 
-        const document = await collection.findOne({ _id: objectId }, { projection: { preferences: 1 } });
+        const document = await collection.findOne(
+            { _id: objectId },
+            { projection: { preferences: 1 } },
+        );
         return document
             ? this.normalizeAccountPreferences(document.preferences)
             : null;
     }
 
-    async updateAccountPreferences(userId: string, preferences: AccountPreferences): Promise<AccountPreferences | null> {
+    async updateAccountPreferences(
+        userId: string,
+        preferences: Partial<AccountPreferences>,
+    ): Promise<AccountPreferences | null> {
         const collection = await this.getUsersCollection();
         const objectId = this.parseObjectId(userId);
         if (!objectId) {
             return null;
         }
 
-        const normalizedPreferences = this.normalizeAccountPreferences(preferences);
         await collection.updateOne(
             { _id: objectId },
             {
-                $set: {
-                    preferences: normalizedPreferences,
-                },
+                $set: Object.fromEntries(
+                    Object.entries(preferences).map(([key, value]) => [
+                        `preferences.${key}`,
+                        value,
+                    ]),
+                ),
             },
         );
 
         const document = await collection.findOne({ _id: objectId });
-        return document ? this.normalizeAccountPreferences(document.preferences) : null;
+        if (!document) {
+            throw new Error(`user not found`);
+        }
+
+        return zAccountPreferences.parse(document.preferences);
     }
 
-    async getUserProfilesByIds(userIds: string[]): Promise<Map<string, AccountUserProfile>> {
+    async getUserProfilesByIds(
+        userIds: string[],
+    ): Promise<Map<string, AccountUserProfile>> {
         const validEntries = userIds.flatMap((userId) => {
             const objectId = this.parseObjectId(userId);
             return objectId ? [{ userId, objectId }] : [];
@@ -417,63 +476,96 @@ export class AuthRepository implements Adapter {
         }
 
         const collection = await this.getUsersCollection();
-        const documents = await collection.find({
-            _id: {
-                $in: validEntries.map(({ objectId }) => objectId),
-            },
-        }).toArray();
+        const documents = await collection
+            .find({
+                _id: {
+                    $in: validEntries.map(({ objectId }) => objectId),
+                },
+            })
+            .toArray();
 
-        return new Map(documents.map((document) => {
-            const profile = this.mapAccountUserProfile(this.mapUserDocument(document));
-            return [profile.id, profile] as const;
-        }));
+        return new Map(
+            documents.map((document) => {
+                const profile = this.mapAccountUserProfile(
+                    this.mapUserDocument(document),
+                );
+                return [profile.id, profile] as const;
+            }),
+        );
     }
 
-    async searchUserProfiles(query: string, limit = 10): Promise<AccountUserProfile[]> {
+    async searchUserProfiles(
+        query: string,
+        limit = 10,
+    ): Promise<AccountUserProfile[]> {
         const normalizedQuery = query.trim();
         if (!normalizedQuery) {
             return [];
         }
 
         const collection = await this.getUsersCollection();
-        const escapedQuery = normalizedQuery.replace(/[.*+?^${}()|[\]\\]/g, `\\$&`);
-        const documents = await collection.find({
-            name: {
-                $regex: escapedQuery,
-                $options: `i`,
-            },
-        })
+        const escapedQuery = normalizedQuery.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            `\\$&`,
+        );
+        const documents = await collection
+            .find({
+                name: {
+                    $regex: escapedQuery,
+                    $options: `i`,
+                },
+            })
             .limit(Math.max(1, Math.min(limit, 20)))
             .toArray();
 
-        return documents.map((document) => this.mapAccountUserProfile(this.mapUserDocument(document)));
+        return documents.map((document) =>
+            this.mapAccountUserProfile(this.mapUserDocument(document)),
+        );
     }
 
-    async getUserProfilesByNames(names: string[]): Promise<Map<string, AccountUserProfile>> {
+    async getUserProfilesByNames(
+        names: string[],
+    ): Promise<Map<string, AccountUserProfile>> {
         const trimmed = names.map((n) => n.trim()).filter(Boolean);
         if (trimmed.length === 0) return new Map();
 
         const collection = await this.getUsersCollection();
-        const documents = await collection.find({
-            name: { $in: trimmed.map((n) => new RegExp(`^${n.replace(/[.*+?^${}()|[\]\\]/g, `\\$&`)}$`, `i`)) },
-        }).toArray();
+        const documents = await collection
+            .find({
+                name: {
+                    $in: trimmed.map(
+                        (n) =>
+                            new RegExp(
+                                `^${n.replace(/[.*+?^${}()|[\]\\]/g, `\\$&`)}$`,
+                                `i`,
+                            ),
+                    ),
+                },
+            })
+            .toArray();
 
         const result = new Map<string, AccountUserProfile>();
         for (const doc of documents) {
-            const profile = this.mapAccountUserProfile(this.mapUserDocument(doc));
+            const profile = this.mapAccountUserProfile(
+                this.mapUserDocument(doc),
+            );
             result.set(profile.username.toLowerCase(), profile);
         }
         return result;
     }
 
-    async updateUserPermissions(userId: string, permissions: AccountPermission[]): Promise<AccountUserProfile | null> {
+    async updateUserPermissions(
+        userId: string,
+        permissions: AccountPermission[],
+    ): Promise<AccountUserProfile | null> {
         const collection = await this.getUsersCollection();
         const objectId = this.parseObjectId(userId);
         if (!objectId) {
             return null;
         }
 
-        const normalizedPermissions = this.normalizeAccountPermissions(permissions);
+        const normalizedPermissions =
+            this.normalizeAccountPermissions(permissions);
         await collection.updateOne(
             { _id: objectId },
             {
@@ -484,7 +576,9 @@ export class AuthRepository implements Adapter {
         );
 
         const document = await collection.findOne({ _id: objectId });
-        return document ? this.mapAccountUserProfile(this.mapUserDocument(document)) : null;
+        return document
+            ? this.mapAccountUserProfile(this.mapUserDocument(document))
+            : null;
     }
 
     async createDevUser(params: {
@@ -495,9 +589,10 @@ export class AuthRepository implements Adapter {
         permissions?: AccountPermission[];
     }): Promise<AccountUserProfile> {
         const collection = await this.getUsersCollection();
-        const normalizedEmail = params.email.trim()
-            .toLowerCase();
-        const existingUser = await collection.findOne({ email: normalizedEmail });
+        const normalizedEmail = params.email.trim().toLowerCase();
+        const existingUser = await collection.findOne({
+            email: normalizedEmail,
+        });
         if (existingUser) {
             await collection.updateOne(
                 { _id: existingUser._id },
@@ -506,13 +601,19 @@ export class AuthRepository implements Adapter {
                         name: params.username,
                         image: params.image ?? null,
                         role: params.role ?? `user`,
-                        permissions: this.normalizeAccountPermissions(params.permissions),
+                        permissions: this.normalizeAccountPermissions(
+                            params.permissions,
+                        ),
                     },
                 },
             );
 
-            const updatedUser = await collection.findOne({ _id: existingUser._id });
-            return this.mapAccountUserProfile(this.mapUserDocument(updatedUser ?? existingUser));
+            const updatedUser = await collection.findOne({
+                _id: existingUser._id,
+            });
+            return this.mapAccountUserProfile(
+                this.mapUserDocument(updatedUser ?? existingUser),
+            );
         }
 
         const now = Date.now();
@@ -540,16 +641,23 @@ export class AuthRepository implements Adapter {
                 throw error;
             }
 
-            const duplicateUser = await collection.findOne({ email: normalizedEmail });
+            const duplicateUser = await collection.findOne({
+                email: normalizedEmail,
+            });
             if (!duplicateUser) {
                 throw error;
             }
 
-            return this.mapAccountUserProfile(this.mapUserDocument(duplicateUser));
+            return this.mapAccountUserProfile(
+                this.mapUserDocument(duplicateUser),
+            );
         }
     }
 
-    async createSessionTokenForUser(userId: string, expires: Date): Promise<string> {
+    async createSessionTokenForUser(
+        userId: string,
+        expires: Date,
+    ): Promise<string> {
         const collection = await this.getSessionsCollection();
         const objectId = this.parseObjectId(userId);
         if (!objectId) {
@@ -572,7 +680,10 @@ export class AuthRepository implements Adapter {
         return await collection.countDocuments();
     }
 
-    async getAdminUserWindowStats(startAt: number, endAt: number): Promise<AdminUserWindowStats> {
+    async getAdminUserWindowStats(
+        startAt: number,
+        endAt: number,
+    ): Promise<AdminUserWindowStats> {
         const collection = await this.getUsersCollection();
         const [newUsers, activeUsers] = await Promise.all([
             collection.countDocuments({
@@ -602,61 +713,87 @@ export class AuthRepository implements Adapter {
 
         this.usersCollectionPromise = (async () => {
             const database = await this.mongoDatabase.getDatabase();
-            return database.collection<AuthUserDocument>(AUTH_USERS_COLLECTION_NAME);
+            return database.collection<AuthUserDocument>(
+                AUTH_USERS_COLLECTION_NAME,
+            );
         })().catch((error: unknown) => {
             this.usersCollectionPromise = null;
-            this.logger.error({ err: error, event: `auth.users.init.failed` }, `Failed to initialize auth users collection`);
+            this.logger.error(
+                { err: error, event: `auth.users.init.failed` },
+                `Failed to initialize auth users collection`,
+            );
             throw error;
         });
 
         return this.usersCollectionPromise;
     }
 
-    private async getAccountsCollection(): Promise<Collection<AuthAccountDocument>> {
+    private async getAccountsCollection(): Promise<
+        Collection<AuthAccountDocument>
+    > {
         if (this.accountsCollectionPromise) {
             return this.accountsCollectionPromise;
         }
 
         this.accountsCollectionPromise = (async () => {
             const database = await this.mongoDatabase.getDatabase();
-            return database.collection<AuthAccountDocument>(AUTH_ACCOUNTS_COLLECTION_NAME);
+            return database.collection<AuthAccountDocument>(
+                AUTH_ACCOUNTS_COLLECTION_NAME,
+            );
         })().catch((error: unknown) => {
             this.accountsCollectionPromise = null;
-            this.logger.error({ err: error, event: `auth.accounts.init.failed` }, `Failed to initialize auth accounts collection`);
+            this.logger.error(
+                { err: error, event: `auth.accounts.init.failed` },
+                `Failed to initialize auth accounts collection`,
+            );
             throw error;
         });
 
         return this.accountsCollectionPromise;
     }
 
-    private async getSessionsCollection(): Promise<Collection<AuthSessionDocument>> {
+    private async getSessionsCollection(): Promise<
+        Collection<AuthSessionDocument>
+    > {
         if (this.sessionsCollectionPromise) {
             return this.sessionsCollectionPromise;
         }
 
         this.sessionsCollectionPromise = (async () => {
             const database = await this.mongoDatabase.getDatabase();
-            return database.collection<AuthSessionDocument>(AUTH_SESSIONS_COLLECTION_NAME);
+            return database.collection<AuthSessionDocument>(
+                AUTH_SESSIONS_COLLECTION_NAME,
+            );
         })().catch((error: unknown) => {
             this.sessionsCollectionPromise = null;
-            this.logger.error({ err: error, event: `auth.sessions.init.failed` }, `Failed to initialize auth sessions collection`);
+            this.logger.error(
+                { err: error, event: `auth.sessions.init.failed` },
+                `Failed to initialize auth sessions collection`,
+            );
             throw error;
         });
 
         return this.sessionsCollectionPromise;
     }
 
-    private async getVerificationTokensCollection(): Promise<Collection<AuthVerificationTokenDocument>> {
+    private async getVerificationTokensCollection(): Promise<
+        Collection<AuthVerificationTokenDocument>
+    > {
         if (this.verificationTokensCollectionPromise) {
             return this.verificationTokensCollectionPromise;
         }
 
         this.verificationTokensCollectionPromise = (async () => {
             const database = await this.mongoDatabase.getDatabase();
-            return database.collection<AuthVerificationTokenDocument>(AUTH_VERIFICATION_TOKENS_COLLECTION_NAME);
+            return database.collection<AuthVerificationTokenDocument>(
+                AUTH_VERIFICATION_TOKENS_COLLECTION_NAME,
+            );
         })().catch((error: unknown) => {
             this.verificationTokensCollectionPromise = null;
-            this.logger.error({ err: error, event: `auth.verification-tokens.init.failed` }, `Failed to initialize auth verification token collection`);
+            this.logger.error(
+                { err: error, event: `auth.verification-tokens.init.failed` },
+                `Failed to initialize auth verification token collection`,
+            );
             throw error;
         });
 
@@ -695,8 +832,15 @@ export class AuthRepository implements Adapter {
         };
     }
 
-    private mapAccountUserProfile(user: AdapterUser & { role?: UserRole; registeredAt?: number; lastActiveAt?: number }): AccountUserProfile {
-        const registeredAt = this.normalizeTimestamp(user.registeredAt) ?? Date.now();
+    private mapAccountUserProfile(
+        user: AdapterUser & {
+            role?: UserRole;
+            registeredAt?: number;
+            lastActiveAt?: number;
+        },
+    ): AccountUserProfile {
+        const registeredAt =
+            this.normalizeTimestamp(user.registeredAt) ?? Date.now();
         const typedUser = user as AdapterUser & {
             role?: UserRole;
             permissions?: AccountPermission[];
@@ -710,16 +854,28 @@ export class AuthRepository implements Adapter {
             email: user.email || null,
             image: user.image ?? null,
             role: typedUser.role ?? `user`,
-            permissions: this.normalizeAccountPermissions(typedUser.permissions),
+            permissions: this.normalizeAccountPermissions(
+                typedUser.permissions,
+            ),
             registeredAt,
-            lastActiveAt: this.normalizeTimestamp(typedUser.lastActiveAt) ?? registeredAt,
+            lastActiveAt:
+                this.normalizeTimestamp(typedUser.lastActiveAt) ?? registeredAt,
         };
     }
 
-    private async touchUserLastActive(user: AdapterUser & { role?: UserRole; registeredAt?: number; lastActiveAt?: number }): Promise<StoredAdapterUser> {
+    private async touchUserLastActive(
+        user: AdapterUser & {
+            role?: UserRole;
+            registeredAt?: number;
+            lastActiveAt?: number;
+        },
+    ): Promise<StoredAdapterUser> {
         const storedUser = this.toStoredAdapterUser(user);
         const now = Date.now();
-        if (storedUser.lastActiveAt >= now - AuthRepository.LAST_ACTIVE_WRITE_INTERVAL_MS) {
+        if (
+            storedUser.lastActiveAt >=
+            now - AuthRepository.LAST_ACTIVE_WRITE_INTERVAL_MS
+        ) {
             return storedUser;
         }
 
@@ -747,9 +903,13 @@ export class AuthRepository implements Adapter {
         };
     }
 
-    private resolveRegisteredAt(document: Pick<AuthUserDocument, `_id` | `registeredAt`>): number {
-        return this.normalizeTimestamp(document.registeredAt)
-            ?? document._id.getTimestamp().valueOf();
+    private resolveRegisteredAt(
+        document: Pick<AuthUserDocument, `_id` | `registeredAt`>,
+    ): number {
+        return (
+            this.normalizeTimestamp(document.registeredAt) ??
+            document._id.getTimestamp().valueOf()
+        );
     }
 
     private resolveLastActiveAt(
@@ -759,7 +919,9 @@ export class AuthRepository implements Adapter {
         return this.normalizeTimestamp(document.lastActiveAt) ?? registeredAt;
     }
 
-    private normalizeTimestamp(value: number | undefined | null): number | null {
+    private normalizeTimestamp(
+        value: number | undefined | null,
+    ): number | null {
         if (typeof value !== `number` || !Number.isFinite(value)) {
             return null;
         }
@@ -767,8 +929,15 @@ export class AuthRepository implements Adapter {
         return Math.max(0, Math.floor(value));
     }
 
-    private toStoredAdapterUser(user: AdapterUser & { role?: UserRole; registeredAt?: number; lastActiveAt?: number }): StoredAdapterUser {
-        const registeredAt = this.normalizeTimestamp(user.registeredAt) ?? Date.now();
+    private toStoredAdapterUser(
+        user: AdapterUser & {
+            role?: UserRole;
+            registeredAt?: number;
+            lastActiveAt?: number;
+        },
+    ): StoredAdapterUser {
+        const registeredAt =
+            this.normalizeTimestamp(user.registeredAt) ?? Date.now();
         const typedUser = user as AdapterUser & {
             role?: UserRole;
             permissions?: AccountPermission[];
@@ -779,9 +948,12 @@ export class AuthRepository implements Adapter {
         return {
             ...user,
             role: typedUser.role ?? `user`,
-            permissions: this.normalizeAccountPermissions(typedUser.permissions),
+            permissions: this.normalizeAccountPermissions(
+                typedUser.permissions,
+            ),
             registeredAt,
-            lastActiveAt: this.normalizeTimestamp(typedUser.lastActiveAt) ?? registeredAt,
+            lastActiveAt:
+                this.normalizeTimestamp(typedUser.lastActiveAt) ?? registeredAt,
         };
     }
 
@@ -800,7 +972,9 @@ export class AuthRepository implements Adapter {
         return Array.from(new Set(normalizedPermissions));
     }
 
-    private toUserDocument(user: Partial<AdapterUser>): Omit<AuthUserDocument, `_id`> {
+    private toUserDocument(
+        user: Partial<AdapterUser>,
+    ): Omit<AuthUserDocument, `_id`> {
         const document: Omit<AuthUserDocument, `_id`> = {};
 
         if (user.name !== undefined) {
@@ -822,12 +996,16 @@ export class AuthRepository implements Adapter {
         return document;
     }
 
-    private toUserUpdateDocument(user: Partial<AdapterUser>): Partial<AuthUserDocument> {
+    private toUserUpdateDocument(
+        user: Partial<AdapterUser>,
+    ): Partial<AuthUserDocument> {
         const document = this.toUserDocument(user);
         return document;
     }
 
-    private toAccountDocument(account: AdapterAccount): Omit<AuthAccountDocument, `_id` | `userId`> {
+    private toAccountDocument(
+        account: AdapterAccount,
+    ): Omit<AuthAccountDocument, `_id` | `userId`> {
         const document: Omit<AuthAccountDocument, `_id` | `userId`> = {
             type: account.type,
             provider: account.provider,

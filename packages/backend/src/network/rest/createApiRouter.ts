@@ -191,7 +191,7 @@ export class ApiRouter {
                 return;
             }
 
-            const preferences = this.parseAccountPreferencesUpdate(req.body);
+            const preferences = zUpdateAccountPreferencesRequest.parse(req.body).preferences;
             const updatedPreferences = await this.authRepository.updateAccountPreferences(user.id, preferences);
             if (!updatedPreferences) {
                 res.status(404).json({ error: `Account not found.` });
@@ -1102,10 +1102,6 @@ export class ApiRouter {
 
     private parseAccountProfileUpdate(body: unknown): string {
         return zUpdateAccountProfileRequest.parse(body ?? {}).username;
-    }
-
-    private parseAccountPreferencesUpdate(body: unknown): AccountPreferencesResponse[`preferences`] {
-        return zUpdateAccountPreferencesRequest.parse(body ?? {}).preferences;
     }
 
     private parseAdminServerSettingsUpdate(body: unknown): ServerSettings {

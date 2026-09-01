@@ -1,6 +1,9 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { zFinishedGameTournamentInfo, zSessionTournamentInfo } from './tournaments';
+import {
+    zFinishedGameTournamentInfo,
+    zSessionTournamentInfo,
+} from "./tournaments";
 
 export const PLACE_CELL_HEX_RADIUS = 8;
 const WINNING_LINE_LENGTH = 6;
@@ -42,7 +45,12 @@ export const zCellOccupant = z.string().brand<`CellOccupant`>();
 export type CellOccupant = z.infer<typeof zCellOccupant>;
 
 export const zSessionFinishReason = z.enum([
-    `disconnect`, `surrender`, `timeout`, `terminated`, `six-in-a-row`, `draw-agreement`,
+    `disconnect`,
+    `surrender`,
+    `timeout`,
+    `terminated`,
+    `six-in-a-row`,
+    `draw-agreement`,
 ]);
 export type SessionFinishReason = z.infer<typeof zSessionFinishReason>;
 
@@ -59,7 +67,12 @@ export const zPlayerProfileIds = z.record(z.string(), z.string().nullable());
 export type PlayerProfileIds = z.infer<typeof zPlayerProfileIds>;
 
 export const PLAYER_TILE_COLORS = [
-    `#fbbf24`, `#38bdf8`, `#f472b6`, `#34d399`, `#c084fc`, `#fb7185`,
+    `#fbbf24`,
+    `#38bdf8`,
+    `#f472b6`,
+    `#34d399`,
+    `#c084fc`,
+    `#fb7185`,
 ] as const;
 
 export const zPlayerTileConfig = z.object({
@@ -68,10 +81,16 @@ export const zPlayerTileConfig = z.object({
 export type PlayerTileConfig = z.infer<typeof zPlayerTileConfig>;
 
 export function getDefaultPlayerTileColor(playerIndex: number): string {
-    return PLAYER_TILE_COLORS[Math.min(playerIndex, PLAYER_TILE_COLORS.length - 1)] ?? PLAYER_TILE_COLORS[0];
+    return (
+        PLAYER_TILE_COLORS[
+            Math.min(playerIndex, PLAYER_TILE_COLORS.length - 1)
+        ] ?? PLAYER_TILE_COLORS[0]
+    );
 }
 
-export function buildPlayerTileConfigMap(playerIds: readonly string[]): Record<string, PlayerTileConfig> {
+export function buildPlayerTileConfigMap(
+    playerIds: readonly string[],
+): Record<string, PlayerTileConfig> {
     return Object.fromEntries(
         playerIds.map((playerId, playerIndex) => [
             playerId,
@@ -88,15 +107,12 @@ export const zGameTimeControl = z.union([
     }),
     z.object({
         mode: z.literal(`turn`),
-        turnTimeMs: z.number().int()
-            .nonnegative(),
+        turnTimeMs: z.number().int().nonnegative(),
     }),
     z.object({
         mode: z.literal(`match`),
-        mainTimeMs: z.number().int()
-            .nonnegative(),
-        incrementMs: z.number().int()
-            .nonnegative(),
+        mainTimeMs: z.number().int().nonnegative(),
+        incrementMs: z.number().int().nonnegative(),
     }),
 ]);
 export type GameTimeControl = z.infer<typeof zGameTimeControl>;
@@ -126,16 +142,12 @@ export const zShutdownState = z.object({
 export type ShutdownState = z.infer<typeof zShutdownState>;
 
 export const zAdminBroadcastMessage = z.object({
-    message: z.string().trim()
-        .min(1)
-        .max(280),
+    message: z.string().trim().min(1).max(280),
     sentAt: zTimestamp,
 });
 export type AdminBroadcastMessage = z.infer<typeof zAdminBroadcastMessage>;
 
-export const zSessionChatMessageText = z.string().trim()
-    .min(1)
-    .max(280);
+export const zSessionChatMessageText = z.string().trim().min(1).max(280);
 export type SessionChatMessageText = z.infer<typeof zSessionChatMessageText>;
 
 export const zSessionChatMessageId = z.string().brand(`ChatMessageId`);
@@ -153,7 +165,9 @@ export const zSessionChatMessage = z.object({
 export type SessionChatMessage = z.infer<typeof zSessionChatMessage>;
 
 export const zServerSettings = z.object({
-    maxConcurrentGames: z.number().int()
+    maxConcurrentGames: z
+        .number()
+        .int()
         .min(0)
         .max(10_000)
         .nullable()
@@ -161,7 +175,9 @@ export const zServerSettings = z.object({
 });
 export type ServerSettings = z.infer<typeof zServerSettings>;
 
-export const DEFAULT_SERVER_SETTINGS: ServerSettings = zServerSettings.parse({});
+export const DEFAULT_SERVER_SETTINGS: ServerSettings = zServerSettings.parse(
+    {},
+);
 
 export const zBoardCell = z.object({
     x: zCoordinate,
@@ -188,7 +204,12 @@ export function getCellKey(x: number, y: number): string {
 }
 
 export function getHexDistance(a: HexCoordinate, b: HexCoordinate): number {
-    return (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs((a.x + a.y) - (b.x + b.y))) / 2;
+    return (
+        (Math.abs(a.x - b.x) +
+            Math.abs(a.y - b.y) +
+            Math.abs(a.x + a.y - (b.x + b.y))) /
+        2
+    );
 }
 
 export function isCellWithinPlacementRadius(
@@ -200,7 +221,9 @@ export function isCellWithinPlacementRadius(
         return true;
     }
 
-    return placedCells.some((cell) => getHexDistance(cell, candidate) <= radius);
+    return placedCells.some(
+        (cell) => getHexDistance(cell, candidate) <= radius,
+    );
 }
 
 export const zGameState = z.object({
@@ -208,15 +231,10 @@ export const zGameState = z.object({
     winner: zGameWinner.nullable(),
     playerTiles: z.record(z.string(), zPlayerTileConfig),
     currentTurnPlayerId: zIdentifier.nullable(),
-    placementsRemaining: z.number().int()
-        .nonnegative(),
-    turnCount: z.number().int()
-        .nonnegative(),
-    currentTurnExpiresInMs: z.number().int()
-        .nonnegative()
-        .nullable(),
-    playerTimeRemainingMs: z.record(z.string(), z.number().int()
-        .nonnegative()),
+    placementsRemaining: z.number().int().nonnegative(),
+    turnCount: z.number().int().nonnegative(),
+    currentTurnExpiresInMs: z.number().int().nonnegative().nullable(),
+    playerTimeRemainingMs: z.record(z.string(), z.number().int().nonnegative()),
 });
 export type GameState = z.infer<typeof zGameState>;
 export type Game = {
@@ -227,13 +245,13 @@ export type Game = {
 export const zBoardState = zGameState;
 export type BoardState = GameState;
 
-export const zSandboxPositionId = z.string().trim()
+export const zSandboxPositionId = z
+    .string()
+    .trim()
     .regex(/^[a-z0-9]{7}$/i);
 export type SandboxPositionId = z.infer<typeof zSandboxPositionId>;
 
-export const zSandboxPositionName = z.string().trim()
-    .min(1)
-    .max(80);
+export const zSandboxPositionName = z.string().trim().min(1).max(80);
 export type SandboxPositionName = z.infer<typeof zSandboxPositionName>;
 
 export const zSandboxPlayerSlot = z.enum([`player-1`, `player-2`]);
@@ -243,17 +261,14 @@ export const zSandboxPositionCell = z.object({
     x: zCoordinate,
     y: zCoordinate,
     player: zSandboxPlayerSlot,
-    moveId: z.number().int()
-        .positive(),
+    moveId: z.number().int().positive(),
 });
 export type SandboxPositionCell = z.infer<typeof zSandboxPositionCell>;
 
 export const zSandboxGamePosition = z.object({
     cells: z.array(zSandboxPositionCell),
     currentTurnPlayer: zSandboxPlayerSlot,
-    placementsRemaining: z.number().int()
-        .min(1)
-        .max(2),
+    placementsRemaining: z.number().int().min(1).max(2),
 });
 export type SandboxGamePosition = z.infer<typeof zSandboxGamePosition>;
 
@@ -286,24 +301,36 @@ export function cloneGameState(gameState: GameState): GameState {
         cells: gameState.cells.map((cell) => ({ ...cell })),
         winner: gameState.winner
             ? {
-                ...gameState.winner,
-                cells: gameState.winner.cells.map((cell) => ({ ...cell })),
-            }
+                  ...gameState.winner,
+                  cells: gameState.winner.cells.map((cell) => ({ ...cell })),
+              }
             : null,
         playerTiles: Object.fromEntries(
-            Object.entries(gameState.playerTiles).map(([playerId, playerTileConfig]) => [playerId, { ...playerTileConfig }]),
+            Object.entries(gameState.playerTiles).map(
+                ([playerId, playerTileConfig]) => [
+                    playerId,
+                    { ...playerTileConfig },
+                ],
+            ),
         ),
         playerTimeRemainingMs: { ...gameState.playerTimeRemainingMs },
     };
 }
 
-export function createStartedGameState(playerIds: readonly string[], startingPlayerId: string | null): GameState {
+export function createStartedGameState(
+    playerIds: readonly string[],
+    startingPlayerId: string | null,
+): GameState {
     const gameState = createEmptyGameState();
     initializeGameState(gameState, playerIds, startingPlayerId);
     return gameState;
 }
 
-export function initializeGameState(gameState: GameState, playerIds: readonly string[], startingPlayerId: string | null): void {
+export function initializeGameState(
+    gameState: GameState,
+    playerIds: readonly string[],
+    startingPlayerId: string | null,
+): void {
     gameState.cells = [];
     gameState.winner = null;
     gameState.playerTiles = buildPlayerTileConfigMap(playerIds);
@@ -311,9 +338,10 @@ export function initializeGameState(gameState: GameState, playerIds: readonly st
     gameState.currentTurnExpiresInMs = null;
     gameState.playerTimeRemainingMs = {};
 
-    const resolvedStartingPlayerId = startingPlayerId && playerIds.includes(startingPlayerId)
-        ? startingPlayerId
-        : (playerIds[0] ?? null);
+    const resolvedStartingPlayerId =
+        startingPlayerId && playerIds.includes(startingPlayerId)
+            ? startingPlayerId
+            : (playerIds[0] ?? null);
     setCurrentTurn(gameState, resolvedStartingPlayerId, 1);
 }
 
@@ -324,7 +352,10 @@ export function getPublicGameState(gameState: GameState): GameState {
     };
 }
 
-export function applyGameMove(gameState: GameState, params: ApplyGameMoveParams): ApplyGameMoveResult {
+export function applyGameMove(
+    gameState: GameState,
+    params: ApplyGameMoveParams,
+): ApplyGameMoveResult {
     const { playerId, x, y } = params;
 
     if (gameState.currentTurnPlayerId !== playerId) {
@@ -340,7 +371,9 @@ export function applyGameMove(gameState: GameState, params: ApplyGameMoveParams)
     }
 
     const cellKey = getCellKey(x, y);
-    const isOccupied = gameState.cells.some((cell) => getCellKey(cell.x, cell.y) === cellKey);
+    const isOccupied = gameState.cells.some(
+        (cell) => getCellKey(cell.x, cell.y) === cellKey,
+    );
     if (isOccupied) {
         throw new GameRuleError(`Cell is already occupied`);
     }
@@ -350,7 +383,9 @@ export function applyGameMove(gameState: GameState, params: ApplyGameMoveParams)
     }
 
     if (!isCellWithinPlacementRadius(gameState.cells, { x, y })) {
-        throw new GameRuleError(`Cell must be within ${PLACE_CELL_HEX_RADIUS} hexes of an existing placed cell`);
+        throw new GameRuleError(
+            `Cell must be within ${PLACE_CELL_HEX_RADIUS} hexes of an existing placed cell`,
+        );
     }
 
     const turnCompleted = gameState.placementsRemaining === 1;
@@ -373,7 +408,9 @@ export function applyGameMove(gameState: GameState, params: ApplyGameMoveParams)
     }
 
     if (turnCompleted) {
-        const currentPlayerIndex = playerIds.findIndex((existingPlayerId) => existingPlayerId === playerId);
+        const currentPlayerIndex = playerIds.findIndex(
+            (existingPlayerId) => existingPlayerId === playerId,
+        );
         const nextPlayerIndex = currentPlayerIndex === 0 ? 1 : 0;
         setCurrentTurn(gameState, playerIds[nextPlayerIndex] ?? playerId, 2);
     }
@@ -391,7 +428,11 @@ export function getCompletedTurnCount(moveCount: number): number {
     return 1 + Math.floor((moveCount - 1) / 2);
 }
 
-function setCurrentTurn(gameState: GameState, playerId: string | null, placementsRemaining: number): void {
+function setCurrentTurn(
+    gameState: GameState,
+    playerId: string | null,
+    placementsRemaining: number,
+): void {
     gameState.currentTurnPlayerId = playerId;
     gameState.placementsRemaining = playerId ? placementsRemaining : 0;
     if (!playerId) {
@@ -399,7 +440,12 @@ function setCurrentTurn(gameState: GameState, playerId: string | null, placement
     }
 }
 
-function findWinningLine(gameState: GameState, playerId: string, x: number, y: number): HexCoordinate[] | null {
+function findWinningLine(
+    gameState: GameState,
+    playerId: string,
+    x: number,
+    y: number,
+): HexCoordinate[] | null {
     const occupiedCells = new Set(
         gameState.cells
             .filter((cell) => cell.occupiedBy === playerId)
@@ -412,11 +458,21 @@ function findWinningLine(gameState: GameState, playerId: string, x: number, y: n
     ];
 
     for (const [directionX, directionY] of directions) {
-        const backwardCells = collectConnectedTiles(occupiedCells, x, y, -directionX, -directionY).reverse();
-        const forwardCells = collectConnectedTiles(occupiedCells, x, y, directionX, directionY);
-        const line = [
-            ...backwardCells, { x, y }, ...forwardCells,
-        ];
+        const backwardCells = collectConnectedTiles(
+            occupiedCells,
+            x,
+            y,
+            -directionX,
+            -directionY,
+        ).reverse();
+        const forwardCells = collectConnectedTiles(
+            occupiedCells,
+            x,
+            y,
+            directionX,
+            directionY,
+        );
+        const line = [...backwardCells, { x, y }, ...forwardCells];
 
         if (line.length >= WINNING_LINE_LENGTH) {
             return selectWinningLineSegment(line, backwardCells.length);
@@ -446,11 +502,21 @@ function collectConnectedTiles(
     return connectedTiles;
 }
 
-function selectWinningLineSegment(line: readonly HexCoordinate[], pivotIndex: number): HexCoordinate[] {
+function selectWinningLineSegment(
+    line: readonly HexCoordinate[],
+    pivotIndex: number,
+): HexCoordinate[] {
     const minStartIndex = Math.max(0, pivotIndex - (WINNING_LINE_LENGTH - 1));
-    const maxStartIndex = Math.min(pivotIndex, line.length - WINNING_LINE_LENGTH);
-    const preferredStartIndex = pivotIndex - Math.floor((WINNING_LINE_LENGTH - 1) / 2);
-    const startIndex = Math.min(maxStartIndex, Math.max(minStartIndex, preferredStartIndex));
+    const maxStartIndex = Math.min(
+        pivotIndex,
+        line.length - WINNING_LINE_LENGTH,
+    );
+    const preferredStartIndex =
+        pivotIndex - Math.floor((WINNING_LINE_LENGTH - 1) / 2);
+    const startIndex = Math.min(
+        maxStartIndex,
+        Math.max(minStartIndex, preferredStartIndex),
+    );
 
     return line.slice(startIndex, startIndex + WINNING_LINE_LENGTH);
 }
@@ -539,7 +605,10 @@ export const zSessionState = z.discriminatedUnion(`status`, [
     }),
 ]);
 export type SessionState = z.infer<typeof zSessionState>;
-export type SessionStateFinished = Extract<SessionState, { status: `finished` }>;
+export type SessionStateFinished = Extract<
+    SessionState,
+    { status: `finished` }
+>;
 
 export const zSessionId = zIdentifier.min(1).brand(`SessionId`);
 export type SessionId = z.infer<typeof zSessionId>;
@@ -553,8 +622,7 @@ export const zSessionInfo = z.object({
 
     chat: zSessionChat,
     state: zSessionState,
-    tournament: zSessionTournamentInfo.nullable()
-        .default(null),
+    tournament: zSessionTournamentInfo.nullable().default(null),
 });
 export type SessionInfo = z.infer<typeof zSessionInfo>;
 
@@ -571,20 +639,14 @@ export const zDatabaseGamePlayer = z.object({
     playerId: zIdentifier,
     displayName: z.string(),
     profileId: zIdentifier,
-    elo: z.number().int()
-        .nullable()
-        .default(null),
-    eloChange: z.number().int()
-        .nullable()
-        .default(null),
+    elo: z.number().int().nullable().default(null),
+    eloChange: z.number().int().nullable().default(null),
 });
 export type DatabaseGamePlayer = z.infer<typeof zDatabaseGamePlayer>;
 
 export const zDatabaseGameResult = z.object({
     winningPlayerId: zIdentifier.nullable(),
-    durationMs: z.number().int()
-        .nonnegative()
-        .nullable(),
+    durationMs: z.number().int().nonnegative().nullable(),
     reason: zSessionFinishReason,
 });
 export type DatabaseGameResult = z.infer<typeof zDatabaseGameResult>;
@@ -600,11 +662,9 @@ export const zDatabaseGame = z.object({
     playerTiles: z.record(z.string(), zPlayerTileConfig),
     gameOptions: zLobbyOptions,
     moves: z.array(zGameMove),
-    moveCount: z.number().int()
-        .nonnegative(),
+    moveCount: z.number().int().nonnegative(),
     gameResult: zDatabaseGameResult.nullable(),
-    tournament: zFinishedGameTournamentInfo.nullable()
-        .default(null),
+    tournament: zFinishedGameTournamentInfo.nullable().default(null),
 });
 export type DatabaseGame = z.infer<typeof zDatabaseGame>;
 
@@ -616,11 +676,9 @@ export const zFinishedGameSummary = z.object({
     players: z.array(zDatabaseGamePlayer),
     playerTiles: z.record(z.string(), zPlayerTileConfig),
     gameOptions: zLobbyOptions,
-    moveCount: z.number().int()
-        .nonnegative(),
+    moveCount: z.number().int().nonnegative(),
     gameResult: zDatabaseGameResult.nullable(),
-    tournament: zFinishedGameTournamentInfo.nullable()
-        .default(null),
+    tournament: zFinishedGameTournamentInfo.nullable().default(null),
 });
 export type FinishedGameSummary = z.infer<typeof zFinishedGameSummary>;
 
@@ -630,16 +688,11 @@ export const zFinishedGameRecord = zFinishedGameSummary.extend({
 export type FinishedGameRecord = z.infer<typeof zFinishedGameRecord>;
 
 export const zFinishedGamesPagination = z.object({
-    page: z.number().int()
-        .positive(),
-    pageSize: z.number().int()
-        .positive(),
-    totalGames: z.number().int()
-        .nonnegative(),
-    totalMoves: z.number().int()
-        .nonnegative(),
-    totalPages: z.number().int()
-        .positive(),
+    page: z.number().int().positive(),
+    pageSize: z.number().int().positive(),
+    totalGames: z.number().int().nonnegative(),
+    totalMoves: z.number().int().nonnegative(),
+    totalPages: z.number().int().positive(),
     baseTimestamp: zTimestamp,
 });
 export type FinishedGamesPagination = z.infer<typeof zFinishedGamesPagination>;
@@ -670,7 +723,8 @@ export const zPlayer = z.object({
 });
 export type Player = z.infer<typeof zPlayer>;
 
-export const zNormalizedUsername = z.string()
+export const zNormalizedUsername = z
+    .string()
     .transform((username) => username.trim().replace(/\s+/g, ` `))
     .refine((username) => username.length >= 2 && username.length <= 32, {
         message: `Your username must be between 2 and 32 characters long.`,
@@ -681,64 +735,54 @@ export const zNormalizedUsername = z.string()
 
 export const zAccountEloHistoryPoint = z.object({
     timestamp: zTimestamp,
-    elo: z.number().int()
-        .nonnegative(),
+    elo: z.number().int().nonnegative(),
 });
 export type AccountEloHistoryPoint = z.infer<typeof zAccountEloHistoryPoint>;
 
 export const zAccountEloHistory = z.object({
-    bucketSizeMs: z.number().int()
-        .positive(),
+    bucketSizeMs: z.number().int().positive(),
     points: z.array(zAccountEloHistoryPoint),
 });
 export type AccountEloHistory = z.infer<typeof zAccountEloHistory>;
 
 export const zAccountStatistics = z.object({
     totalGames: z.object({
-        played: z.number().int()
-            .nonnegative(),
-        won: z.number().int()
-            .nonnegative(),
+        played: z.number().int().nonnegative(),
+        won: z.number().int().nonnegative(),
     }),
     rankedGames: z.object({
-        played: z.number().int()
-            .nonnegative(),
-        won: z.number().int()
-            .nonnegative(),
-        currentWinStreak: z.number().int()
-            .nonnegative(),
-        longestWinStreak: z.number().int()
-            .nonnegative(),
+        played: z.number().int().nonnegative(),
+        won: z.number().int().nonnegative(),
+        currentWinStreak: z.number().int().nonnegative(),
+        longestWinStreak: z.number().int().nonnegative(),
     }),
-    longestGamePlayedMs: z.number().int()
-        .nonnegative(),
-    longestGameByMoves: z.number().int()
-        .nonnegative(),
-    totalMovesMade: z.number().int()
-        .nonnegative(),
+    longestGamePlayedMs: z.number().int().nonnegative(),
+    longestGameByMoves: z.number().int().nonnegative(),
+    totalMovesMade: z.number().int().nonnegative(),
     eloHistory: zAccountEloHistory,
-    elo: z.number().int()
-        .nonnegative(),
-    worldRank: z.number().int()
-        .positive()
-        .nullable(),
+    elo: z.number().int().nonnegative(),
+    worldRank: z.number().int().positive().nullable(),
 });
 export type AccountStatistics = z.infer<typeof zAccountStatistics>;
 
 export const zAccountPreferences = z.object({
-    moveConfirmation: z.boolean().default(false),
-    autoPlaceOriginTile: z.boolean().default(false),
-    tilePieceMarkers: z.boolean().default(false),
-    zenModeInGame: z.boolean().default(false),
-    allowSelfJoinCasualGames: z.boolean().default(false),
-    changelogReadAt: z.number().int()
-        .nonnegative()
-        .nullable()
-        .default(null),
+    moveConfirmation: z.boolean(),
+    autoPlaceOriginTile: z.boolean(),
+    tilePieceMarkers: z.boolean(),
+    zenModeInGame: z.boolean(),
+    allowSelfJoinCasualGames: z.boolean(),
+    changelogReadAt: z.number().int().nonnegative().nullable(),
 });
 export type AccountPreferences = z.infer<typeof zAccountPreferences>;
 
-export const DEFAULT_ACCOUNT_PREFERENCES: AccountPreferences = zAccountPreferences.parse({});
+export const DEFAULT_ACCOUNT_PREFERENCES: AccountPreferences = {
+    moveConfirmation: false,
+    autoPlaceOriginTile: false,
+    tilePieceMarkers: false,
+    zenModeInGame: false,
+    allowSelfJoinCasualGames: false,
+    changelogReadAt: null,
+};
 
 export const zAccountProfile = z.object({
     id: zIdentifier,
@@ -746,8 +790,7 @@ export const zAccountProfile = z.object({
     email: z.string().nullable(),
     image: z.string().nullable(),
     role: zUserRole,
-    permissions: z.array(zAccountPermission)
-        .default([]),
+    permissions: z.array(zAccountPermission).default([]),
     registeredAt: zTimestamp,
     lastActiveAt: zTimestamp,
 });
@@ -767,26 +810,23 @@ export const zAdminStatGameBase = z.object({
 export type AdminStatGameBase = z.infer<typeof zAdminStatGameBase>;
 
 export const zAdminLongestGameInMoves = zAdminStatGameBase.extend({
-    moveCount: z.number().int()
-        .nonnegative(),
+    moveCount: z.number().int().nonnegative(),
 });
 export type AdminLongestGameInMoves = z.infer<typeof zAdminLongestGameInMoves>;
 
 export const zAdminLongestGameInDuration = zAdminStatGameBase.extend({
-    durationMs: z.number().int()
-        .nonnegative(),
+    durationMs: z.number().int().nonnegative(),
 });
-export type AdminLongestGameInDuration = z.infer<typeof zAdminLongestGameInDuration>;
+export type AdminLongestGameInDuration = z.infer<
+    typeof zAdminLongestGameInDuration
+>;
 
 export const zAdminStatsWindow = z.object({
     startAt: zTimestamp,
     endAt: zTimestamp,
-    siteVisits: z.number().int()
-        .nonnegative(),
-    gamesPlayed: z.number().int()
-        .nonnegative(),
-    timePlayedMs: z.number().int()
-        .nonnegative(),
+    siteVisits: z.number().int().nonnegative(),
+    gamesPlayed: z.number().int().nonnegative(),
+    timePlayedMs: z.number().int().nonnegative(),
     longestGameInMoves: zAdminLongestGameInMoves.nullable(),
     longestGameInDuration: zAdminLongestGameInDuration.nullable(),
 });
@@ -795,53 +835,48 @@ export type AdminStatsWindow = z.infer<typeof zAdminStatsWindow>;
 export const zAdminUserStatsWindow = z.object({
     startAt: zTimestamp,
     endAt: zTimestamp,
-    newUsers: z.number().int()
-        .nonnegative(),
-    activeUsers: z.number().int()
-        .nonnegative(),
+    newUsers: z.number().int().nonnegative(),
+    activeUsers: z.number().int().nonnegative(),
 });
 export type AdminUserStatsWindow = z.infer<typeof zAdminUserStatsWindow>;
 
 export const zAdminActiveGamesTimelinePoint = z.object({
     timestamp: zTimestamp,
-    activeGames: z.number().int()
-        .nonnegative(),
+    activeGames: z.number().int().nonnegative(),
 });
-export type AdminActiveGamesTimelinePoint = z.infer<typeof zAdminActiveGamesTimelinePoint>;
+export type AdminActiveGamesTimelinePoint = z.infer<
+    typeof zAdminActiveGamesTimelinePoint
+>;
 
 export const zAdminActiveGamesTimeline = z.object({
     startAt: zTimestamp,
     endAt: zTimestamp,
-    bucketSizeMs: z.number().int()
-        .positive(),
+    bucketSizeMs: z.number().int().positive(),
     points: z.array(zAdminActiveGamesTimelinePoint),
 });
-export type AdminActiveGamesTimeline = z.infer<typeof zAdminActiveGamesTimeline>;
+export type AdminActiveGamesTimeline = z.infer<
+    typeof zAdminActiveGamesTimeline
+>;
 
 export const zLeaderboardPlayer = z.object({
     profileId: zIdentifier,
     displayName: z.string(),
     image: z.string().nullable(),
-    elo: z.number().int()
-        .nonnegative(),
-    gamesPlayed: z.number().int()
-        .nonnegative(),
-    gamesWon: z.number().int()
-        .nonnegative(),
+    elo: z.number().int().nonnegative(),
+    gamesPlayed: z.number().int().nonnegative(),
+    gamesWon: z.number().int().nonnegative(),
 });
 export type LeaderboardPlayer = z.infer<typeof zLeaderboardPlayer>;
 
 export const zLeaderboardPlacement = zLeaderboardPlayer.extend({
-    rank: z.number().int()
-        .positive(),
+    rank: z.number().int().positive(),
 });
 export type LeaderboardPlacement = z.infer<typeof zLeaderboardPlacement>;
 
 export const zLeaderboard = z.object({
     generatedAt: zTimestamp,
     nextRefreshAt: zTimestamp,
-    refreshIntervalMs: z.number().int()
-        .positive(),
+    refreshIntervalMs: z.number().int().positive(),
 
     players: z.array(zLeaderboardPlayer),
     ownPlacement: zLeaderboardPlacement.nullable(),
