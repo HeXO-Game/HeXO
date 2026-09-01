@@ -158,6 +158,7 @@ function LiveSessionRenderer({
     session: LobbyInfo,
     onJoinGame: () => void,
 }) {
+    const { t } = useTranslation();
     const now = useUpdatingTimestamp(1_000);
 
     const queryAccount = useQueryAccount();

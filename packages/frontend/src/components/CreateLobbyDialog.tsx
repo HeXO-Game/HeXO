@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import type { AccountProfile, CreateSessionRequest, GameTimeControl, LobbyFirstPlayer, LobbyVisibility } from '@ih3t/shared';
+import type { TFunction } from 'i18next';
 import { useEffect, useMemo, useState } from 'react';
 
 import TimeControlSelector from './TimeControlSelector';
@@ -12,44 +13,42 @@ type CreateLobbyDialogProps = {
     onCreateLobby: (request: CreateSessionRequest) => void
 };
 
-const visibilityOptions: {
-    value: LobbyVisibility
-    title: string
-    description: string
-}[] = [
-        {
-            value: `public`,
-            title: `Public Lobby`,
-            description: `Listed in the live browser.`,
-        },
-        {
-            value: `private`,
-            title: `Private Lobby`,
-            description: `Hidden until shared directly.`,
-        },
-    ];
+type LocalizedOption<T> = {
+    value: T
+    title: (t: TFunction) => string
+    description: (t: TFunction) => string
+};
 
-const firstPlayerOptions: {
-    value: LobbyFirstPlayer
-    title: string
-    description: string
-}[] = [
-        {
-            value: `random`,
-            title: `Random`,
-            description: `Randomly choose who opens the game.`,
-        },
-        {
-            value: `host`,
-            title: `Host Starts`,
-            description: `The player who creates the lobby takes the first turn.`,
-        },
-        {
-            value: `guest`,
-            title: `Guest Starts`,
-            description: `The joining player takes the first turn.`,
-        },
-    ];
+const visibilityOptions: LocalizedOption<LobbyVisibility>[] = [
+    {
+        value: `public`,
+        title: (t) => t('publicLobby', 'Public Lobby'),
+        description: (t) => t('listedInTheLiveBrowser', 'Listed in the live browser.'),
+    },
+    {
+        value: `private`,
+        title: (t) => t('privateLobby', 'Private Lobby'),
+        description: (t) => t('hiddenUntilSharedDirectly', 'Hidden until shared directly.'),
+    },
+];
+
+const firstPlayerOptions: LocalizedOption<LobbyFirstPlayer>[] = [
+    {
+        value: `random`,
+        title: (t) => t('random', 'Random'),
+        description: (t) => t('randomlyChooseWhoOpensTheGame', 'Randomly choose who opens the game.'),
+    },
+    {
+        value: `host`,
+        title: (t) => t('hostStarts', 'Host Starts'),
+        description: (t) => t('thePlayerWhoCreatesTheLobbyTakesTheFirstTurn', 'The player who creates the lobby takes the first turn.'),
+    },
+    {
+        value: `guest`,
+        title: (t) => t('guestStarts', 'Guest Starts'),
+        description: (t) => t('theJoiningPlayerTakesTheFirstTurn', 'The joining player takes the first turn.'),
+    },
+];
 
 const TURN_TIME_STEP_SECONDS = [
     5, 10, 15, 20, 30, 45, 60, 90, 120,
@@ -145,7 +144,8 @@ function CreateLobbyDialog({
         incrementSeconds, matchTimeMinutes, timeControlMode, turnTimeSeconds,
     ]);
 
-    const firstPlayerTitle = firstPlayerOptions.find((option) => option.value === firstPlayer)?.title ?? `Random`;
+    const selectedFirstPlayer = firstPlayerOptions.find((option) => option.value === firstPlayer) ?? firstPlayerOptions[0];
+    const firstPlayerTitle = selectedFirstPlayer.title(t);
 
     if (!isOpen) {
         return null;
@@ -163,8 +163,8 @@ function CreateLobbyDialog({
     };
 
     const badges = [
-        rated ? `rated` : `casual`,
-        visibility === `private` ? `Private` : `Public`,
+        rated ? t('rated', 'Rated') : t('casual', 'Casual'),
+        visibility === `private` ? t('private', 'Private') : t('public', 'Public'),
         firstPlayerTitle
     ]
 
@@ -198,7 +198,7 @@ function CreateLobbyDialog({
                                 onClick={() => setShowAdvancedOptions((value) => !value)}
                                 variant="info" size="sm"
                             >
-                                {showAdvancedOptions ? `Simple Settings` : t('advancedSettings', 'Advanced Settings')}
+                                {showAdvancedOptions ? t('simpleSettings', 'Simple Settings') : t('advancedSettings', 'Advanced Settings')}
                             </Button>
                         </div>
 
@@ -207,7 +207,7 @@ function CreateLobbyDialog({
                                 <section className="p-0">
                                     <div className="rounded-[0.9rem] flex flex-row pb-2.5 text-xs leading-5 text-slate-300 gap-2">
                                         {badges.map(name => (
-                                            <div className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
+                                            <div key={name} className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
                                                 {name}
                                             </div>
                                         ))}
@@ -244,7 +244,7 @@ function CreateLobbyDialog({
                                             </div>
 
                                             <div className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${rated ? `bg-amber-300/15 text-amber-100` : `bg-white/8 text-slate-100`}`}>
-                                                {rated ? `rated` : `casual`}
+                                                {rated ? t('rated', 'Rated') : t('casual', 'Casual')}
                                             </div>
                                         </div>
 
@@ -252,7 +252,7 @@ function CreateLobbyDialog({
                                             <SelectableOptions
                                                 onClick={() => setRated(false)}
                                                 selected={!rated}
-                                                title="Casual"
+                                                title={t('casual', 'Casual')}
                                                 description={t('casualUnratedGame', 'Casual unrated game')}
                                             />
 
@@ -264,7 +264,7 @@ function CreateLobbyDialog({
                                                 }}
                                                 selected={rated}
                                                 disabled={!canCreateRatedLobby}
-                                                title="Rated"
+                                                title={t('rated', 'Rated')}
                                                 description={t('ratedGameWithElo', 'Rated game with ELO')}
                                             />
                                         </div>
@@ -285,7 +285,7 @@ function CreateLobbyDialog({
                                             </div>
 
                                             <div className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-100">
-                                                {visibility}
+                                                {visibility === `private` ? t('private', 'Private') : t('public', 'Public')}
                                             </div>
                                         </div>
 
@@ -300,8 +300,8 @@ function CreateLobbyDialog({
                                                         onClick={() => setVisibility(option.value)}
                                                         selected={selected}
 
-                                                        title={option.title}
-                                                        description={option.description}
+                                                        title={option.title(t)}
+                                                        description={option.description(t)}
                                                     />
                                                 );
                                             })}
@@ -317,7 +317,7 @@ function CreateLobbyDialog({
                                             </div>
 
                                             <div className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-100">
-                                                {firstPlayer}
+                                                {firstPlayerTitle}
                                             </div>
                                         </div>
 
@@ -330,8 +330,8 @@ function CreateLobbyDialog({
                                                         key={option.value}
                                                         onClick={() => setFirstPlayer(option.value)}
                                                         selected={selected}
-                                                        title={option.title}
-                                                        description={option.description}
+                                                        title={option.title(t)}
+                                                        description={option.description(t)}
                                                     />
                                                 );
                                             })}
@@ -365,7 +365,7 @@ function CreateLobbyDialog({
                         <div className="mt-2.5 flex items-center justify-between gap-3">
                             <Button
                                 onClick={onClose}
-                                variant="outline" size="sm"
+                                variant="outline" size="default"
                             >
                                 {t('cancel', 'Cancel')}
                             </Button>

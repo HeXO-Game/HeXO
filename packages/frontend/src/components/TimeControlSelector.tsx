@@ -1,28 +1,28 @@
 import type { GameTimeControl } from '@ih3t/shared';
+import i18next, { type TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 
 import { formatGameTimeSeconds } from '../utils/gameTimeControl';
-import { useTranslation } from 'react-i18next'
-import i18next from 'i18next'
 
 const timeControlModeOptions: {
     value: GameTimeControl[`mode`]
-    title: string
-    description: string
+    title: (t: TFunction) => string
+    description: (t: TFunction) => string
 }[] = [
-        {
-            value: `match`,
-            title: `Match Based`,
-            description: `A main clock between 1m and 60m plus an increment after each completed turn.`,
-        },
-        {
-            value: `turn`,
-            title: `Turn Based`,
-            description: `A time limit per turn between 5s and 120s.`,
-        },
-        {
-            value: `unlimited`,
-            title: `Unlimited`,
-            description: `No clock configured.`,
+    {
+        value: `match`,
+        title: (t) => t('matchBased', 'Match Based'),
+        description: (t) => t('aMainClockBetween1mAnd60mPlusAnIncrementAfterEachCompletedTurn', 'A main clock between 1m and 60m plus an increment after each completed turn.'),
+    },
+    {
+        value: `turn`,
+        title: (t) => t('turnBased', 'Turn Based'),
+        description: (t) => t('aTimeLimitPerTurnBetween5sAnd120s', 'A time limit per turn between 5s and 120s.'),
+    },
+    {
+        value: `unlimited`,
+        title: (t) => t('unlimited', 'Unlimited'),
+        description: (t) => t('noClockWillBeConfigured', 'No clock will be configured.'),
         },
     ];
 
@@ -61,7 +61,7 @@ function SelectableOption({ onClick, selected, title, description, disabled = fa
 
 export function formatTimeControlSummary(timeControl: GameTimeControl): string {
     if (timeControl.mode === `turn`) {
-        return i18next.t('valTurns', '{{val}} turns', { val: formatGameTimeSeconds(timeControl.turnTimeMs / 1000) });
+        return i18next.t('valPerTurn', '{{val}} per turn', { val: formatGameTimeSeconds(timeControl.turnTimeMs / 1000) });
     }
 
     if (timeControl.mode === `match`) {
@@ -130,8 +130,8 @@ function TimeControlSelector({
                             key={option.value}
                             onClick={() => onModeChange(option.value)}
                             selected={selected}
-                            title={option.title}
-                            description={option.description}
+                            title={option.title(t)}
+                            description={option.description(t)}
                         />
                     );
                 })}

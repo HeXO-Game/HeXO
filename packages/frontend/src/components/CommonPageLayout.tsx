@@ -1,4 +1,4 @@
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { CSSProperties, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { toast } from 'react-toastify';
@@ -9,6 +9,7 @@ import { cn } from '../utils/cn';
 import AccountPicture from './AccountPicture';
 import AppErrorBoundary from './AppErrorBoundary';
 import DevAuthPanel from './DevAuthPanel';
+import LanguageSelector from './LanguageSelector';
 import { useTranslation } from 'react-i18next'
 
 function showErrorToast(message: string) {
@@ -113,7 +114,6 @@ function DiscordLink({
     );
 }
 
-
 function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hideMobile?: boolean }) {
     const { t } = useTranslation()
     const location = useLocation();
@@ -214,16 +214,19 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                     </NavLink>
 
                     <div className="flex flex-row items-center gap-4 ml-auto">
-                        <nav className="hidden xl:flex flex-wrap items-center gap-2" aria-label="Primary">
-                            <NavigationLink to="/rules" label="Rules" />
-                            <NavigationLink to="/sandbox" label="Sandbox" />
+                        <nav className="hidden xl:flex flex-wrap items-center gap-2" aria-label={t('primaryNavigation', 'Primary navigation')}>
+                            <NavigationLink to="/rules" label={t('rules', 'Rules')} />
+                            <NavigationLink to="/sandbox" label={t('sandbox', 'Sandbox')} />
                             <NavigationLink to="/games" label={t('matchHistory', 'Match History')} />
-                            <NavigationLink to="/leaderboard" label="Leaderboard" />
-                            <NavigationLink to="/tournaments" label="Tournaments" />
+                            <NavigationLink to="/leaderboard" label={t('leaderboard', 'Leaderboard')} />
+                            <NavigationLink to="/tournaments" label={t('tournaments', 'Tournaments')} />
                             <DiscordLink />
                         </nav>
 
                         <DevAuthPanel account={account} />
+
+                        <LanguageSelector />
+
 
                         {accountQuery.isLoading ? (
                             <div className="self-start rounded-lg px-3 py-2 text-sm text-slate-400 lg:self-auto">
@@ -273,10 +276,10 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                             className={` bg-slate-950 mx-auto w-full max-w-368 rounded-md lg:border border-sky-300/10 p-2 shadow-[0_18px_50px_rgba(2,6,23,0.45)] backdrop-blur-xl`}
                                         >
                                             <div className="space-y-1">
-                                                <MenuLink to="/tournaments" label="Tournaments" onSelect={() => setIsAccountMenuOpen(false)} />
+                                                <MenuLink to="/tournaments" label={t('tournaments', 'Tournaments')} onSelect={() => setIsAccountMenuOpen(false)} />
                                                 <MenuLink to="/account/games" label={t('matchHistory', 'Match History')} onSelect={() => setIsAccountMenuOpen(false)} />
-                                                <MenuLink to="/account/preferences" label="Preferences" onSelect={() => setIsAccountMenuOpen(false)} />
-                                                <MenuLink to="/account/profile" label="Profile" onSelect={() => setIsAccountMenuOpen(false)} />
+                                                <MenuLink to="/account/preferences" label={t('preferences', 'Preferences')} onSelect={() => setIsAccountMenuOpen(false)} />
+                                                <MenuLink to="/account/profile" label={t('profile', 'Profile')} onSelect={() => setIsAccountMenuOpen(false)} />
                                             </div>
 
                                             {account.role === `admin` && (
@@ -355,11 +358,11 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                 {isMobileMenuOpen && (
                     <div className="border-t border-white/10 px-4 py-4 sm:px-6 xl:hidden absolute bg-slate-950 right-0 left-0 z-50 shadow-[0_18px_50px_rgba(2,6,23,0.45)] backdrop-blur-xl">
                         <div className="mx-auto w-full max-w-368 space-y-2 rounded-2xl p-2 shadow-[0_18px_50px_rgba(2,6,23,0.4)]">
-                            <MenuLink to="/rules" label="Rules" onSelect={() => setIsMobileMenuOpen(false)} />
+                            <MenuLink to="/rules" label={t('rules', 'Rules')} onSelect={() => setIsMobileMenuOpen(false)} />
                             <MenuLink to="/games" label={t('matchHistory', 'Match History')} onSelect={() => setIsMobileMenuOpen(false)} />
-                            <MenuLink to="/sandbox" label="Sandbox" onSelect={() => setIsMobileMenuOpen(false)} />
-                            <MenuLink to="/leaderboard" label="Leaderboard" onSelect={() => setIsMobileMenuOpen(false)} />
-                            <MenuLink to="/tournaments" label="Tournaments" onSelect={() => setIsMobileMenuOpen(false)} />
+                            <MenuLink to="/sandbox" label={t('sandbox', 'Sandbox')} onSelect={() => setIsMobileMenuOpen(false)} />
+                            <MenuLink to="/leaderboard" label={t('leaderboard', 'Leaderboard')} onSelect={() => setIsMobileMenuOpen(false)} />
+                            <MenuLink to="/tournaments" label={t('tournaments', 'Tournaments')} onSelect={() => setIsMobileMenuOpen(false)} />
                             <MenuLink to={OFFICIAL_DISCORD_INVITE_URL} label={t('discordServer', 'Discord Server')} target="_blank" />
                         </div>
                     </div>

@@ -4,61 +4,47 @@ import { Link } from 'react-router';
 import PageCorpus from './PageCorpus';
 import { useTranslation } from 'react-i18next'
 
-const TURN_FLOW = [
-    `Player 1 starts with 1 hex at the center.`,
-    `Player 2 replies with 2 hexes.`,
-    `After that, every turn is 2 hexes.`,
-    `The first player to connect six hexagons on one axis wins.`,
-];
-
-const LEGAL_MOVE_RULES = [
-    `Place only on empty hexes.`,
-    `A new hex can be placed at most 8 cells apart from any other hex.`,
-    `The board is infinite, so play can expand in any direction.`,
-];
-
-const MATCH_NOTES = [
-    `Public and private lobbies use the same rules.`,
-    `Rated games affect the leaderboard; casual games do not.`,
-    `Matches may use turn clocks, match clocks, or no clock.`,
-    `Turn clocks limit each turn but reset to the initial value on after turn.`,
-    `Match clocks limit the total time of the match but can be incremented after every turn.`,
-];
-
 function RulesScreen() {
     const { t } = useTranslation()
+    const turnFlow = [
+        t('player1StartsWith1HexAtTheCenter', 'Player 1 starts with 1 hex at the center.'),
+        t('player2RepliesWith2Hexes', 'Player 2 replies with 2 hexes.'),
+        t('afterThatEveryTurnIs2Hexes', 'After that, every turn is 2 hexes.'),
+        t('theFirstPlayerToConnectSixHexagonsOnOneAxisWins', 'The first player to connect six hexagons on one axis wins.'),
+    ];
+    const legalMoveRules = [
+        t('placeOnlyOnEmptyHexes', 'Place only on empty hexes.'),
+        t('aNewHexCanBePlacedAtMost8CellsApartFromAnyOtherHex', 'A new hex can be placed at most 8 cells apart from any other hex.'),
+        t('theBoardIsInfiniteSoPlayCanExpandInAnyDirection', 'The board is infinite, so play can expand in any direction.'),
+    ];
+    const matchNotes = [
+        t('publicAndPrivateLobbiesUseTheSameRules', 'Public and private lobbies use the same rules.'),
+        t('ratedGamesAffectTheLeaderboardCasualGamesDoNot', 'Rated games affect the leaderboard; casual games do not.'),
+        t('matchesMayUseTurnClocksMatchClocksOrNoClock', 'Matches may use turn clocks, match clocks, or no clock.'),
+        t('turnClocksLimitEachTurnButResetAfterEachTurn', 'Turn clocks limit each turn but reset to the initial value after each turn.'),
+        t('matchClocksLimitTheTotalTimeButCanBeIncrementedAfterEveryTurn', 'Match clocks limit the total match time but can be incremented after every turn.'),
+    ];
+
     return (
         <PageCorpus
-            category="How To Play"
+            category={t('howToPlay', 'How To Play')}
             title={t('gameRules', 'Game Rules')}
             description={t('aTwoplayerConnectionGameOnAnInfiniteHexGridMakeAStraightLineOf6BeforeYourOpponent', 'A two-player connection game on an infinite hex grid. Make a straight line of 6 before your opponent.')}
         >
             <div className="flex flex-1 flex-col gap-4 overflow-auto overscroll-contain px-4 pb-4 sm:px-6 sm:pb-6">
-                <section className="rounded-[1.75rem] border border-white/10 bg-slate-950/45 p-5 sm:p-6">
-                    <div className="flex flex-wrap gap-2">
-                        <div className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-amber-100">
-                            {t('2Players', '2 Players')}
-                        </div>
-
-                        <div className="rounded-full border border-sky-300/20 bg-sky-400/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-sky-100">
-                            {t('2HexesPerTurn', '2 Hexes Per Turn')}
-                        </div>
-
-                        <div className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-xs uppercase tracking-[0.22em] text-emerald-100">
-                            {t('6InARowWins', '6 In A Row Wins')}
-                        </div>
-                    </div>
-
-                    <div className="mt-6 grid gap-6">
+                <section className="py-4">
+                    <div className="grid gap-6">
                         <section>
                             <p className="text-xs uppercase tracking-[0.3em] text-sky-200/75">
                                 {t('gamePlay', 'Game Play')}
                             </p>
 
                             <ol className="mt-3 grid gap-2">
-                                {TURN_FLOW.map((step, index) => (
+                                {turnFlow.map((step, index) => (
                                     <li key={step} className="flex gap-3 text-sm leading-6 text-slate-100 sm:text-base">
-                                        {index + 1}{t('step', '. {{step}}', { step })}</li>
+                                        <span>{index + 1}.</span>
+                                        <span>{step}</span>
+                                    </li>
                                 ))}
                             </ol>
                         </section>
@@ -83,7 +69,7 @@ function RulesScreen() {
                             </p>
 
                             <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-100 sm:text-base">
-                                {LEGAL_MOVE_RULES.map((rule) => (
+                                {legalMoveRules.map((rule) => (
                                     <li key={rule} className="flex gap-3">
                                         <span className="text-amber-200" aria-hidden="true">
                                             •
@@ -103,7 +89,7 @@ function RulesScreen() {
                             </p>
 
                             <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-100 sm:text-base">
-                                {MATCH_NOTES.map((note) => (
+                                {matchNotes.map((note) => (
                                     <li key={note} className="flex gap-3">
                                         <span className={` text-sky-200`} aria-hidden="true">
                                             •

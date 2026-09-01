@@ -33,7 +33,7 @@ function SandboxHud({
 }: Readonly<SandboxHudProps>) {
     const { t } = useTranslation()
     const [isHudOpen, setIsHudOpen] = useState(true);
-    const resetBoardLabel = positionName ? `Restore Position` : t('clearBoard', 'Clear Board');
+    const resetBoardLabel = positionName ? t('restoreBoard', `Restore Position`) : t('clearBoard', 'Clear Board');
     const description = positionName
         ? t('playFromThisSavedPositionLocallyWithNoClockAssignEitherSideToABotOrControlBothPlayersYourself', 'Play from this saved position locally with no clock. Assign either side to a bot or control both players yourself.')
         : t('localSandboxWithNoClockControlBothPlayersYourselfOrLetABotTakeEitherSide', 'Local sandbox with no clock. Control both players yourself or let a bot take either side.');

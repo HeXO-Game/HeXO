@@ -31,19 +31,23 @@ function SandboxWelcomeModal({
                     {t('sandboxModeIsALocalBoardWithNoClockControlBothPlayersYourselfHandEitherSideToABotAndResetAnyTimeStartFromAnEmptyBoardOrLoadASharedPosition', 'Sandbox mode is a local board with no clock. Control both players yourself, hand either side to a bot, and reset any time. Start from an empty board or load a shared position.')}
                 </p>
 
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                <div className="mt-6 grid sm:grid-cols-2 gap-4">
                     <Button
                         onClick={onImportPosition}
-                        variant="outline" size="lg" className="w-full"
+                        variant="outline" size="lg" className="w-full flex-1"
                     >
-                        {t('importPosition', 'Import Position')}
+                        <span className={"overflow-hidden whitespace-nowrap text-ellipsis"}>
+                            {t('importPosition', 'Import Position')}
+                        </span>
                     </Button>
 
                     <Button
                         onClick={onStartCleanBoard}
-                        variant="success" size="lg" className="w-full"
+                        variant="success" size="lg" className="w-full flex-1"
                     >
-                        {t('newBoard', 'New Board')}
+                        <span className={"overflow-hidden whitespace-nowrap text-ellipsis"}>
+                            {t('newBoard', 'New Board')}
+                        </span>
                     </Button>
                 </div>
             </div>

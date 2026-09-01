@@ -101,9 +101,13 @@ function DevAuthPanel({ account }: { account: AccountProfile | null }) {
             <Button
                 type="button"
                 onClick={handleToggle}
-                variant="success-soft" size="sm"
+                variant="success-soft"
+                size="sm"
+                className={"h-9"}
             >
-                {account ? t('switchMockUser', 'Switch Mock User') : t('mockSignIn', 'Mock Sign In')}
+                <span className={"w-30 text-ellipsis overflow-hidden whitespace-nowrap"}>
+                    {account ? t('switchMockUser', 'Switch Mock User') : t('mockSignIn', 'Mock Sign In')}
+                </span>
             </Button>
 
             {isOpen && (

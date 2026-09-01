@@ -28,7 +28,7 @@ import { getBoardTheme } from '../utils/gameBoard';
 import { describeSessionInvite } from '../utils/routeMetadata';
 import { buildSessionPath } from './archiveRouteState';
 import type { SandboxRouteState } from './sandboxRouteState';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter } from '../components/ui/dialog';
 import { useTranslation, Trans } from 'react-i18next'
 
 function showErrorToast(message: string) {
@@ -153,7 +153,7 @@ function ConfirmLeaveSessionDialog({
                     {t('leaveThisMatch', 'Leave This Match?')}
                 </h2>
                 <p className="text-sm leading-6 sm:text-base">
-                    <Trans i18nKey="leavingRightNowWillSurrenderTheMatchImmediatelybrStayIfYouWantToKeepPlaying">
+                    <Trans t={t} i18nKey="leavingRightNowWillSurrenderTheMatchImmediatelybrStayIfYouWantToKeepPlaying">
                         Leaving right now will surrender the match immediately.<br />
                         Stay if you want to keep playing.
                     </Trans>

@@ -69,11 +69,19 @@ function LobbyScreen({
                         {t('hexo', 'HeXO')}
                     </h1>
 
-                    <h2 className="mt-1 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl lg:mt-3 lg:text-3xl"><Trans i18nKey="theInfiniteHexagonalBrTictactoeGame">The infinite hexagonal
-                        <br />
-                        tic-tac-toe game</Trans></h2>
+                    <h2 className="mt-1 text-xl font-black uppercase tracking-[0.08em] text-white sm:text-2xl lg:mt-3 lg:text-3xl">
+                        <Trans t={t} i18nKey="theInfiniteHexagonalBrTictactoeGame">
+                            The infinite hexagonal
+                            <br />
+                            tic-tac-toe game
+                        </Trans>
+                    </h2>
 
-                    <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:mt-6 sm:text-base sm:leading-7 lg:text-lg"><Trans i18nKey="spanClassnamehiddenhexospanIsATwoplayerStrategyGamePlayedOnAnInfiniteHexagonalGridTakeTurnsPlacingYourPiecesBuildAndBlockLinesAndBeTheFirstToConnectSixInARow"><span className={"hidden"}>HeXO</span> is a two-player strategy game played on an infinite hexagonal grid. Take turns placing your pieces, build and block lines, and be the first to connect six in a row.</Trans></p>
+                    <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:mt-6 sm:text-base sm:leading-7 lg:text-lg">
+                        <Trans t={t} i18nKey="spanClassnamehiddenhexospanIsATwoplayerStrategyGamePlayedOnAnInfiniteHexagonalGridTakeTurnsPlacingYourPiecesBuildAndBlockLinesAndBeTheFirstToConnectSixInARow">
+                            <span className={"hidden"}>HeXO</span> is a two-player strategy game played on an infinite hexagonal grid. Take turns placing your pieces, build and block lines, and be the first to connect six in a row.
+                        </Trans>
+                    </p>
 
                     <div className="mt-6 flex flex-col gap-4">
                         {showClientBadges && !isConnected && (
