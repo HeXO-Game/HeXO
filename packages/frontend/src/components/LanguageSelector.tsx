@@ -1,7 +1,6 @@
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuLabel,
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
@@ -34,9 +33,40 @@ function GermanFlag() {
     );
 }
 
+function SouthKoreanFlag() {
+    return (
+        <svg aria-hidden="true" viewBox="0 0 72 48" className="size-auto h-4 w-6 overflow-hidden rounded-[2px] shadow-sm">
+            <path fill="#fff" d="M0 0h72v48H0z" />
+            <circle cx="36" cy="24" r="9" fill="#cd2e3a" />
+            <path fill="#0047a0" d="M27 24a9 9 0 0 0 18 0 4.5 4.5 0 0 1-9 0 4.5 4.5 0 0 0-9 0Z" />
+            <g stroke="#000" strokeWidth="2.4">
+                <path d="m12 12 13-9m-11 12 13-9m-11 12 13-9M43 39l13-9M45 42l13-9M47 45l13-9" />
+                <path d="m47 4 4 3m2 1 4 3m-12-4 4 3m2 1 4 3m-12-4 4 3m2 1 4 3M15 30l4 3m2 1 4 3m-12-4 9 6m-11-3 4 3m2 1 4 3" />
+            </g>
+        </svg>
+    );
+}
+
+function ChineseFlag() {
+    const smallStar = `M0-1.5.35-.48 1.43-.46.57.18.88 1.21 0 .6-.88 1.21-.57.18-1.43-.46-.35-.48Z`;
+
+    return (
+        <svg aria-hidden="true" viewBox="0 0 30 20" className="size-auto h-4 w-6 overflow-hidden rounded-[2px] shadow-sm">
+            <path fill="#ee1c25" d="M0 0h30v20H0z" />
+            <path fill="#ffff00" d="m5 2 1.18 3.63h3.82L6.91 7.88l1.18 3.63L5 9.27l-3.09 2.24 1.18-3.63L0 5.63h3.82Z" />
+            <path fill="#ffff00" d={smallStar} transform="translate(11 3) rotate(23)" />
+            <path fill="#ffff00" d={smallStar} transform="translate(13 6) rotate(46)" />
+            <path fill="#ffff00" d={smallStar} transform="translate(13 10) rotate(69)" />
+            <path fill="#ffff00" d={smallStar} transform="translate(11 13) rotate(92)" />
+        </svg>
+    );
+}
+
 const LANGUAGES = [
     { code: `en`, label: `English`, Flag: BritishFlag },
     { code: `de`, label: `Deutsch`, Flag: GermanFlag },
+    { code: `ko-KR`, label: `한국어`, Flag: SouthKoreanFlag },
+    { code: `zh-CN`, label: `简体中文`, Flag: ChineseFlag },
 ] as const;
 
 type LanguageCode = typeof LANGUAGES[number]['code'];
@@ -47,7 +77,7 @@ function isLanguageCode(value: unknown): value is LanguageCode {
 
 function LanguageSelector() {
     const { i18n, t } = useTranslation();
-    const activeLanguage = LANGUAGES.find(({ code }) => code === i18n.resolvedLanguage) ?? LANGUAGES[0];
+    const activeLanguage = LANGUAGES.find(({ code }) => code.toLowerCase() === i18n.resolvedLanguage?.toLowerCase()) ?? LANGUAGES[0];
 
     const [open, setOpen] = useState(false);
 
