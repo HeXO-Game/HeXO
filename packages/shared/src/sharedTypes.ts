@@ -773,6 +773,7 @@ export type BoardThemeId = z.infer<typeof zBoardThemeId>;
 export const kBoardThemeNormal = `normal` as BoardThemeId;
 export const kBoardThemeMarker = `marker` as BoardThemeId;
 export const kBoardThemeBlackAndWhite = `black-and-white` as BoardThemeId;
+export const kBoardThemeOmok = `omok` as BoardThemeId;
 
 export const zAccountPreferences = z.object({
     moveConfirmation: z.boolean(),

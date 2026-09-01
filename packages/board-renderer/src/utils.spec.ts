@@ -6,6 +6,7 @@ import {
     BoardController,
     markerBoardTheme,
     normalBoardTheme,
+    omokBoardTheme,
 } from ".";
 import {
     axialToUnitPoint,
@@ -75,4 +76,8 @@ test(`built-in themes provide distinct cell renderers`, () => {
         blackAndWhiteBoardTheme.drawCell,
     );
     assert.equal(blackAndWhiteBoardTheme.colors.background, `#ffffff`);
+    assert.equal(omokBoardTheme.intersectionGrid, true);
+    assert.equal(omokBoardTheme.colors.marker.X, `#111111`);
+    assert.equal(omokBoardTheme.colors.marker.O, `#f4f4f4`);
+    assert.equal(omokBoardTheme.colors.highlightYellow, `#ffffff`);
 });

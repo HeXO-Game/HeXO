@@ -30,9 +30,11 @@ export type BoardCellRenderOptions = Readonly<{
 
 export type BoardTheme = Readonly<{
     colors: BoardThemeColors;
+    intersectionGrid?: boolean;
     drawCell: (options: BoardCellRenderOptions) => void;
 }>;
 
 export { blackAndWhiteBoardTheme } from "./themes/blackAndWhite";
 export { markerBoardTheme } from "./themes/marker";
 export { normalBoardTheme } from "./themes/normal";
+export { omokBoardTheme } from "./themes/omok";

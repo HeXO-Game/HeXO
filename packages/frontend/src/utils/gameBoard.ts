@@ -4,6 +4,7 @@ import {
     type BoardTheme,
     markerBoardTheme,
     normalBoardTheme,
+    omokBoardTheme,
 } from "@ih3t/board-renderer";
 import type {
     BoardThemeId,
@@ -16,6 +17,7 @@ import {
     kBoardThemeNormal,
     kBoardThemeMarker,
     kBoardThemeBlackAndWhite,
+    kBoardThemeOmok,
 } from "@ih3t/shared";
 import i18next from 'i18next'
 
@@ -25,6 +27,7 @@ export const kBoardThemes: Record<BoardThemeId, BoardTheme> = {
     [kBoardThemeNormal]: normalBoardTheme,
     [kBoardThemeMarker]: markerBoardTheme,
     [kBoardThemeBlackAndWhite]: blackAndWhiteBoardTheme,
+    [kBoardThemeOmok]: omokBoardTheme,
 };
 
 export function getBoardTheme(

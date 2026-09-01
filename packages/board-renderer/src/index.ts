@@ -121,6 +121,7 @@ export {
     blackAndWhiteBoardTheme,
     markerBoardTheme,
     normalBoardTheme,
+    omokBoardTheme,
     type BoardCellRenderOptions,
     type BoardTheme,
     type BoardThemeColors,

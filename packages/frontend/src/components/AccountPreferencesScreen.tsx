@@ -6,9 +6,10 @@ import {
     GameBoardRenderer,
     markerBoardTheme,
     normalBoardTheme,
+    omokBoardTheme,
 } from '@ih3t/board-renderer';
 import type { AccountPreferences, BoardThemeId } from '@ih3t/shared';
-import { kBoardThemeNormal, kBoardThemeBlackAndWhite, kBoardThemeMarker } from '@ih3t/shared';
+import { kBoardThemeNormal, kBoardThemeBlackAndWhite, kBoardThemeMarker, kBoardThemeOmok } from '@ih3t/shared';
 import { useMutation } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
@@ -17,6 +18,7 @@ import PageCorpus from './PageCorpus';
 import { Switch } from './ui/switch';
 import { cn } from '../utils/cn';
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next';
 
 type BooleanPreference = {
     [Key in keyof AccountPreferences]: AccountPreferences[Key] extends boolean ? Key : never
@@ -24,26 +26,32 @@ type BooleanPreference = {
 
 const themeChoices: readonly {
     id: BoardThemeId,
-    label: string,
-    description: string,
+    label: (t: TFunction) => string,
+    description: (t: TFunction) => string,
     theme: BoardTheme,
 }[] = [
         {
             id: kBoardThemeNormal,
-            label: `Normal`,
-            description: `Solid player colors.`,
+            label: (t) => t('normal', 'Normal'),
+            description: (t) => t('solidPlayerColors', 'Solid player colors.'),
             theme: normalBoardTheme,
         },
         {
             id: kBoardThemeMarker,
-            label: `Markers`,
-            description: `Player colors with X and O markers.`,
+            label: (t) => t('markers', 'Markers'),
+            description: (t) => t('playerColorsWithXAndOMarkers', 'Player colors with X and O markers.'),
             theme: markerBoardTheme,
         },
         {
+            id: kBoardThemeOmok,
+            label: (t) => t('omok', 'Omok'),
+            description: (t) => t('woodenGridWithBlackAndWhiteStones', 'Wooden grid with black and white stones.'),
+            theme: omokBoardTheme,
+        },
+        {
             id: kBoardThemeBlackAndWhite,
-            label: `Black & White`,
-            description: `High-contrast monochrome markers.`,
+            label: (t) => t('blackAndWhite', 'Black & White'),
+            description: (t) => t('highcontrastMonochromeMarkers', 'High-contrast monochrome markers.'),
             theme: blackAndWhiteBoardTheme,
         },
     ];
@@ -52,8 +60,8 @@ const previewBoard: BoardState = {
     placedCells: [
         { x: -2, y: 0, marker: `X` },
         { x: -1, y: 0, marker: `O` },
-        { x: 0, y: 0, marker: `X` },
-        { x: 1, y: 0, marker: `O` },
+        { x: 0, y: 0, marker: `O` },
+        { x: 1, y: 0, marker: `X` },
         { x: 2, y: 0, marker: `X` },
         { x: -1, y: -1, marker: `X` },
         { x: 0, y: -1, marker: `O` },
@@ -144,8 +152,8 @@ function ThemePreferenceCard() {
                                     : `border-white/10 bg-slate-900/60 hover:border-white/30`
                                     } disabled:cursor-wait disabled:opacity-70`}
                             >
-                                <div className="font-semibold text-white">{choice.label}</div>
-                                <div className="mt-1 text-xs text-slate-400">{choice.description}</div>
+                                <div className="font-semibold text-white">{choice.label(t)}</div>
+                                <div className="mt-1 text-xs text-slate-400">{choice.description(t)}</div>
                             </button>
                         );
                     })}
@@ -162,10 +170,10 @@ function ThemePreferenceCard() {
 
             <div className="mt-3 text-[11px] uppercase tracking-[0.24em] text-slate-500">
                 {mutatePreference.isPending
-                    ? `Saving...`
+                    ? t('saving', 'Saving...')
                     : mutatePreference.isError
                         ? t('couldNotSave', 'Could not save')
-                        : `Saved`}
+                        : t('saved', 'Saved')}
             </div>
         </section >
     );
@@ -180,6 +188,7 @@ function PreferenceSwitchCard({
     description: string,
     preference: BooleanPreference,
 }) {
+    const { t } = useTranslation()
     const queryPreferences = useQueryAccountPreferences();
     const mutatePreference = useMutation({ mutationFn: updateAccountPreferences });
 
@@ -199,7 +208,11 @@ function PreferenceSwitchCard({
                     </p>
 
                     <div className="mt-3 text-[11px] uppercase tracking-[0.24em] text-slate-500">
-                        {mutatePreference.isPending ? `Saving...` : optimisticValue ? `Enabled` : `Disabled`}
+                        {mutatePreference.isPending
+                            ? t('saving', 'Saving...')
+                            : optimisticValue
+                                ? t('enabled', 'Enabled')
+                                : t('disabled', 'Disabled')}
                     </div>
                 </div>
 

@@ -56,6 +56,10 @@ export function drawBoard({
     const centerY = height / 2 + view.offsetY;
     const hexRadius = view.scale * 0.92;
 
+    if (theme.intersectionGrid) {
+        drawIntersectionGrid(context, cells, centerX, centerY, view.scale, theme);
+    }
+
     for (const cell of cells.values()) {
         const screenX = centerX + cell.pointX * view.scale;
         const screenY = centerY + cell.pointY * view.scale;
@@ -68,10 +72,12 @@ export function drawBoard({
             continue;
         }
 
-        traceHexPath(context, screenX, screenY, hexRadius);
-        context.strokeStyle = theme.colors.grid;
-        context.lineWidth = 1;
-        context.stroke();
+        if (!theme.intersectionGrid) {
+            traceHexPath(context, screenX, screenY, hexRadius);
+            context.strokeStyle = theme.colors.grid;
+            context.lineWidth = 1;
+            context.stroke();
+        }
 
         if (cell.status === `occupied`) {
             theme.drawCell({
@@ -120,6 +126,43 @@ export function drawBoard({
     }
 }
 
+function drawIntersectionGrid(
+    context: CanvasRenderingContext2D,
+    cells: ReadonlyMap<string, RenderableCell>,
+    centerX: number,
+    centerY: number,
+    scale: number,
+    theme: BoardTheme,
+) {
+    context.beginPath();
+    for (const cell of cells.values()) {
+        for (const [x, y] of [[1, 0], [0, 1], [1, -1]] as const) {
+            const neighbor = cells.get(getCellKey(cell.x + x, cell.y + y));
+            if (!neighbor) continue;
+            context.moveTo(centerX + cell.pointX * scale, centerY + cell.pointY * scale);
+            context.lineTo(centerX + neighbor.pointX * scale, centerY + neighbor.pointY * scale);
+        }
+    }
+    context.strokeStyle = theme.colors.grid;
+    context.lineWidth = 1;
+    context.stroke();
+}
+
+function traceCellPath(
+    context: CanvasRenderingContext2D,
+    centerX: number,
+    centerY: number,
+    radius: number,
+    theme: BoardTheme,
+) {
+    if (!theme.intersectionGrid) {
+        traceHexPath(context, centerX, centerY, radius);
+        return;
+    }
+    context.beginPath();
+    context.arc(centerX, centerY, radius * 0.78, 0, Math.PI * 2);
+}
+
 function drawEmphasis(
     context: CanvasRenderingContext2D,
     centerX: number,
@@ -128,7 +171,7 @@ function drawEmphasis(
     scale: number,
     theme: BoardTheme,
 ) {
-    traceHexPath(context, centerX, centerY, radius - 1);
+    traceCellPath(context, centerX, centerY, radius - 1, theme);
     context.save();
     context.shadowBlur = Math.max(14, scale * 0.45);
     context.shadowColor = theme.colors.emphasisShadow;
@@ -137,7 +180,7 @@ function drawEmphasis(
     context.stroke();
     context.restore();
 
-    traceHexPath(context, centerX, centerY, Math.max(4, radius - 6));
+    traceCellPath(context, centerX, centerY, Math.max(4, radius - 6), theme);
     context.fillStyle = theme.colors.emphasisFill;
     context.fill();
 }
@@ -157,10 +200,10 @@ function drawOrigin(
     const screenX = centerX + origin.pointX * scale;
     const screenY = centerY + origin.pointY * scale;
     context.save();
-    traceHexPath(context, screenX, screenY, Math.max(4, radius - 5));
+    traceCellPath(context, screenX, screenY, Math.max(4, radius - 5), theme);
     context.fillStyle = theme.colors.originFill;
     context.fill();
-    traceHexPath(context, screenX, screenY, radius - 1.5);
+    traceCellPath(context, screenX, screenY, radius - 1.5, theme);
     context.strokeStyle = theme.colors.originStroke;
     context.lineWidth = Math.max(1.5, scale * 0.024);
     context.stroke();
@@ -180,7 +223,7 @@ function drawHoveredCell(
     if (cells.get(getCellKey(hoveredCell.x, hoveredCell.y))?.status !== `empty`) return;
 
     const point = axialToUnitPoint(hoveredCell.x, hoveredCell.y);
-    traceHexPath(context, centerX + point.x * scale, centerY + point.y * scale, radius);
+    traceCellPath(context, centerX + point.x * scale, centerY + point.y * scale, radius, theme);
     context.fillStyle = theme.colors.hoverFill;
     context.fill();
     context.strokeStyle = theme.colors.hoverStroke;
@@ -228,7 +271,7 @@ function drawHighlight(
 
     if (highlight.kind === `cell`) {
         const point = points[0];
-        traceHexPath(context, point.x, point.y, Math.max(4, radius - 2));
+        traceCellPath(context, point.x, point.y, Math.max(4, radius - 2), theme);
         context.strokeStyle = withOpacity(highlight.color, 0.96);
         context.lineWidth = Math.max(2, scale * 0.085);
         context.shadowBlur = Math.max(14, scale * 0.28);
@@ -242,7 +285,7 @@ function drawHighlight(
             context.fillStyle = theme.colors.highlightDot;
             context.fill();
         } else {
-            traceHexPath(context, point.x, point.y, Math.max(3, radius - 6));
+            traceCellPath(context, point.x, point.y, Math.max(3, radius - 6), theme);
             context.fillStyle = withOpacity(highlight.color, 0.14);
             context.fill();
         }
