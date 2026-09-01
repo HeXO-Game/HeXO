@@ -27,6 +27,7 @@ import { useQuerySessionInfo } from '../query/sessionClient';
 import { describeSessionInvite } from '../utils/routeMetadata';
 import { buildSessionPath } from './archiveRouteState';
 import type { SandboxRouteState } from './sandboxRouteState';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 
 function showErrorToast(message: string) {
     toast.error(message, {
@@ -131,34 +132,31 @@ function SessionUnavailableScreen({
     );
 }
 
-function ConfirmLeaveSessionModal({ onStay, onLeave }: Readonly<{
+function ConfirmLeaveSessionDialog({
+    shown,
+    onStay,
+    onLeave,
+}: Readonly<{
+    shown: boolean,
     onStay: () => void
     onLeave: () => void
 }>) {
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 backdrop-blur-sm">
-            <div
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="leave-session-title"
-                className="w-full max-w-xl rounded-4xl border border-rose-300/20 bg-slate-950/95 p-8 text-white shadow-[0_30px_120px_rgba(15,23,42,0.55)] sm:p-10"
-            >
-                <div className="inline-flex rounded-full border border-rose-300/35 bg-rose-300/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-rose-100">
-                    Match In Progress
-                </div>
-
-                <h2 id="leave-session-title" className="mt-5 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
+        <Dialog open={shown}>
+            <DialogContent className={"w-full max-w-xl"} showCloseButton={false}>
+                <h2 id="leave-session-title" className="text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
                     Leave This Match?
                 </h2>
-
-                <p className="mt-4 text-sm leading-6 text-slate-300 sm:text-base">
-                    Leaving right now will surrender the match immediately. Stay if you want to keep playing.
+                <p className="text-sm leading-6 sm:text-base">
+                    Leaving right now will surrender the match immediately.<br />
+                    Stay if you want to keep playing.
                 </p>
 
-                <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <DialogFooter className={"bg-transparent"}>
                     <Button
                         onClick={onStay}
                         variant="outline" size="lg"
+                        className={"w-full"}
                     >
                         Stay In Match
                     </Button>
@@ -166,6 +164,7 @@ function ConfirmLeaveSessionModal({ onStay, onLeave }: Readonly<{
                     <Button
                         onClick={onLeave}
                         variant="destructive" size="lg"
+                        className={"w-full"}
                     >
                         {`Surrender `}
 
@@ -173,9 +172,9 @@ function ConfirmLeaveSessionModal({ onStay, onLeave }: Readonly<{
                             And Leave
                         </span>
                     </Button>
-                </div>
-            </div>
-        </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -584,11 +583,15 @@ function SessionRoute() {
         );
     }
 
-    let leaveConfirmModal = null;
-    if (blocker.state === `blocked` && shouldBlockLeave) {
-        leaveConfirmModal = (
-            <ConfirmLeaveSessionModal
-                onStay={() => blocker.reset()}
+    return (
+        <React.Fragment>
+            <RouteMetadata />
+            {targetScreen}
+            <ConfirmLeaveSessionDialog
+                shown={blocker.state === `blocked` && shouldBlockLeave}
+                onStay={() => {
+                    blocker.reset?.();
+                }}
                 onLeave={() => {
                     if (handledBlockedNavigationRef.current || blocker.state !== `blocked`) {
                         /* already handled */
@@ -605,14 +608,6 @@ function SessionRoute() {
                     }
                 }}
             />
-        );
-    }
-
-    return (
-        <React.Fragment>
-            <RouteMetadata />
-            {targetScreen}
-            {leaveConfirmModal}
         </React.Fragment>
     );
 }

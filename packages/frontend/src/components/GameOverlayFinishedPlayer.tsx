@@ -180,11 +180,7 @@ function GameOverlayFinishedPlayer({
                         <div className="absolute -left-14 top-10 h-32 w-32 rounded-full bg-white/6 blur-3xl" />
 
                         <div className="relative">
-                            <div className={`inline-flex items-center rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] ${theme.badge}`}>
-                                {isDraw ? `Draw Agreed` : isWin ? `Victory Locked In` : `Match Slipped Away`}
-                            </div>
-
-                            <h1 className="mt-5 max-w-2xl text-4xl font-black uppercase tracking-[0.08em] text-white sm:text-5xl lg:text-6xl">
+                            <h1 className="max-w-2xl text-4xl font-black uppercase tracking-[0.08em] text-white sm:text-5xl lg:text-6xl">
                                 {isDraw ? `Match Drawn` : isWin ? `You've Won` : `You Lost`}
                             </h1>
 
