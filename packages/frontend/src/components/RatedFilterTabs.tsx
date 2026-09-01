@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { type RatedFilter, ratedFilterOptions } from '../utils/ratedFilter';
 import { ButtonGroup } from './ui/button-group';
+import { useTranslation } from 'react-i18next';
 
 type RatedFilterTabsProps = {
     value: RatedFilter
@@ -11,6 +12,7 @@ export default function RatedFilterTabs({
     value,
     onChange,
 }: Readonly<RatedFilterTabsProps>) {
+    const { t } = useTranslation();
     return (
         <ButtonGroup>
             {ratedFilterOptions.map((filterOption) => {
@@ -24,7 +26,7 @@ export default function RatedFilterTabs({
                         aria-pressed={isActive}
                         onClick={() => onChange(filterOption.value)}
                     >
-                        {filterOption.label}
+                        {filterOption.label(t)}
                     </Button>
                 );
             })}

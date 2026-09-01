@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "packageManager": "pnpm@10.20.0",
+  "packageManager": "pnpm@11.25.0",
   "scripts": {
     "generate:changelog": "pnpm --filter @ih3t/build-changelog generate",
     "build": "pnpm --filter @ih3t/backend build && pnpm --filter @ih3t/frontend build",
