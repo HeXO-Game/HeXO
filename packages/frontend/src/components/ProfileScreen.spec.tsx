@@ -303,7 +303,7 @@ test('matches the full profile statistics screen', async ({ mount, page }) => {
   await expect(component.getByText('Last Seen')).toBeVisible()
   await expect(component.getByRole('heading', { name: 'Currently Playing' })).toBeVisible()
   await expect(component.getByRole('link', { name: 'Watch Live Game' })).toHaveAttribute('href', '/session/live-session-1')
-  await expect(component.getByRole('heading', { name: 'Last 10 Games' })).toBeVisible()
+  await expect(component.getByRole('heading', { name: 'Finished Games' })).toBeVisible()
   await expect(component.getByRole('link', { name: /Won by six in a row/i })).toHaveAttribute('href', '/account/games/game-1')
   await expect(component.getByRole('link', { name: /Lost due to timeout/i })).toHaveAttribute('href', '/account/games/game-2')
   await expect(component.getByText(/^Rated$/).first()).toBeVisible()

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
@@ -10,6 +11,7 @@ import {
 import { useQueryPublicProfileGames as useQueryProfileGames } from '../query/finishedGamesClient';
 import { useQueryAvailableSessions } from '../query/sessionClient';
 import { useTranslation } from 'react-i18next'
+import type { FinishedGamesRatedFilter } from '../query/queryDefinitions';
 
 function ProfileRoute() {
     const { t } = useTranslation()
@@ -18,10 +20,31 @@ function ProfileRoute() {
 
     const accountQuery = useQueryAccount({ enabled: true });
     const targetProfileId = profileId ?? accountQuery.data?.user?.id ?? null;
+    const [gamesPage, setGamesPage] = useState(1);
+    const [gamesBaseTimestamp, setGamesBaseTimestamp] = useState(() => Date.now());
+    const [gamesRatedFilter, setGamesRatedFilter] = useState<FinishedGamesRatedFilter>(`all`);
 
     const profileQuery = useQueryProfile(targetProfileId);
     const profileStatisticsQuery = useQueryProfileStatistics(targetProfileId);
-    const recentGamesQuery = useQueryProfileGames(targetProfileId);
+    const recentGamesQuery = useQueryProfileGames(
+        targetProfileId,
+        gamesPage,
+        gamesBaseTimestamp,
+        gamesRatedFilter,
+    );
+
+    useEffect(() => {
+        setGamesPage(1);
+        setGamesBaseTimestamp(Date.now());
+        setGamesRatedFilter(`all`);
+    }, [targetProfileId]);
+
+    useEffect(() => {
+        const totalPages = recentGamesQuery.data?.pagination.totalPages;
+        if (totalPages && gamesPage > totalPages) {
+            setGamesPage(totalPages);
+        }
+    }, [gamesPage, recentGamesQuery.data]);
 
     const availableSessionsQuery = useQueryAvailableSessions();
 
@@ -71,6 +94,18 @@ function ProfileRoute() {
                 statisticsErrorMessage={statisticsError instanceof Error ? statisticsError.message : null}
                 recentGamesErrorMessage={recentGamesQuery.error instanceof Error ? recentGamesQuery.error.message : null}
                 isPublicView={isPublicProfileRoute}
+                gamesRatedFilter={gamesRatedFilter}
+                onChangeGamesRatedFilter={(ratedFilter) => {
+                    setGamesRatedFilter(ratedFilter);
+                    setGamesPage(1);
+                    setGamesBaseTimestamp(Date.now());
+                }}
+                onChangeGamesPage={(page) => {
+                    setGamesBaseTimestamp(
+                        recentGamesQuery.data?.pagination.baseTimestamp ?? gamesBaseTimestamp,
+                    );
+                    setGamesPage(page);
+                }}
             />
         </>
     );
