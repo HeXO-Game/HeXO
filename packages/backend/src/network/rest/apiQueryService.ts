@@ -45,6 +45,8 @@ type FinishedGamesQueryOptions = {
     baseTimestamp: number;
 };
 
+type ProfileGamesQueryOptions = Pick<FinishedGamesQueryOptions, `page` | `pageSize` | `baseTimestamp` | `ratedFilter`>;
+
 @injectable()
 export class ApiQueryService {
     constructor(
@@ -100,16 +102,26 @@ export class ApiQueryService {
         };
     }
 
-    async getProfileGames(profileId: string): Promise<ProfileGamesResponse | null> {
+    async getProfileGames(
+        profileId: string,
+        options: ProfileGamesQueryOptions = {
+            page: 1,
+            pageSize: 10,
+            baseTimestamp: Date.now(),
+            ratedFilter: `all`,
+        },
+    ): Promise<ProfileGamesResponse | null> {
         const user = await this.authRepository.getUserProfileById(profileId);
         if (!user) {
             return null;
         }
 
         return await this.gameHistoryRepository.listFinishedGames({
-            page: 1,
-            pageSize: 10,
+            page: options.page,
+            pageSize: options.pageSize,
+            baseTimestamp: options.baseTimestamp,
             playerProfileId: user.id,
+            ratedFilter: options.ratedFilter,
         });
     }
 

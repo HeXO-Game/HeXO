@@ -30,6 +30,8 @@ import { getPersonalResultLabel, type PersonalResultTone } from '../utils/finish
 import { getPlayerLabel, getPlayerTileColor } from '../utils/gameBoard';
 import { formatTimeControl } from '../utils/gameTimeControl';
 import { formatLobbyPlayers } from '../utils/lobby';
+import { getVisiblePageNumbers } from '../utils/pagination';
+import type { FinishedGamesRatedFilter } from '../query/queryDefinitions';
 import {
     formatWinSummary,
     formatWorldRank,
@@ -38,6 +40,7 @@ import AccountPicture from './AccountPicture';
 import PageCorpus from './PageCorpus';
 import { useTranslation } from 'react-i18next'
 import i18next from 'i18next'
+import RatedFilterTabs from './RatedFilterTabs';
 
 const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
@@ -59,6 +62,9 @@ type ProfileScreenProps = {
     statisticsErrorMessage: string | null
     recentGamesErrorMessage: string | null
     isPublicView: boolean
+    gamesRatedFilter?: FinishedGamesRatedFilter
+    onChangeGamesRatedFilter?: (ratedFilter: FinishedGamesRatedFilter) => void
+    onChangeGamesPage?: (page: number) => void
 };
 
 type PrimaryStatCardProps = {
@@ -294,32 +300,51 @@ function RecentGamesSection({
     isLoading,
     errorMessage,
     isPublicView,
+    gamesRatedFilter = `all`,
+    onChangeGamesRatedFilter,
+    onChangeGamesPage,
 }: Readonly<{
     profileId: string
     recentGames: FinishedGamesPage | null
     isLoading: boolean
     errorMessage: string | null
     isPublicView: boolean
+    gamesRatedFilter?: FinishedGamesRatedFilter
+    onChangeGamesRatedFilter?: (ratedFilter: FinishedGamesRatedFilter) => void
+    onChangeGamesPage?: (page: number) => void
 }>) {
     const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
     const games = recentGames?.games ?? [];
     const archiveView = isPublicView ? `all` : `mine`;
+    const pagination = recentGames?.pagination;
+    const currentPage = pagination?.page ?? 1;
+    const totalPages = pagination?.totalPages ?? 1;
+    const totalGames = pagination?.totalGames ?? 0;
+    const pageStart = games.length === 0 ? 0 : (currentPage - 1) * (pagination?.pageSize ?? games.length) + 1;
+    const pageEnd = games.length === 0 ? 0 : pageStart + games.length - 1;
+    const visiblePageNumbers = getVisiblePageNumbers(currentPage, totalPages);
 
     return (
         <section className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.72),rgba(15,23,42,0.5))] p-5 shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
-            <div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
                 <div className="text-xs uppercase tracking-[0.28em] text-violet-200/85">
                     {t('matchHistory', 'Match History')}
                 </div>
 
                 <h3 className="mt-3 text-xl font-black uppercase tracking-[0.08em] text-white">
-                    {t('last10Games', 'Last 10 Games')}
+                    {t('finishedGames', 'Finished Games')}
                 </h3>
 
                 <p className="mt-2 text-sm leading-6 text-slate-300">
                     {t('theMostRecentFinishedMatchesPlayedOnThisProfile', 'The most recent finished matches played on this profile.')}
                 </p>
+                </div>
+
+                {onChangeGamesRatedFilter && (
+                    <RatedFilterTabs value={gamesRatedFilter} onChange={onChangeGamesRatedFilter} />
+                )}
             </div>
 
             {isLoading ? (
@@ -408,6 +433,52 @@ function RecentGamesSection({
                             </Link>
                         );
                     })}
+
+                    {onChangeGamesPage && (
+                        <div className="@container pt-2">
+                            <div className="grid grid-cols-2 @min-[25em]:flex items-center justify-between gap-2 sm:gap-3">
+                                <Button
+                                    onClick={() => onChangeGamesPage(currentPage - 1)}
+                                    disabled={currentPage <= 1}
+                                    variant="outline" size="sm" className="w-[10em]"
+                                >
+                                    {t('previous', 'Previous')}
+                                </Button>
+
+                                <div className="row-start-2 col-span-2 flex flex-1 flex-nowrap justify-center gap-1 sm:gap-2">
+                                    {visiblePageNumbers.map((pageNumber) => (
+                                        <Button
+                                            key={pageNumber}
+                                            variant={pageNumber === currentPage ? `secondary` : `outline`}
+                                            size="sm"
+                                            onClick={() => onChangeGamesPage(pageNumber)}
+                                            aria-current={pageNumber === currentPage ? `page` : undefined}
+                                            className="min-w-8 sm:min-w-11"
+                                        >
+                                            {pageNumber}
+                                        </Button>
+                                    ))}
+                                </div>
+
+                                <Button
+                                    onClick={() => onChangeGamesPage(currentPage + 1)}
+                                    disabled={currentPage >= totalPages}
+                                    variant="outline" size="sm" className="ml-auto w-[10em]"
+                                >
+                                    {t('next', 'Next')}
+                                </Button>
+                            </div>
+
+                            <div className="mt-3 text-xs text-slate-400 sm:text-right sm:text-sm">
+                                {t('showingPagestartPageendOfTotalgamesVal', 'Showing {{pageStart}} - {{pageEnd}} of {{totalGames}} {{val}}', {
+                                    pageStart,
+                                    pageEnd,
+                                    totalGames,
+                                    val: t('matches', 'matches'),
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </section>
@@ -584,6 +655,9 @@ function ProfileScreen({
     statisticsErrorMessage,
     recentGamesErrorMessage,
     isPublicView,
+    gamesRatedFilter,
+    onChangeGamesRatedFilter,
+    onChangeGamesPage,
 }: Readonly<ProfileScreenProps>) {
     const { t } = useTranslation()
     const intlFormatProvider = useIntlFormatProvider();
@@ -837,6 +911,9 @@ function ProfileScreen({
                             isLoading={isRecentGamesLoading}
                             errorMessage={recentGamesErrorMessage}
                             isPublicView={isPublicView}
+                            gamesRatedFilter={gamesRatedFilter}
+                            onChangeGamesRatedFilter={onChangeGamesRatedFilter}
+                            onChangeGamesPage={onChangeGamesPage}
                         />
                     </div>
                 )}
