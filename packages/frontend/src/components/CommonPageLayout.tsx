@@ -183,7 +183,12 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                     hideMobile && `hidden`,
                 )}
             >
-                <div className="mx-auto flex flex-row w-full max-w-368 gap-4 px-2 py-2 lg:py-4 lg:px-6 items-center justify-between">
+                <div className={cn(
+                    "mx-auto flex flex-row w-full max-w-368 items-center justify-between",
+                    "px-2 py-1 gap-2",
+                    "sm:px-2 sm:py-2 sm:gap-4",
+                    "lg:py-4 lg:px-6",
+                )}>
                     <NavLink
                         to="/"
                         end
@@ -213,7 +218,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                         </span>
                     </NavLink>
 
-                    <div className="flex flex-row items-center gap-4 ml-auto">
+                    <div className="flex flex-row items-center gap-2 sm:gap-4 ml-auto">
                         <nav className="hidden xl:flex flex-wrap items-center gap-2" aria-label={t('primaryNavigation', 'Primary navigation')}>
                             <NavigationLink to="/rules" label={t('rules', 'Rules')} />
                             <NavigationLink to="/sandbox" label={t('sandbox', 'Sandbox')} />
@@ -227,7 +232,6 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
 
                         <LanguageSelector />
 
-
                         {accountQuery.isLoading ? (
                             <div className="self-start rounded-lg px-3 py-2 text-sm text-slate-400 lg:self-auto">
                                 {t('loadingAccount', 'Loading Account')}
@@ -237,9 +241,15 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                                 <Button
                                     type="button"
                                     onClick={() => { setIsAccountMenuOpen((open) => !open); setIsMobileMenuOpen(false); }}
-                                    variant="ghost" size="default" className="gap-3 text-left"
+                                    variant="ghost"
+                                    size="default"
+                                    className="gap-3 text-left p-2 sm:p-3 rounded-md"
                                 >
-                                    <AccountPicture username={account.username} image={account.image} />
+                                    <AccountPicture
+                                        username={account.username}
+                                        image={account.image}
+                                        className={"size-6 sm:size-9"}
+                                    />
 
                                     <div className="min-w-0 hidden sm:block">
                                         <div className="truncate text-sm font-semibold text-white">
@@ -329,7 +339,7 @@ function CommonPageLayout({ limitWidth, hideMobile }: { limitWidth: boolean, hid
                             setIsAccountMenuOpen(false);
                             setIsMobileMenuOpen((open) => !open);
                         }}
-                        variant="ghost" size="icon-xl" className="xl:hidden"
+                        variant="ghost" size="icon" className="xl:hidden rounded-md sm:p-7"
                     >
                         <svg aria-hidden="true" viewBox="0 0 20 20" className="h-5 w-5">
                             {isMobileMenuOpen ? (
