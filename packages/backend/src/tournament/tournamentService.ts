@@ -49,6 +49,7 @@ const kTournamentSystemClient: RequestClientInfo = {
 };
 
 const kClaimWinCountdownMs = 30_000;
+const kMissingSessionRecoveryGraceMs = 30_000;
 
 type ActiveClaimWin = {
     tournamentId: string;
@@ -401,7 +402,7 @@ function calculateEliminationStandings(tournament: TournamentRecord, activeParti
     for (const match of tournament.matches) {
         if (match.state !== `completed`) continue;
 
-        if (match.winnerProfileId) {
+        if (match.resultType !== `bye` && match.winnerProfileId) {
             winsByProfile.set(match.winnerProfileId, (winsByProfile.get(match.winnerProfileId) ?? 0) + 1);
         }
         if (match.loserProfileId) {
@@ -585,6 +586,7 @@ function toDetail(
 export class TournamentService {
     private readonly tournamentLocks = new Map<string, Mutex>();
     private readonly activeClaimWins = new Map<string, ActiveClaimWin>();
+    private readonly missingSessionFirstSeenAt = new Map<string, number>();
     private eventHandlers: TournamentServiceEventHandlers = {};
 
     constructor(
@@ -2006,6 +2008,7 @@ export class TournamentService {
         if (match.sessionId) {
             const session = this.sessionManager.getSessionInfo(match.sessionId);
             if (session) {
+                this.missingSessionFirstSeenAt.delete(match.sessionId);
                 if (session.state.status === `finished`) {
                     const winnerProfileId = this.resolveProfileIdFromFinishedSession(session, session.state.winningPlayerId);
                     if (!winnerProfileId) {
@@ -2034,8 +2037,13 @@ export class TournamentService {
                 return false;
             }
 
-            /* Session is gone — try to recover the result from game history */
-            const recoveredGame = await this.gameHistoryRepository.getFinishedGameBySessionId(match.sessionId)
+            /*
+             * Session state is in memory, while the finished game is persisted separately.
+             * Give that durable record time to become visible before abandoning the session
+             * reference; otherwise a transient persistence delay permanently loses the result.
+             */
+            const missingSessionId = match.sessionId;
+            const recoveredGame = await this.gameHistoryRepository.getFinishedGameBySessionId(missingSessionId)
                 ?? (match.gameIds.length > 0
                     ? await this.gameHistoryRepository.getFinishedGame(match.gameIds[match.gameIds.length - 1])
                     : null);
@@ -2044,11 +2052,23 @@ export class TournamentService {
                 if (winnerProfileId) {
                     const appliedGame = this.applyFinishedGameToMatch(tournament, match, recoveredGame.id, winnerProfileId);
                     if (appliedGame) {
+                        this.missingSessionFirstSeenAt.delete(missingSessionId);
                         return true;
                     }
                 }
             }
 
+            const now = Date.now();
+            const firstSeenAt = this.missingSessionFirstSeenAt.get(missingSessionId);
+            if (firstSeenAt === undefined) {
+                this.missingSessionFirstSeenAt.set(missingSessionId, now);
+                return false;
+            }
+            if (now - firstSeenAt < kMissingSessionRecoveryGraceMs) {
+                return false;
+            }
+
+            this.missingSessionFirstSeenAt.delete(missingSessionId);
             match.sessionId = null;
             match.state = `ready`;
             match.startedAt = null;

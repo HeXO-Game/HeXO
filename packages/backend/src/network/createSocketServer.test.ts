@@ -241,8 +241,8 @@ class FakeAuthService {
         return null;
     }
 
-    async getUserPreferences(): Promise<never> {
-        throw new Error(`not implemented`);
+    async getUserPreferences() {
+        return { allowSelfJoinCasualGames: false };
     }
 }
 
@@ -278,6 +278,7 @@ function createParticipant(id: string, displayName: string): FakePlayer {
 }
 
 function createFakeSession(sessionId: string, status: SessionInfo[`state`][`status`]): FakeSession {
+    const createdAt = 1_700_000_000_000;
     return {
         id: sessionId as SessionId,
         gameState: createEmptyGameState(),
@@ -300,7 +301,8 @@ function createFakeSession(sessionId: string, status: SessionInfo[`state`][`stat
         state: status === `in-game`
             ? {
                 status,
-                startedAt: 1_700_000_000_000,
+                createdAt,
+                startedAt: createdAt,
                 gameId: `${sessionId}-game`,
                 drawRequest: null,
                 drawRequestAvailableAfterTurn: 50,
@@ -308,6 +310,9 @@ function createFakeSession(sessionId: string, status: SessionInfo[`state`][`stat
             : status === `finished`
                 ? {
                     status,
+                    createdAt,
+                    startedAt: createdAt,
+                    finishedAt: createdAt + 1_000,
                     gameId: `${sessionId}-game`,
                     finishReason: `six-in-a-row`,
                     winningPlayerId: `${sessionId}-left`,
@@ -315,6 +320,7 @@ function createFakeSession(sessionId: string, status: SessionInfo[`state`][`stat
                 }
                 : {
                     status,
+                    createdAt,
                 },
     };
 }
@@ -539,24 +545,26 @@ test(`watch-session can follow multiple rooms and unwatch stops further updates`
     }
 });
 
-test(`watch-session rejects missing and non-live sessions`, async () => {
+test(`watch-session rejects missing sessions and allows non-live sessions`, async () => {
     const harness = await createHarness();
     try {
         harness.sessionManager.sessions.set(`lobby-1`, createFakeSession(`lobby-1`, `lobby`));
 
         const socket = await harness.connectSocket();
         try {
+            const missingErrorPromise = waitForEvent<{ sessionId: string; message: string }>(socket, `session-watch-error`);
             socket.emit(`watch-session`, { sessionId: `missing` });
-            const missingError = await waitForEvent<{ sessionId: string; message: string }>(socket, `session-watch-error`);
+            const missingError = await missingErrorPromise;
             assert.deepEqual(missingError, {
                 sessionId: `missing`,
                 message: `session unavailable`,
             });
 
+            const lobbyStartedPromise = waitForEvent<{ session: SessionInfo }>(socket, `session-watch-started`);
             socket.emit(`watch-session`, { sessionId: `lobby-1` });
-            const lobbyError = await waitForEvent<{ sessionId: string; message: string }>(socket, `session-watch-error`);
-            assert.equal(lobbyError.sessionId, `lobby-1`);
-            assert.equal(lobbyError.message, `session unavailable`);
+            const lobbyStarted = await lobbyStartedPromise;
+            assert.equal(lobbyStarted.session.id, `lobby-1`);
+            assert.equal(lobbyStarted.session.state.status, `lobby`);
         } finally {
             socket.close();
         }
@@ -565,7 +573,7 @@ test(`watch-session rejects missing and non-live sessions`, async () => {
     }
 });
 
-test(`watch-session enforces the four-session cap`, async () => {
+test(`watch-session supports more than four concurrent watched sessions`, async () => {
     const harness = await createHarness();
     try {
         const sessionIds = [`live-1`, `live-2`, `live-3`, `live-4`, `live-5`];
@@ -575,16 +583,12 @@ test(`watch-session enforces the four-session cap`, async () => {
 
         const socket = await harness.connectSocket();
         try {
-            for (const sessionId of sessionIds.slice(0, 4)) {
+            for (const sessionId of sessionIds) {
+                const startedPromise = waitForEvent<{ session: SessionInfo }>(socket, `session-watch-started`);
                 socket.emit(`watch-session`, { sessionId });
-                const started = await waitForEvent<{ session: SessionInfo }>(socket, `session-watch-started`);
+                const started = await startedPromise;
                 assert.equal(started.session.id, sessionId);
             }
-
-            socket.emit(`watch-session`, { sessionId: `live-5` });
-            const error = await waitForEvent<{ sessionId: string; message: string }>(socket, `session-watch-error`);
-            assert.equal(error.sessionId, `live-5`);
-            assert.equal(error.message, `You can only watch up to 4 live matches at once.`);
         } finally {
             socket.close();
         }
@@ -601,14 +605,16 @@ test(`watch-session does not consume the active join-session slot`, async () => 
 
         const socket = await harness.connectSocket();
         try {
+            const watchStartedPromise = waitForEvent(socket, `session-watch-started`);
             socket.emit(`watch-session`, { sessionId: `live-1` });
-            await waitForEvent(socket, `session-watch-started`);
+            await watchStartedPromise;
 
-            socket.emit(`join-session`, { sessionId: `lobby-1` });
-            const joined = await waitForEvent<{
+            const joinedPromise = waitForEvent<{
                 session: SessionInfo
                 participantRole: `player` | `spectator`
             }>(socket, `session-joined`);
+            socket.emit(`join-session`, { sessionId: `lobby-1` });
+            const joined = await joinedPromise;
 
             assert.equal(joined.session.id, `lobby-1`);
             assert.equal(joined.participantRole, `player`);
