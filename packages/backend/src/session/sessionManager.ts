@@ -931,11 +931,12 @@ export class SessionManager {
         await this.applyRatingAdjustments(session, winningPlayerId);
 
         const gameDurationMs = session.startedAt === null ? null : finishedAt - session.startedAt;
-        void this.ensureGameHistory(session).then((gameId) => this.gameHistoryRepository.finishGame(gameId, {
+        const gameId = await this.ensureGameHistory(session);
+        await this.gameHistoryRepository.finishGame(gameId, {
             winningPlayerId,
             durationMs: gameDurationMs,
             reason,
-        }));
+        });
 
         this.metricsTracker.track(`game-finished`, {
             sessionId: session.id,

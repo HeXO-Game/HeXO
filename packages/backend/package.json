@@ -7,6 +7,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "tsx --watch src/server.ts",
+        "test:session": "node --import tsx --test src/session/sessionManager.test.ts",
         "test:socket": "node --import tsx --test src/network/createSocketServer.test.ts",
         "test:tournament": "node --import tsx --test src/tournament/tournamentService.test.ts",
         "type-check": "tsc --noEmit",
