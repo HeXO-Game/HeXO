@@ -705,6 +705,62 @@ test(`single-elimination standings rank the third-place winner ahead of the lose
     assert.equal(fourthPlaceStanding?.rank, 4);
 });
 
+test(`elimination standings do not count automatic byes as match wins`, async () => {
+    const tournament = createTournament({
+        status: `completed`,
+        format: `single-elimination`,
+        completedAt: 200,
+        participants: [
+            createParticipant({ profileId: `player-1`, displayName: `Player 1`, status: `eliminated`, checkedInAt: 1, checkInState: `checked-in`, seed: 1 }),
+            createParticipant({ profileId: `player-2`, displayName: `Player 2`, status: `completed`, checkedInAt: 2, checkInState: `checked-in`, seed: 2 }),
+        ],
+        matches: [
+            createMatch({
+                id: `match-winners-1-1`,
+                bracket: `winners`,
+                round: 1,
+                order: 1,
+                state: `completed`,
+                resultType: `bye`,
+                winnerProfileId: `player-1`,
+                resolvedAt: 100,
+                slots: [
+                    createSlot({ profileId: `player-1`, displayName: `Player 1`, seed: 1 }),
+                    createSlot({ displayName: `BYE`, isBye: true }),
+                ],
+            }),
+            createMatch({
+                id: `match-winners-2-1`,
+                bracket: `winners`,
+                round: 2,
+                order: 1,
+                state: `completed`,
+                bestOf: 3,
+                leftWins: 1,
+                rightWins: 2,
+                resultType: `played`,
+                winnerProfileId: `player-2`,
+                loserProfileId: `player-1`,
+                resolvedAt: 200,
+                slots: [
+                    createSlot({ profileId: `player-1`, displayName: `Player 1`, seed: 1 }),
+                    createSlot({ profileId: `player-2`, displayName: `Player 2`, seed: 2 }),
+                ],
+            }),
+        ],
+    });
+    const { service } = createService(tournament);
+
+    const detail = await service.getTournamentDetail(tournament.id, null);
+    const playerOne = detail?.standings.find((standing) => standing.profileId === `player-1`);
+    const playerTwo = detail?.standings.find((standing) => standing.profileId === `player-2`);
+
+    assert.equal(playerOne?.wins, 0);
+    assert.equal(playerOne?.losses, 1);
+    assert.equal(playerTwo?.wins, 1);
+    assert.equal(playerTwo?.losses, 0);
+});
+
 test(`listTournaments reports best placement for underfilled single-elimination champions`, async () => {
     const champion = createAccountUser({ id: `player-1`, username: `Champion` });
     const runnerUp = createAccountUser({ id: `player-2`, username: `Runner Up` });
@@ -1354,7 +1410,7 @@ test(`getTournamentDetail refreshes double-elimination participant statuses when
     assert.equal(runnerUp?.status, `eliminated`);
 });
 
-test(`getTournamentDetail repairs stale best-of session recovery without repeated updatedAt changes`, async () => {
+test(`getTournamentDetail retries missing best-of sessions before reopening the game`, async () => {
     const tournament = createTournament({
         status: `live`,
         format: `double-elimination`,
@@ -1406,6 +1462,16 @@ test(`getTournamentDetail repairs stale best-of session recovery without repeate
 
     await service.getTournamentDetail(tournament.id, null);
 
+    const awaitingRecovery = repository.getSync(tournament.id).matches[0]!;
+    assert.equal(awaitingRecovery.state, `in-progress`);
+    assert.equal(awaitingRecovery.sessionId, `missing-game-two-session`);
+
+    (service as unknown as {
+        missingSessionFirstSeenAt: Map<string, number>;
+    }).missingSessionFirstSeenAt.set(`missing-game-two-session`, Date.now() - 31_000);
+
+    await service.getTournamentDetail(tournament.id, null);
+
     const repaired = repository.getSync(tournament.id).matches[0]!;
     assert.equal(repaired.state, `ready`);
     assert.equal(repaired.sessionId, null);
@@ -1421,6 +1487,68 @@ test(`getTournamentDetail repairs stale best-of session recovery without repeate
 
     await service.getTournamentDetail(tournament.id, null);
     assert.equal(repository.getSync(tournament.id).updatedAt, recreated.updatedAt);
+});
+
+test(`reconciliation recovers a completed best-of game that appears after a persistence delay`, async () => {
+    const tournament = createTournament({
+        status: `live`,
+        format: `single-elimination`,
+        participants: [
+            createParticipant({ profileId: `player-1`, displayName: `Player 1`, checkedInAt: 1, status: `checked-in`, checkInState: `checked-in`, seed: 1 }),
+            createParticipant({ profileId: `player-2`, displayName: `Player 2`, checkedInAt: 2, status: `checked-in`, checkInState: `checked-in`, seed: 2 }),
+        ],
+        matches: [
+            createMatch({
+                id: `match-winners-1-1`,
+                bracket: `winners`,
+                round: 1,
+                order: 1,
+                state: `in-progress`,
+                bestOf: 3,
+                sessionId: `missing-game-two-session`,
+                startedAt: 100,
+                gameIds: [`game-1`],
+                currentGameNumber: 2,
+                leftWins: 1,
+                rightWins: 0,
+                slots: [
+                    createSlot({ profileId: `player-1`, displayName: `Player 1`, seed: 1 }),
+                    createSlot({ profileId: `player-2`, displayName: `Player 2`, seed: 2 }),
+                ],
+            }),
+        ],
+    });
+    const repository = new FakeTournamentRepository(tournament);
+    const gameHistoryRepository = new FakeGameHistoryRepository();
+    const { service } = createServiceWithOverrides({
+        repository,
+        gameHistoryRepository,
+    });
+
+    await service.reconcileAllTournaments();
+
+    let match = repository.getSync(tournament.id).matches[0]!;
+    assert.equal(match.state, `in-progress`);
+    assert.equal(match.sessionId, `missing-game-two-session`);
+
+    gameHistoryRepository.finishedGames.set(`game-2`, {
+        id: `game-2`,
+        sessionId: `missing-game-two-session`,
+        players: [
+            { playerId: `left-player`, profileId: `player-1` },
+            { playerId: `right-player`, profileId: `player-2` },
+        ],
+        gameResult: { winningPlayerId: `left-player` },
+    });
+
+    await service.reconcileAllTournaments();
+
+    match = repository.getSync(tournament.id).matches[0]!;
+    assert.equal(match.state, `completed`);
+    assert.equal(match.winnerProfileId, `player-1`);
+    assert.deepEqual(match.gameIds, [`game-1`, `game-2`]);
+    assert.equal(match.leftWins, 2);
+    assert.equal(match.rightWins, 0);
 });
 
 test(`roundDelayMinutes keeps the grand final pending until its cooldown expires`, async () => {
