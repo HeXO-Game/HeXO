@@ -108,7 +108,7 @@ function FinishedGameCard({
                             ),
                             <span
                                 key={player.playerId}
-                                className="inline-flex min-w-0 max-w-full items-center gap-1.5 bg-background/20 px-2 rounded-md"
+                                className={cn("inline-flex min-w-0 max-w-full items-center gap-1.5 bg-background/20 px-2 rounded-md", !isOwnArchive && player.playerId === game.gameResult?.winningPlayerId && "bg-emerald-400/15 text-emerald-200 ring-1 ring-emerald-400/30")}
                             >
                                 <span
                                     className="size-4 shrink-0 rounded-full"
