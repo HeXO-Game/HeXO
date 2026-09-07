@@ -69,8 +69,8 @@ function SandboxHud({
 
             role="left"
 
-            openTitle="Open"
-            closeTitle="Close"
+            openTitle={t('open', 'Open')}
+            closeTitle={t('close', 'Close')}
         >
             <div className="pointer-events-auto absolute right-3 top-3 z-10">
                 <Button
@@ -116,7 +116,7 @@ function SandboxHud({
 
                 <div className="border-l border-white/18 pl-3">
                     <div className="text-[11px] uppercase tracking-[0.28em] text-slate-400">
-                        {positionName ? `Position` : `Mode`}
+                        {positionName ? t('position', 'Position') : t('mode', 'Mode')}
                     </div>
 
                     {positionName ? (
@@ -169,7 +169,7 @@ function SandboxHud({
                     disabled={!canSharePosition || isSharingPosition}
                     className="min-w-[9rem] flex-1 md:flex-none"
                 >
-                    {isSharingPosition ? `Sharing...` : `Share Link`}
+                    {isSharingPosition ? t('sharing', 'Sharing...') : t('shareLink', 'Share Link')}
                 </Button>
             </div>
 

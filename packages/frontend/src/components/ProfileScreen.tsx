@@ -604,7 +604,7 @@ function ProfileScreen({
 
     return (
         <PageCorpus
-            category={isPublicView ? `Profile` : `Account`}
+            category={isPublicView ? t('profile', 'Profile') : t('account', 'Account')}
             title={isPublicView ? (account?.username ?? `Player Profile`) : t('yourAccount', 'Your Account')}
             description={isPublicView
                 ? t('publicProfileDetailsAndCompetitiveStandingForThisHexoPlayer', 'Public profile details and competitive standing for this HeXO player.')

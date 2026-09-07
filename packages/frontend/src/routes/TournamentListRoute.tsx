@@ -383,7 +383,7 @@ function TournamentListRoute() {
             />
 
             <PageCorpus
-                category="Competition" title="Tournaments"
+                category={t('competition', 'Competition')} title="Tournaments"
                 description={t('createATournamentAndShareTheLinkToInvitePlayers', 'Create a tournament and share the link to invite players.')}
                 onRefresh={() => void tQ.refetch()}
             >

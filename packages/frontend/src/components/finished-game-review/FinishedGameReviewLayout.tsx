@@ -15,7 +15,7 @@ function FinishedGameReviewLayout({
     const { t } = useTranslation()
     return (
         <PageCorpus
-            category="Replay Viewer"
+            category={t('replayViewer', 'Replay Viewer')}
             title={t('finishedMatchReview', 'Finished Match Review')}
         >
             <div className="flex min-h-0 flex-1 flex-col px-4 pb-4 sm:px-6 sm:pb-6">

@@ -1169,7 +1169,7 @@ function TournamentRoute() {
             />
 
             <PageCorpus
-                category="Tournament" title={tournament?.name ?? `Loading...`}
+                category={t('tournament', 'Tournament')} title={tournament?.name ?? `Loading...`}
                 description={tournament ? t('formatlabelVal', '{{formatLabel}} · {{val}}', { formatLabel, val: formatDateTime(intl, tournament.scheduledStartAt) }) : ``}
                 back="Tournaments" onBack={() => void nav(`/tournaments`)} onRefresh={() => void tQ.refetch()}
             >

@@ -333,7 +333,7 @@ function AdminStatsScreen({ onOpenGame }: Readonly<AdminStatsScreenProps>) {
     const intlFormatProvider = useIntlFormatProvider();
     return (
         <PageCorpus
-            category="Admin"
+            category={t('admin', 'Admin')}
             title={t('siteStatistics', 'Site Statistics')}
             description={
                 <>

@@ -35,7 +35,7 @@ function LeaderboardScreen({
 
     return (
         <PageCorpus
-            category="Player Leaderboard"
+            category={t('playerLeaderboard', 'Player Leaderboard')}
             title={t('highestRatedPlayers', 'Highest rated players')}
             description={t('top10PlayersRankedByEloFromRatedGamesAndRefreshedEvery10Minutes', 'Top 10 players by ELO who completed at least one rated game in the past 30 days. Refreshed every 10 minutes.')}
         >

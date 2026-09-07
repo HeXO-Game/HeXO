@@ -230,7 +230,7 @@ function AccountPreferencesScreen() {
     const { t } = useTranslation()
     return (
         <PageCorpus
-            category="Preferences"
+            category={t('preferences', 'Preferences')}
             title={t('accountPreferences', 'Account Preferences')}
             description={t('manageYourPersonalGameplayDisplayAndMatchmakingSettings', 'Manage your personal gameplay, display, and matchmaking settings.')}
         >

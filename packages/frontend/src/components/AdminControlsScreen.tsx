@@ -144,7 +144,7 @@ function AdminControlsScreen({
 
     return (
         <PageCorpus
-            category="Admin Area"
+            category={t('adminArea', 'Admin Area')}
             title={t('siteControls', 'Site Controls')}
             description={t('scheduleARestartSendAGlobalAnnouncementOrTerminateALiveGameThatNeedsIntervention', 'Schedule a restart, send a global announcement, or terminate a live game that needs intervention.')}
         >

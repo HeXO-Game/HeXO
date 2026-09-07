@@ -1,32 +1,33 @@
 import type { FinishedGameSummary, SessionFinishReason } from '@ih3t/shared';
+import i18next from 'i18next';
 
 export type PersonalResultTone = `win` | `loss` | `neutral`;
 
 type ResultLabelKey = `${SessionFinishReason}-${PersonalResultTone}`;
 
-const RESULT_LABELS: Record<ResultLabelKey, string> = {
-    'disconnect-neutral': `Won by disconnect`,
-    'disconnect-win': `Won by disconnect`,
-    'disconnect-loss': `Lost due to disconnect`,
-    'draw-agreement-neutral': `Draw agreed`,
-    'draw-agreement-win': `Draw agreed`,
-    'draw-agreement-loss': `Draw agreed`,
-    'surrender-neutral': `Won by surrender`,
-    'surrender-win': `Won by surrender`,
-    'surrender-loss': `Lost due to surrender`,
-    'timeout-neutral': `Won on time`,
-    'timeout-win': `Won on time`,
-    'timeout-loss': `Lost due to timeout`,
-    'terminated-neutral': `Match terminated`,
-    'terminated-win': `Match terminated`,
-    'terminated-loss': `Match terminated`,
-    'six-in-a-row-neutral': `Won by six in a row`,
-    'six-in-a-row-win': `Won by six in a row`,
-    'six-in-a-row-loss': `Lost due to six in a row`,
+const RESULT_LABELS: Record<ResultLabelKey, () => string> = {
+    'disconnect-neutral': () => i18next.t('wonByDisconnect', 'Won by disconnect'),
+    'disconnect-win': () => i18next.t('wonByDisconnect', 'Won by disconnect'),
+    'disconnect-loss': () => i18next.t('lostDueToDisconnect', 'Lost due to disconnect'),
+    'draw-agreement-neutral': () => i18next.t('drawAgreed', 'Draw agreed'),
+    'draw-agreement-win': () => i18next.t('drawAgreed', 'Draw agreed'),
+    'draw-agreement-loss': () => i18next.t('drawAgreed', 'Draw agreed'),
+    'surrender-neutral': () => i18next.t('wonBySurrender', 'Won by surrender'),
+    'surrender-win': () => i18next.t('wonBySurrender', 'Won by surrender'),
+    'surrender-loss': () => i18next.t('lostDueToSurrender', 'Lost due to surrender'),
+    'timeout-neutral': () => i18next.t('wonOnTime', 'Won on time'),
+    'timeout-win': () => i18next.t('wonOnTime', 'Won on time'),
+    'timeout-loss': () => i18next.t('lostDueToTimeout', 'Lost due to timeout'),
+    'terminated-neutral': () => i18next.t('matchTerminated', 'Match terminated'),
+    'terminated-win': () => i18next.t('matchTerminated', 'Match terminated'),
+    'terminated-loss': () => i18next.t('matchTerminated', 'Match terminated'),
+    'six-in-a-row-neutral': () => i18next.t('wonBySixInARow', 'Won by six in a row'),
+    'six-in-a-row-win': () => i18next.t('wonBySixInARow', 'Won by six in a row'),
+    'six-in-a-row-loss': () => i18next.t('lostDueToSixInARow', 'Lost due to six in a row'),
 };
 
 function getResultLabel(reason: SessionFinishReason, tone: PersonalResultTone) {
-    return RESULT_LABELS[`${reason}-${tone}`];
+    return RESULT_LABELS[`${reason}-${tone}`]();
 }
 
 export function getOwnPlayerId(game: FinishedGameSummary, currentProfileId: string | null) {

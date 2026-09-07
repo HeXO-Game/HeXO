@@ -99,7 +99,7 @@ function FinishedGamesScreen({
 
     return (
         <PageCorpus
-            category="Finished Games"
+            category={t('finishedGames', 'Finished Games')}
             title={isOwnArchive ? t('myMatchHistory', 'My Match History') : `Match Archive`}
             description={isOwnArchive
                 ? t('reviewTheFinishedMatchesYouPlayedWhileSignedInAndOpenAnyReplayMoveByMove', 'Review the finished matches you played while signed in and open any replay move by move.')
@@ -219,12 +219,11 @@ function FinishedGamesScreen({
                                                         ? `bg-amber-300/15 text-amber-100`
                                                         : `bg-slate-900/60 text-slate-200`}`}
                                                     >
-                                                        {game.gameOptions.rated ? `Rated` : `Unrated`}
+                                                        {game.gameOptions.rated ? t('rated', 'Rated') : t('unrated', 'Unrated')}
                                                     </span>
 
                                                     <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                        {`Moves: `}
-                                                        {game.moveCount}
+                                                        {t('moveCount', 'Moves: {{count}}', { count: game.moveCount })}
                                                     </span>
 
                                                     <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
@@ -251,8 +250,7 @@ function FinishedGamesScreen({
                                                     </span>
 
                                                     <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                        {`Duration: `}
-                                                        {formatCompactDuration(game.gameResult?.durationMs ?? 0)}
+                                                        {t('gameDuration', 'Duration: {{duration}}', { duration: formatCompactDuration(game.gameResult?.durationMs ?? 0) })}
                                                     </span>
                                                 </div>
                                             </div>
@@ -303,7 +301,9 @@ function FinishedGamesScreen({
                             </div>
 
                             <div className="mt-3 text-xs text-slate-400 sm:text-right sm:text-sm">
-                                {t('showingPagestartPageendOfTotalgamesVal', 'Showing {{pageStart}} - {{pageEnd}} of {{totalGames}} {{val}}', { pageStart, pageEnd, totalGames, val: isOwnArchive ? `personal matches` : `archived matches` })}
+                                {isOwnArchive
+                                    ? t('showingPersonalMatches', 'Showing {{pageStart}} - {{pageEnd}} of {{totalGames}} personal matches', { pageStart, pageEnd, totalGames })
+                                    : t('showingArchivedMatches', 'Showing {{pageStart}} - {{pageEnd}} of {{totalGames}} archived matches', { pageStart, pageEnd, totalGames })}
                             </div>
                         </div>
                     </div>

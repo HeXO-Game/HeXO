@@ -91,7 +91,7 @@ function ChangelogScreen({
 
     return (
         <PageCorpus
-            category="Project History"
+            category={t('projectHistory', 'Project History')}
             title="Changelog"
             description={t('generatedFromCommitcountCommitsInGitHistoryOnValval2', 'Generated from {{commitCount}} commits in git history on {{val}}.{{val2}}', { commitCount, val: formatDateTime(intlFormatProvider, new Date(generatedAt)), val2: totalBreakingChangeCount > 0 ? ` ${totalBreakingChangeCount} breaking change${totalBreakingChangeCount === 1 ? `` : `s`} flagged.` : `` })}
         >
