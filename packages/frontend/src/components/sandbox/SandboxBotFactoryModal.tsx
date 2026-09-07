@@ -1,41 +1,30 @@
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { SandboxBotEngineInfo } from "../../sandbox/botLoader";
+import { kSandboxBotEngines, SandboxBotEngineInfo } from "../../sandbox/botLoader";
 import { useTranslation } from 'react-i18next'
 
 type SandboxBotFactoryModalProps = {
-    isOpen: boolean
+    open: boolean
     onClose: () => void
 
-    availableEngines: readonly SandboxBotEngineInfo[],
     selectedEngine: string | null,
 
     onSelectBotFactory: (botFactory: SandboxBotEngineInfo | null) => void
 };
 
 function SandboxBotFactoryModal({
-    isOpen,
+    open,
     onClose,
 
-    availableEngines,
     selectedEngine,
 
     onSelectBotFactory,
 }: Readonly<SandboxBotFactoryModalProps>) {
     const { t } = useTranslation()
-    if (!isOpen) {
-        return null;
-    }
 
     return (
-        <div className="pointer-events-auto absolute inset-0 z-30 flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-md">
-            <button
-                type="button"
-                aria-label={t('closeBotEnginePicker', 'Close bot engine picker')}
-                className="absolute inset-0"
-                onClick={onClose}
-            />
-
-            <section className="relative flex flex-col z-10 w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-sky-300/18 bg-[linear-gradient(155deg,rgba(15,23,42,0.97),rgba(17,24,39,0.95)_55%,rgba(30,41,59,0.92))] px-5 py-5 shadow-[0_30px_120px_rgba(2,6,23,0.58)]">
+        <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+            <DialogContent showCloseButton={false} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto w-[calc(100%-2rem)] max-w-lg text-white rounded-[1.75rem] border border-sky-300/18 bg-[linear-gradient(155deg,rgba(15,23,42,0.97),rgba(17,24,39,0.95)_55%,rgba(30,41,59,0.92))] px-5 py-5 shadow-[0_30px_120px_rgba(2,6,23,0.58)]">
                 <div className="absolute -right-10 -top-14 h-24 w-24 rounded-full bg-sky-400/12 blur-3xl" />
                 <div className="absolute -left-8 bottom-0 h-20 w-20 rounded-full bg-emerald-300/10 blur-3xl" />
 
@@ -45,13 +34,13 @@ function SandboxBotFactoryModal({
                             {t('botEngine', 'Bot Engine')}
                         </div>
 
-                        <h2 className="mt-1 text-2xl font-bold text-white">
+                        <DialogTitle className="mt-1 text-2xl font-bold text-white">
                             {t('chooseAnEngine', 'Choose an engine')}
-                        </h2>
+                        </DialogTitle>
 
-                        <div className="mt-2 text-sm leading-6 text-slate-300">
+                        <DialogDescription className="mt-2 text-sm leading-6 text-slate-300">
                             {t('pickWhichBotEngineTheBotShouldUse', 'Pick which bot engine the bot should use.')}
-                        </div>
+                        </DialogDescription>
                     </div>
 
                     <Button
@@ -69,7 +58,7 @@ function SandboxBotFactoryModal({
                 </div>
 
                 <div className="mt-5 grid gap-3">
-                    {availableEngines.map((engine) => {
+                    {kSandboxBotEngines.map((engine) => {
                         const isSelected = engine.name === selectedEngine;
 
                         return (
@@ -116,8 +105,8 @@ function SandboxBotFactoryModal({
                     </Button>
                 )}
 
-            </section>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }
 

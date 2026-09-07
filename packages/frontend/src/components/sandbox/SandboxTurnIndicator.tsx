@@ -32,16 +32,23 @@ function SandboxTurnIndicator({
     const placementsRemaining = gameState.placementsRemaining;
     const isBotTurn = !winnerId && Boolean(focusPlayerId && botPlayerIds.includes(focusPlayerId));
 
-    const headline = winnerId
-        ? t('focusplayerlabelWins', '{{focusPlayerLabel}} Wins', { focusPlayerLabel })
-        : t('focusplayerlabelToMove', '{{focusPlayerLabel}} To Move', { focusPlayerLabel });
-    const detail = winnerId
-        ? t('startANewBoardToKeepExploringLines', 'Start a new board to keep exploring lines.')
-        : isBotTurn && isBotThinking
-            ? t('botIsThinkingWithPlacementsremainingValLeftThisTurn', 'Bot is thinking with {{placementsRemaining}} {{val}} left this turn.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` })
-            : isBotTurn
-                ? t('botcontrolledTurnWithPlacementsremainingValLeft', 'Bot-controlled turn with {{placementsRemaining}} {{val}} left.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` })
-                : t('placementsremainingValLeftThisTurn', '{{placementsRemaining}} {{val}} left this turn.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` });
+    let headline: string;
+    if (winnerId) {
+        headline = t('focusplayerlabelWins', '{{focusPlayerLabel}} Wins', { focusPlayerLabel });
+    } else {
+        headline = t('focusplayerlabelToMove', '{{focusPlayerLabel}} To Move', { focusPlayerLabel });
+    }
+
+    let detail: string;
+    if (winnerId) {
+        detail = t('startANewBoardToKeepExploringLines', 'Start a new board to keep exploring lines.');
+    } else if (isBotTurn && isBotThinking) {
+        detail = t('botIsThinkingWithPlacementsremainingValLeftThisTurn', 'Bot is thinking with {{placementsRemaining}} {{val}} left this turn.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` });
+    } else if (isBotTurn) {
+        detail = t('botcontrolledTurnWithPlacementsremainingValLeft', 'Bot-controlled turn with {{placementsRemaining}} {{val}} left.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` });
+    } else {
+        detail = t('placementsremainingValLeftThisTurn', '{{placementsRemaining}} {{val}} left this turn.', { placementsRemaining, val: placementsRemaining === 1 ? `placement` : `placements` });
+    }
 
     return (
         <div className="absolute left-3 right-3 top-3 flex justify-center md:left-0 md:right-0">

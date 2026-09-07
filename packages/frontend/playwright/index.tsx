@@ -1,4 +1,4 @@
-import '../src/index.css';
+import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
 
 import type { AccountProfile } from '@ih3t/shared';

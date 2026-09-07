@@ -17,7 +17,6 @@ type SandboxHudProps = {
     canRedo: boolean
     onSharePosition: () => void
     canSharePosition: boolean
-    isSharingPosition: boolean
 };
 
 function SandboxHud({
@@ -29,7 +28,6 @@ function SandboxHud({
     onResetView, canUndo, canRedo,
     onSharePosition,
     canSharePosition,
-    isSharingPosition,
 }: Readonly<SandboxHudProps>) {
     const { t } = useTranslation()
     const [isHudOpen, setIsHudOpen] = useState(true);
@@ -148,7 +146,7 @@ function SandboxHud({
                     variant="muted"
                     size="sm"
                     onClick={onResetView}
-                    className="min-w-[9rem] flex-1 md:flex-none"
+                    className="min-w-36 flex-1 md:flex-none"
                 >
                     {t('resetView', 'Reset View')}
                 </Button>
@@ -157,7 +155,7 @@ function SandboxHud({
                     variant="muted"
                     size="sm"
                     onClick={onResetBoard}
-                    className="min-w-[9rem] flex-1 md:flex-none"
+                    className="min-w-36 flex-1 md:flex-none"
                 >
                     {resetBoardLabel}
                 </Button>
@@ -166,10 +164,10 @@ function SandboxHud({
                     variant="muted"
                     size="sm"
                     onClick={onSharePosition}
-                    disabled={!canSharePosition || isSharingPosition}
-                    className="min-w-[9rem] flex-1 md:flex-none"
+                    disabled={!canSharePosition}
+                    className="min-w-36 flex-1 md:flex-none"
                 >
-                    {isSharingPosition ? t('sharing', 'Sharing...') : t('shareLink', 'Share Link')}
+                    {t('shareLink', 'Share Link')}
                 </Button>
             </div>
 
@@ -179,7 +177,7 @@ function SandboxHud({
                     size="sm"
                     onClick={onUndo}
                     disabled={!canUndo}
-                    className="min-w-[9rem] flex-1 md:flex-none"
+                    className="min-w-36 flex-1 md:flex-none"
                 >
                     {t('undo', 'Undo')}
                 </Button>
@@ -189,7 +187,7 @@ function SandboxHud({
                     size="sm"
                     onClick={onRedo}
                     disabled={!canRedo}
-                    className="min-w-[9rem] flex-1 md:flex-none"
+                    className="min-w-36 flex-1 md:flex-none"
                 >
                     {t('redo', 'Redo')}
                 </Button>

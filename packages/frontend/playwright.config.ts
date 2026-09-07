@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/experimental-ct-react';
 import babel from '@rolldown/plugin-babel';
 import tailwindcss from '@tailwindcss/vite';
@@ -32,6 +33,7 @@ export default defineConfig({
         /* Port to use for Playwright component endpoint. */
         ctPort: 3100,
         ctViteConfig: {
+            resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
             define: {},
             plugins: [
                 /* @ts-expect-error idk why but typing fails here */

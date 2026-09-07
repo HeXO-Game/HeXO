@@ -1,40 +1,56 @@
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { SandboxPositionResponse } from '@ih3t/shared';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../query/queryDefinitions';
+import { fetchSandboxPosition } from '../../query/sandboxClient';
+import { extractSandboxPositionId } from '../../sandbox/sandboxPositionId';
 import { useTranslation } from 'react-i18next'
 
 type SandboxImportModalProps = {
-    isOpen: boolean
-    isLoading: boolean
-    errorMessage: string | null
-    parsePositionId: (value: string) => string | null
+    open: boolean
     onClose: () => void
-    onImport: (positionId: string) => void
-    onInputChange: () => void
+    onImport: (position: SandboxPositionResponse) => void
 };
 
-function SandboxImportModal({
-    isOpen,
-    isLoading,
-    errorMessage,
-    parsePositionId,
-    onClose,
-    onImport,
-    onInputChange,
-}: Readonly<SandboxImportModalProps>) {
+function SandboxImportModal({ open, onClose, onImport }: Readonly<SandboxImportModalProps>) {
     const { t } = useTranslation()
+    const queryClient = useQueryClient();
     const [inputValue, setInputValue] = useState(``);
-
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const session = useRef(0);
     useEffect(() => {
-        if (!isOpen) {
-            setInputValue(``);
+        setInputValue(``);
+        setIsLoading(false);
+        setErrorMessage(null);
+        return () => { session.current += 1; };
+    }, [open]);
+
+
+    const importPosition = async (positionId: string) => {
+        const currentSession = session.current;
+        setErrorMessage(null);
+        setIsLoading(true);
+        try {
+            const response = await queryClient.fetchQuery({
+                queryKey: queryKeys.sandboxPosition(positionId),
+                queryFn: () => fetchSandboxPosition(positionId),
+                staleTime: 60 * 60 * 1000,
+            });
+            if (currentSession === session.current) {
+                onImport(response);
+            }
+        } catch (error) {
+            if (currentSession !== session.current) return;
+            setErrorMessage(error instanceof Error ? error.message : `Failed to load sandbox position.`);
+        } finally {
+            if (currentSession === session.current) setIsLoading(false);
         }
-    }, [isOpen]);
+    };
 
-    if (!isOpen) {
-        return null;
-    }
-
-    const parsedPositionId = parsePositionId(inputValue);
+    const parsedPositionId = extractSandboxPositionId(inputValue);
     const hasInput = inputValue.trim().length > 0;
     const validationMessage = hasInput && !parsedPositionId
         ? t('enterAValidSandboxPositionIdOrLink', 'Enter a valid sandbox position id or link.')
@@ -42,25 +58,21 @@ function SandboxImportModal({
     const visibleErrorMessage = validationMessage ?? errorMessage;
 
     return (
-        <div className="absolute inset-0 flex items-center justify-center px-4">
-            <div className="pointer-events-auto w-full max-w-lg rounded-3xl border border-sky-300/20 bg-slate-900/95 px-6 py-6 text-center shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
-                <div className="inline-flex rounded-full border border-emerald-300/20 bg-emerald-400/10 px-4 py-2 text-sm font-bold uppercase tracking-[0.18em] text-emerald-100">
-                    {t('sandboxMode', 'Sandbox Mode')}
-                </div>
-
-                <h1 className="mt-5 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
+        <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !isLoading) onClose(); }}>
+            <DialogContent showCloseButton={false} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto text-white w-[calc(100%-2rem)] max-w-lg rounded-3xl border border-sky-300/20 bg-slate-900/95 px-6 py-6 shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
+                <DialogTitle className="text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
                     {t('importPosition', 'Import Position')}
-                </h1>
+                </DialogTitle>
 
-                <p className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
+                <DialogDescription className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
                     {t('pasteASharedSandboxIdOrAFullSandboxLinkToLoadThatPositionOntoYourBoard', 'Paste a shared sandbox ID or a full sandbox link to load that position onto your board.')}
-                </p>
+                </DialogDescription>
 
                 <input
                     value={inputValue}
                     onChange={(event) => {
                         setInputValue(event.target.value);
-                        onInputChange();
+                        setErrorMessage(null);
                     }}
                     placeholder={t('abc1234OrHttps', 'abc1234 or https://...')}
                     autoFocus
@@ -86,7 +98,7 @@ function SandboxImportModal({
                     <Button
                         onClick={() => {
                             if (parsedPositionId) {
-                                onImport(parsedPositionId);
+                                void importPosition(parsedPositionId);
                             }
                         }}
                         disabled={isLoading || !parsedPositionId}
@@ -95,8 +107,8 @@ function SandboxImportModal({
                         {isLoading ? `Loading...` : `Import`}
                     </Button>
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }
 

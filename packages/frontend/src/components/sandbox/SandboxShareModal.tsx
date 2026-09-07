@@ -1,41 +1,74 @@
+import { Input } from '@/components/ui/input';
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import type { SandboxGamePosition, CreateSandboxPositionResponse } from '@ih3t/shared';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
+import { createSandboxPosition } from '../../query/sandboxClient';
 import { useTranslation } from 'react-i18next'
 
 type SandboxShareModalProps = {
-    isOpen: boolean
-    isCreating: boolean
-    isCopying: boolean
-    shareUrl: string | null
+    open: boolean
+    gamePosition: SandboxGamePosition | null
     initialName: string | null
-    errorMessage: string | null
     onClose: () => void
-    onCreate: (name: string) => void
-    onCopy: () => void
+    onCreate: (position: CreateSandboxPositionResponse) => void
 };
 
 function SandboxShareModal({
-    isOpen,
-    isCreating,
-    isCopying,
-    shareUrl,
+    open,
+    gamePosition,
     initialName,
-    errorMessage,
     onClose,
     onCreate,
-    onCopy,
 }: Readonly<SandboxShareModalProps>) {
     const { t } = useTranslation()
-    const [positionName, setPositionName] = useState(``);
+    const nameInputId = useId();
+    const shareLinkInputId = useId();
+    const [positionName, setPositionName] = useState(initialName ?? ``);
+    const [shareUrl, setShareUrl] = useState<string | null>(null);
+    const session = useRef(0);
+    const shareMutation = useMutation({
+        mutationFn: async (name: string) => {
+            if (!gamePosition) {
+                throw new Error(`Only active sandbox positions can be shared.`);
+            }
+            return await createSandboxPosition(name, gamePosition);
+        },
+        onMutate: () => session.current,
+        onSuccess: (response, _name, currentSession) => {
+            if (currentSession !== session.current) return;
+            setPositionName(response.name);
+            setShareUrl(new URL(`/sandbox/${response.id}`, window.location.origin).toString());
+            onCreate(response);
+        },
+    });
 
     useEffect(() => {
-        if (!isOpen) {
-            setPositionName(``);
+        setPositionName(initialName ?? ``);
+        setShareUrl(null);
+        shareMutation.reset();
+        return () => { session.current += 1; };
+    }, [open]);
+
+    const copyShareUrl = async () => {
+        if (!shareUrl) {
+            return;
+        }
+        if (!navigator.clipboard?.writeText) {
+            toast.error(`Clipboard access is not available in this browser.`);
             return;
         }
 
-        setPositionName(initialName ?? ``);
-    }, [initialName, isOpen]);
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success(`Sandbox position link copied to clipboard.`);
+        } catch {
+            toast.error(`Failed to copy sandbox position link.`);
+        }
+    };
 
     const trimmedName = positionName.trim();
     const validationMessage = useMemo(() => {
@@ -48,39 +81,39 @@ function SandboxShareModal({
         }
 
         return null;
-    }, [trimmedName]);
-    const visibleErrorMessage = errorMessage ?? validationMessage;
+    }, [t, trimmedName]);
+    const visibleErrorMessage = shareMutation.error?.message ?? validationMessage;
     const isLinkReady = Boolean(shareUrl);
 
-    if (!isOpen) {
-        return null;
-    }
-
     return (
-        <div className="absolute inset-0 flex items-center justify-center px-4">
-            <div className="pointer-events-auto w-full max-w-xl rounded-[1.5rem] border border-violet-300/20 bg-slate-900/95 px-6 py-6 text-center shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.3em] text-violet-200/80 sm:text-xs">
+        <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+            <DialogContent showCloseButton={false} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto text-white w-[calc(100%-2rem)] max-w-xl rounded-[1.5rem] border border-violet-300/20 bg-slate-900/95 px-6 py-6 shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
+                <DialogTitle className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
                     {t('sharePosition', 'Share Position')}
-                </div>
+                </DialogTitle>
 
-                <h2 className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
-                    {isLinkReady ? t('sandboxLinkReady', 'Sandbox Link Ready') : t('nameThisPosition', 'Name This Position')}
-                </h2>
-
-                <p className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
+                <DialogDescription className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
                     {isLinkReady
-                        ? t('anyoneWithThisLinkCanLoadTheCurrentSandboxPositionOntoTheirOwnBoard', 'Anyone with this link can load the current sandbox position onto their own board.')
+                        ? <>{t('sandboxLinkReady', 'Sandbox Link Ready')}. {t('anyoneWithThisLinkCanLoadTheCurrentSandboxPositionOntoTheirOwnBoard', 'Anyone with this link can load the current sandbox position onto their own board.')}</>
                         : t('giveThisSandboxPositionANameBeforeCreatingTheShareLink', 'Give this sandbox position a name before creating the share link.')}
-                </p>
+                </DialogDescription>
 
                 {!isLinkReady && (
-                    <input
-                        value={positionName}
-                        onChange={(event) => setPositionName(event.target.value)}
-                        placeholder={t('openingTrapLadderTestEndgameStudy', 'Opening Trap, Ladder Test, Endgame Study...')}
-                        autoFocus
-                        className="mt-6 w-full rounded-2xl border border-violet-300/15 bg-slate-950/80 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-slate-500 focus:border-violet-300/40 focus:bg-slate-950 focus:ring-2 focus:ring-violet-300/12"
-                    />
+                    <Field className="mt-6 text-left" data-invalid={Boolean(visibleErrorMessage)}>
+                        <FieldLabel htmlFor={nameInputId}>
+                            {t('positionName', 'Position Name')}
+                        </FieldLabel>
+                        <Input
+                            aria-invalid={Boolean(visibleErrorMessage)}
+                            id={nameInputId}
+                            disabled={shareMutation.isPending}
+                            value={positionName}
+                            onChange={(event) => setPositionName(event.target.value)}
+                            placeholder={t('openingTrapLadderTestEndgameStudy', 'Opening Trap, Ladder Test, Endgame Study...')}
+                            autoFocus
+                            className="h-auto w-full"
+                        />
+                    </Field>
                 )}
 
                 {isLinkReady && (
@@ -95,12 +128,18 @@ function SandboxShareModal({
                             </div>
                         </div>
 
-                        <input
-                            value={shareUrl ?? ``}
-                            readOnly
-                            onFocus={(event) => event.currentTarget.select()}
-                            className="mt-4 w-full rounded-2xl border border-sky-300/15 bg-slate-950/80 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-slate-500 focus:border-sky-300/40 focus:bg-slate-950 focus:ring-2 focus:ring-sky-300/12"
-                        />
+                        <Field className="mt-4 text-left">
+                            <FieldLabel htmlFor={shareLinkInputId} className="sr-only">
+                                {t('shareLink', 'Share Link')}
+                            </FieldLabel>
+                            <Input
+                                id={shareLinkInputId}
+                                value={shareUrl ?? ``}
+                                readOnly
+                                onFocus={(event) => event.currentTarget.select()}
+                                className="h-auto w-full rounded-2xl border border-sky-300/15 bg-slate-950/80 px-4 py-3 text-sm text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition placeholder:text-slate-500 focus:border-sky-300/40 focus:bg-slate-950 focus:ring-2 focus:ring-sky-300/12"
+                            />
+                        </Field>
                     </>
                 )}
 
@@ -120,24 +159,23 @@ function SandboxShareModal({
 
                     {isLinkReady ? (
                         <Button
-                            onClick={onCopy}
-                            disabled={isCopying}
+                            onClick={() => void copyShareUrl()}
                             variant="violet" size="lg"
                         >
-                            {isCopying ? `Copying...` : `Copy Link`}
+                            {t('copyLink', `Copy Link`)}
                         </Button>
                     ) : (
                         <Button
-                            onClick={() => onCreate(trimmedName)}
-                            disabled={Boolean(validationMessage) || isCreating}
+                            onClick={() => shareMutation.mutate(trimmedName)}
+                            disabled={Boolean(validationMessage) || shareMutation.isPending}
                             variant="violet" size="lg"
                         >
-                            {isCreating ? `Creating...` : t('createLink', 'Create Link')}
+                            {shareMutation.isPending ? `Creating...` : t('createLink', 'Create Link')}
                         </Button>
                     )}
                 </div>
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     );
 }
 

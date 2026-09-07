@@ -10,9 +10,9 @@ import {
     type SandboxGamePosition,
     type SandboxPlayerSlot,
     type SandboxPositionResponse,
+    type CreateSandboxPositionResponse,
     type SessionPlayer,
 } from '@ih3t/shared';
-import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'react-toastify';
@@ -28,8 +28,7 @@ import SandboxTurnIndicator from '../components/sandbox/SandboxTurnIndicator';
 import SandboxWelcomeModal from '../components/sandbox/SandboxWelcomeModal';
 import SandboxWinnerBanner from '../components/sandbox/SandboxWinnerBanner';
 import { useQueryAccount, useQueryAccountPreferences } from '../query/accountClient';
-import { queryKeys } from '../query/queryDefinitions';
-import { createSandboxPosition, fetchSandboxPosition, useQuerySandboxPosition } from '../query/sandboxClient';
+import { useQuerySandboxPosition } from '../query/sandboxClient';
 import { kSandboxBotEngines, SandboxBotEngineInfo } from '../sandbox/botLoader';
 import {
     createDefaultSandboxPlayerModes,
@@ -37,6 +36,7 @@ import {
     readSandboxBotTimeoutMs,
     sanitizeSandboxBotTimeoutMs,
 } from '../sandbox/sandboxBotSettings';
+import { normalizeSandboxPositionId } from '../sandbox/sandboxPositionId';
 import { useSandboxBotController } from '../sandbox/useSandboxBotController';
 import { playTilePlacedSound } from '../soundEffects';
 import { getBoardTheme, toRendererBoardState } from '../utils/gameBoard';
@@ -72,30 +72,6 @@ const SANDBOX_PLAYERS: SessionPlayer[] = [
 
 function createSandboxGameState(player?: SandboxPlayerSlot) {
     return createStartedGameState(SANDBOX_PLAYERS.map((player) => player.id), getSandboxPlayerId(player ?? `player-1`));
-}
-
-function normalizeSandboxPositionId(value: string | null | undefined) {
-    const normalizedValue = value?.trim().toLowerCase() ?? ``;
-    return /^[a-z0-9]{7}$/.test(normalizedValue) ? normalizedValue : null;
-}
-
-function extractSandboxPositionId(value: string) {
-    const trimmedValue = value.trim();
-    if (!trimmedValue) {
-        return null;
-    }
-
-    try {
-        const url = new URL(trimmedValue);
-        const pathSegments = url.pathname.split(`/`).filter(Boolean);
-        if (pathSegments[0] === `sandbox` && pathSegments[1]) {
-            return normalizeSandboxPositionId(pathSegments[1]);
-        }
-    } catch {
-        // Fall back to treating the input as a raw position id.
-    }
-
-    return normalizeSandboxPositionId(trimmedValue);
 }
 
 function getSandboxPlayerSlot(playerId: string): SandboxPlayerSlot {
@@ -172,7 +148,6 @@ function SandboxRoute() {
     const { t } = useTranslation()
     const location = useLocation();
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
     const { data: account } = useQueryAccount({ enabled: true });
     const { data: accountPreferences } = useQueryAccountPreferences({ enabled: account?.user !== null });
 
@@ -192,12 +167,7 @@ function SandboxRoute() {
     const [isWinnerBannerVisible, setIsWinnerBannerVisible] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isImportingPosition, setIsImportingPosition] = useState(false);
-    const [importModalError, setImportModalError] = useState<string | null>(null);
-    const [isSharingPosition, setIsSharingPosition] = useState(false);
-    const [shareModalError, setShareModalError] = useState<string | null>(null);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [shareUrl, setShareUrl] = useState<string | null>(null);
-    const [isCopyingShareUrl, setIsCopyingShareUrl] = useState(false);
     const [botPlayerModes, setBotPlayerModes] = useState(() => createDefaultSandboxPlayerModes());
     const [botTimeoutMs, setBotTimeoutMs] = useState(() => readSandboxBotTimeoutMs());
     const [selectedBotEngine, setSelectedBotEngine] = useState<SandboxBotEngineInfo | null>(null);
@@ -344,8 +314,6 @@ function SandboxRoute() {
         setIsBotFactoryModalOpen(false);
         setIsWinnerBannerVisible(false);
         setIsImportModalOpen(false);
-        setImportModalError(null);
-        setShareModalError(null);
         setIsShareModalOpen(false);
         boardController.resetView();
     }
@@ -467,8 +435,6 @@ function SandboxRoute() {
         setIsBotFactoryModalOpen(false);
         setIsWinnerBannerVisible(false);
         setIsImportModalOpen(false);
-        setImportModalError(null);
-        setShareModalError(null);
         setIsShareModalOpen(false);
 
         const nextGameState = createSandboxGameState();
@@ -530,8 +496,6 @@ function SandboxRoute() {
         setIsBotPanelOpen(false);
         setIsBotFactoryModalOpen(false);
         setIsWinnerBannerVisible(false);
-        setShareUrl(null);
-        setShareModalError(null);
         setIsShareModalOpen(false);
     };
 
@@ -558,90 +522,29 @@ function SandboxRoute() {
         closeShareModal();
     };
 
-    const sharePosition = async (name: string) => {
-        const gamePosition = buildSandboxGamePosition(currentGameState);
-        if (!gamePosition) {
-            toast.error(`Only active sandbox positions can be shared.`);
-            return;
-        }
-
-        setShareModalError(null);
-        setIsSharingPosition(true);
-        try {
-            const response = await createSandboxPosition(name, gamePosition);
-
-            const nextSharedSnapshot = createSandboxSnapshot(currentGameState, game.history, response.name);
-            const nextShareUrl = new URL(`/sandbox/${response.id}`, window.location.origin).toString();
-
-            lastLoadedPositionIdRef.current = response.id;
-            setLoadedSnapshot(nextSharedSnapshot);
-            setIsShareModalOpen(true);
-            setShareUrl(nextShareUrl);
-
-            if (routePositionId !== response.id) {
-                void navigate(`/sandbox/${response.id}`, { replace: true });
-            }
-        } catch (error) {
-            setShareModalError(error instanceof Error ? error.message : `Failed to share sandbox position.`);
-        } finally {
-            setIsSharingPosition(false);
+    const handlePositionShared = (response: CreateSandboxPositionResponse) => {
+        setLoadedSnapshot(createSandboxSnapshot(currentGameState, game.history, response.name));
+        lastLoadedPositionIdRef.current = response.id;
+        if (routePositionId !== response.id) {
+            void navigate(`/sandbox/${response.id}`, { replace: true });
         }
     };
 
-    const copyShareUrl = async () => {
-        if (!shareUrl) {
-            return;
-        }
-
-        if (!navigator.clipboard?.writeText) {
-            toast.error(`Clipboard access is not available in this browser.`);
-            return;
-        }
-
-        setIsCopyingShareUrl(true);
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            toast.success(`Sandbox position link copied to clipboard.`);
-        } catch {
-            toast.error(`Failed to copy sandbox position link.`);
-        } finally {
-            setIsCopyingShareUrl(false);
-        }
-    };
-
-    const importPosition = async (positionId: string) => {
-        setImportModalError(null);
-        setIsImportingPosition(true);
-
-        try {
-            const response = await queryClient.fetchQuery({
-                queryKey: queryKeys.sandboxPosition(positionId),
-                queryFn: () => fetchSandboxPosition(positionId),
-                staleTime: 60 * 60 * 1000,
-            });
-            applyLoadedSandboxPosition(response);
-            setIsWelcomeModalVisible(false);
-
-            if (routePositionId !== response.id) {
-                void navigate(`/sandbox/${response.id}`);
-            }
-        } catch (error) {
-            setImportModalError(error instanceof Error ? error.message : `Failed to load sandbox position.`);
-        } finally {
-            setIsImportingPosition(false);
+    const handlePositionImported = (response: SandboxPositionResponse) => {
+        applyLoadedSandboxPosition(response);
+        setIsWelcomeModalVisible(false);
+        if (routePositionId !== response.id) {
+            void navigate(`/sandbox/${response.id}`);
         }
     };
 
     const closeImportModal = () => {
         setIsImportModalOpen(false);
-        setImportModalError(null);
         setIsWelcomeModalVisible(true);
     };
 
     const closeShareModal = () => {
         setIsShareModalOpen(false);
-        setShareModalError(null);
-        setShareUrl(null);
     };
 
     const handleSelectBotEngine = (engine: SandboxBotEngineInfo | null) => {
@@ -732,7 +635,7 @@ function SandboxRoute() {
                         )}
 
                         <SandboxWelcomeModal
-                            isOpen={isWelcomeModalVisible}
+                            open={isWelcomeModalVisible}
                             onStartCleanBoard={() => setIsWelcomeModalVisible(false)}
                             onImportPosition={() => {
                                 setIsWelcomeModalVisible(false);
@@ -741,38 +644,25 @@ function SandboxRoute() {
                         />
 
                         <SandboxImportModal
-                            isOpen={isImportModalOpen}
-                            isLoading={isImportingPosition}
-                            errorMessage={importModalError}
-                            parsePositionId={extractSandboxPositionId}
+                            open={isImportModalOpen}
                             onClose={closeImportModal}
-                            onImport={(positionId) => void importPosition(positionId)}
-                            onInputChange={() => setImportModalError(null)}
+                            onImport={handlePositionImported}
                         />
 
                         <SandboxShareModal
-                            isOpen={isShareModalOpen}
-                            isCreating={isSharingPosition}
-                            isCopying={isCopyingShareUrl}
-                            shareUrl={shareUrl}
+                            open={isShareModalOpen}
+                            gamePosition={buildSandboxGamePosition(currentGameState)}
                             initialName={currentPositionName}
-                            errorMessage={shareModalError}
                             onClose={closeShareModal}
-                            onCreate={(name) => void sharePosition(name)}
-                            onCopy={() => void copyShareUrl()}
+                            onCreate={handlePositionShared}
                         />
 
-                        {!isWelcomeModalVisible && !isImportModalOpen && (
-                            <SandboxBotFactoryModal
-                                isOpen={isBotFactoryModalOpen}
-                                onClose={() => setIsBotFactoryModalOpen(false)}
-
-                                availableEngines={kSandboxBotEngines}
-                                selectedEngine={selectedBotEngine?.name ?? null}
-
-                                onSelectBotFactory={handleSelectBotEngine}
-                            />
-                        )}
+                        <SandboxBotFactoryModal
+                            open={isBotFactoryModalOpen}
+                            onClose={() => setIsBotFactoryModalOpen(false)}
+                            selectedEngine={selectedBotEngine?.name ?? null}
+                            onSelectBotFactory={handleSelectBotEngine}
+                        />
 
                         {!isWelcomeModalVisible && !isImportModalOpen && (
                             <div className="absolute inset-0 flex flex-col justify-end pointer-events-none">
@@ -809,13 +699,8 @@ function SandboxRoute() {
                                     onResetView={() => boardController.resetView()}
                                     canUndo={canUndo}
                                     canRedo={canRedo}
-                                    onSharePosition={() => {
-                                        setShareModalError(null);
-                                        setShareUrl(null);
-                                        setIsShareModalOpen(true);
-                                    }}
-                                    canSharePosition={canSharePosition}
-                                    isSharingPosition={isSharingPosition}
+                                    onSharePosition={() => setIsShareModalOpen(true)}
+                                    canSharePosition={canSharePosition && !isShareModalOpen}
                                 />
                             </div>
                         )}
