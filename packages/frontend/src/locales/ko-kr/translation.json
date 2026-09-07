@@ -1,4 +1,9 @@
 {
+  "youAbortedGame": "대국을 중단했습니다. ELO 레이팅은 변경되지 않았습니다.",
+  "opponentAbortedGame": "상대가 대국을 중단했습니다. ELO 레이팅은 변경되지 않았습니다.",
+  "abortGame": "대국 중단",
+  "gameAborted": "대국 중단됨",
+  "gameAbortedNoRating": "대국이 중단되었습니다. ELO 레이팅은 변경되지 않았습니다.",
   "resultYouCompletedSix": "6목을 완성했습니다.",
   "resultOpponentCompletedSix": "상대가 6목을 완성했습니다.",
   "resultOpponentSurrendered": "상대가 기권했습니다.",

@@ -458,6 +458,15 @@ export function leaveSession() {
     state.clearSession();
 }
 
+export function abortGame() {
+    const state = useLiveGameStore.getState();
+    if (!state.session || !socket) {
+        return;
+    }
+
+    socket.emit(`abort-session`, { sessionId: state.session.id });
+}
+
 export function surrenderGame() {
     const state = useLiveGameStore.getState();
     if (!state.session || !socket) {

@@ -20,6 +20,7 @@ import {
     zRequestRematchRequest,
     zRequestSessionDrawRequest,
     zSessionChatMessageRequest,
+    zAbortSessionRequest,
     zSurrenderSessionRequest,
     zWatchSessionRequest,
 } from "@ih3t/shared";
@@ -472,6 +473,27 @@ export class SocketServerGateway {
                             participantId: participation.participantId,
                         },
                         `Socket left session`,
+                    );
+                });
+            },
+        );
+
+        this.bindSocketHandler(
+            socket,
+            `abort-session`,
+            zAbortSessionRequest,
+            async ({ sessionId }) => {
+                await participationMutex.runExclusive(async () => {
+                    const { participantId } = this.requireParticipation(
+                        socket,
+                        sessionId,
+                    );
+                    const session =
+                        this.sessionManager.requireSession(sessionId);
+
+                    await this.sessionManager.abortSession(
+                        session,
+                        participantId,
                     );
                 });
             },

@@ -1,4 +1,9 @@
 {
+  "youAbortedGame": "Du hast die Partie abgebrochen. Die ELO-Wertungen bleiben unverändert.",
+  "opponentAbortedGame": "Dein Gegner hat die Partie abgebrochen. Die ELO-Wertungen bleiben unverändert.",
+  "abortGame": "Partie abbrechen",
+  "gameAborted": "Partie abgebrochen",
+  "gameAbortedNoRating": "Die Partie wurde abgebrochen. Die ELO-Wertungen bleiben unverändert.",
   "resultYouCompletedSix": "Du hast sechs Steine in einer Reihe verbunden.",
   "resultOpponentCompletedSix": "Dein Gegner hat sechs Steine in einer Reihe verbunden.",
   "resultOpponentSurrendered": "Dein Gegner hat aufgegeben.",

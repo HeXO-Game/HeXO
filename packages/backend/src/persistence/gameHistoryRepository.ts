@@ -173,6 +173,7 @@ export class GameHistoryRepository {
                         finishedAt,
                         gameResult: {
                             winningPlayerId: result.winningPlayerId,
+                            abortedByPlayerId: result.abortedByPlayerId ?? null,
                             durationMs: result.durationMs,
                             reason: result.reason,
                         },

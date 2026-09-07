@@ -52,6 +52,9 @@ export const zSurrenderSessionRequest = z.object({
 });
 export type SurrenderSessionRequest = z.infer<typeof zSurrenderSessionRequest>;
 
+export const zAbortSessionRequest = zSurrenderSessionRequest;
+export type AbortSessionRequest = z.infer<typeof zAbortSessionRequest>;
+
 export const zRequestSessionDrawRequest = z.object({
     sessionId: zSessionId,
 });
@@ -168,6 +171,7 @@ export type ClientToServerEvents = {
     'watch-session': (request: WatchSessionRequest) => void;
     'unwatch-session': (request: WatchSessionRequest) => void;
     'leave-session': (request: LeaveSessionRequest) => void;
+    'abort-session': (request: AbortSessionRequest) => void;
     'surrender-session': (request: SurrenderSessionRequest) => void;
     'request-session-draw': (request: RequestSessionDrawRequest) => void;
     'accept-session-draw': (request: AcceptSessionDrawRequest) => void;

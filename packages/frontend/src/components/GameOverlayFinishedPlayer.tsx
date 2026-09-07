@@ -126,6 +126,7 @@ function GameOverlayFinishedPlayer({
     onRequestRematch,
 }: Readonly<GameOverlayFinishedPlayerProps>) {
     const { t } = useTranslation()
+    const isAborted = state.finishReason === `aborted`;
     const isDraw = state.finishReason === `draw-agreement`;
     const isWin = state.winningPlayerId === localPlayerId;
     const currentPlayer = players.find(player => player.id === localPlayerId) ?? null;
@@ -133,7 +134,7 @@ function GameOverlayFinishedPlayer({
     const eloAdjustment = currentPlayer?.ratingAdjustment
         ? isDraw ? 0 : isWin ? currentPlayer.ratingAdjustment.eloGain : currentPlayer.ratingAdjustment.eloLoss : 0;
 
-    const eloSummary = currentPlayer?.rating !== null && currentPlayer?.ratingAdjustment !== null ? {
+    const eloSummary = !isAborted && currentPlayer?.rating !== null && currentPlayer?.ratingAdjustment !== null ? {
         currentElo: currentPlayer!.rating.eloScore + eloAdjustment,
         previousElo: currentPlayer!.rating.eloScore,
         eloChange: eloAdjustment,
@@ -150,7 +151,7 @@ function GameOverlayFinishedPlayer({
             status: t('thisResultFeedsBackIntoTheTournamentBracketInsteadOfOfferingARematch', 'This result feeds back into the tournament bracket instead of offering a rematch.'),
             label: t('rematchUnavailable', 'Rematch Unavailable'),
         };
-    const theme = isDraw ? {
+    const theme = isDraw || isAborted ? {
         shell: `bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(253,224,71,0.14),_transparent_28%),rgba(2,6,23,0.72)]`,
         card: `border-sky-200/20 bg-slate-950/80 shadow-[0_28px_120px_rgba(8,47,73,0.52)]`,
         badge: `border-sky-200/30 text-sky-100`,
@@ -184,11 +185,15 @@ function GameOverlayFinishedPlayer({
 
                         <div className="relative">
                             <h1 className="max-w-2xl text-4xl font-black uppercase tracking-[0.08em] text-white sm:text-5xl lg:text-6xl">
-                                {isDraw ? `Match Drawn` : isWin ? t('youveWon', 'You\'ve Won') : t('youLost', 'You Lost')}
+                                {isAborted ? t('gameAborted', 'Game aborted') : isDraw ? `Match Drawn` : isWin ? t('youveWon', 'You\'ve Won') : t('youLost', 'You Lost')}
                             </h1>
 
                             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-                                {getPlayerResultMessage(isDraw ? `draw` : isWin ? `win` : `lose`, state.finishReason)}
+                                {isAborted && state.abortedByPlayerId
+                                    ? state.abortedByPlayerId === localPlayerId
+                                        ? t('youAbortedGame', 'You aborted the game. No ELO adjustments were made.')
+                                        : t('opponentAbortedGame', 'The other player aborted the game. No ELO adjustments were made.')
+                                    : getPlayerResultMessage(isDraw ? `draw` : isWin ? `win` : `lose`, state.finishReason)}
                             </p>
 
                             {eloSummary && (

@@ -2010,6 +2010,12 @@ export class TournamentService {
             if (session) {
                 this.missingSessionFirstSeenAt.delete(match.sessionId);
                 if (session.state.status === `finished`) {
+                    if (session.state.finishReason === `aborted`) {
+                        match.sessionId = null;
+                        match.state = `ready`;
+                        match.startedAt = null;
+                        return true;
+                    }
                     const winnerProfileId = this.resolveProfileIdFromFinishedSession(session, session.state.winningPlayerId);
                     if (!winnerProfileId) {
                         throw new SessionError(`Failed to resolve the winner for a tournament match.`);

@@ -1,6 +1,7 @@
+import { abortGame } from '../../liveGameClient';
 import { Button } from '@/components/ui/button';
 import type { LobbyOptions, PlayerRatingAdjustment, SessionTournamentInfo, ShutdownState } from '@ih3t/shared';
-import { DRAW_REQUEST_MIN_TURNS } from '@ih3t/shared';
+import { ABORT_GAME_MAX_MOVES, DRAW_REQUEST_MIN_TURNS } from '@ih3t/shared';
 import { useState } from 'react';
 import React from 'react';
 import { NavLink } from 'react-router';
@@ -120,6 +121,7 @@ function GameScreenHud({
 }: Readonly<GameScreenHudProps>) {
     const { t } = useTranslation()
     const isSpectator = !players.some(player => player.playerId === localPlayerId);
+    const canAbort = !isSpectator && occupiedCellCount <= ABORT_GAME_MAX_MOVES;
     /* Do not show the HUD by default on mobile devices */
     const [isHudOpen, setIsHudOpen] = useState(window.innerWidth >= 900);
     const opponent = players.find(player => player.playerId !== localPlayerId) ?? null;
@@ -407,7 +409,11 @@ function GameScreenHud({
                 </div>
 
                 <div className="pointer-events-auto mt-4 gap-2 grid grid-cols-2 items-end">
-                    {!hideSurrenderButton && (
+                    {canAbort ? (
+                        <Button onClick={abortGame} variant="warning" size="sm" className="min-w-36">
+                            {t('abortGame', 'Abort game')}
+                        </Button>
+                    ) : !hideSurrenderButton && (
                         <Button
                             onClick={onLeave}
                             variant="destructive" size="sm" className="min-w-36"

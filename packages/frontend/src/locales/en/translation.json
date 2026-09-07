@@ -1,4 +1,9 @@
 {
+  "youAbortedGame": "You aborted the game. No ELO adjustments were made.",
+  "opponentAbortedGame": "The other player aborted the game. No ELO adjustments were made.",
+  "abortGame": "Abort game",
+  "gameAborted": "Game aborted",
+  "gameAbortedNoRating": "The game was aborted. No ELO adjustments were made.",
   "resultYouCompletedSix": "You completed a six-tile row.",
   "resultOpponentCompletedSix": "The other player completed a six-tile row.",
   "resultOpponentSurrendered": "The other player surrendered.",

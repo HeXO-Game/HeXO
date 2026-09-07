@@ -80,6 +80,7 @@ export type ServerGameSession = {
     currentTurnExpiresAt: number | null;
     finishedAt: number | null;
     finishReason: SessionFinishReason | null;
+    abortedByPlayerId: string | null;
     winningPlayerId: string | null;
     rematchAcceptedPlayerIds: string[];
     isRatedGame: boolean;
@@ -239,6 +240,7 @@ export function createGameSession(
 
         finishedAt: null,
         finishReason: null,
+        abortedByPlayerId: null,
         winningPlayerId: null,
         rematchAcceptedPlayerIds: [],
         isRatedGame: false,

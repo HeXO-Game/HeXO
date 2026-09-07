@@ -63,6 +63,12 @@ type ResultText = {
 };
 
 const RESULTS: Record<SessionFinishReason, (winningPlayerLabel: string) => ResultText> = {
+    aborted: () => ({
+        reason: i18next.t('gameAborted', 'Game aborted'),
+        label: i18next.t('gameAborted', 'Game aborted'),
+        message: i18next.t('gameAbortedNoRating', 'The game was aborted. No ELO adjustments were made.'),
+        spectator: i18next.t('gameAbortedNoRating', 'The game was aborted. No ELO adjustments were made.'),
+    }),
     'six-in-a-row': (winningPlayerLabel) => ({
         reason: i18next.t('sixInARow2', 'Six in a row'),
         label: i18next.t('wonBySixInARow', 'Won by six in a row'),
@@ -130,13 +136,14 @@ export function getSessionFinishReasonLabel(reason: SessionFinishReason | null |
 
 export function getPlayerResultMessage(variant: `win` | `lose` | `draw`, reason: SessionFinishReason) {
     const result = getResultText(reason);
-    if (variant === `draw` && reason !== `draw-agreement` && reason !== `terminated`) {
+    if (variant === `draw` && reason !== `draw-agreement` && reason !== `terminated` && reason !== `aborted`) {
         return i18next.t('resultNoWinner', 'The match ended without a winner.');
     }
     return variant === `lose` ? result.lossMessage ?? result.message : result.message;
 }
 
 export function getSpectatorResultTitle(reason: SessionFinishReason | null | undefined, winnerName: string | null) {
+    if (reason === `aborted`) return i18next.t('gameAborted', 'Game aborted');
     return winnerName
         ? i18next.t('winnernameWon', '{{winnerName}} Won', { winnerName })
         : reason === `draw-agreement`

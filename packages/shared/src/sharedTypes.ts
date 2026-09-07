@@ -44,7 +44,10 @@ export type PlayerConnection = z.infer<typeof zPlayerConnection>;
 export const zCellOccupant = z.string().brand<`CellOccupant`>();
 export type CellOccupant = z.infer<typeof zCellOccupant>;
 
+export const ABORT_GAME_MAX_MOVES = 3;
+
 export const zSessionFinishReason = z.enum([
+    `aborted`,
     `disconnect`,
     `surrender`,
     `timeout`,
@@ -589,6 +592,7 @@ export const zSessionState = z.discriminatedUnion(`status`, [
         gameId: zIdentifier,
         finishReason: zSessionFinishReason,
         winningPlayerId: zIdentifier.nullable(),
+        abortedByPlayerId: zIdentifier.nullable().optional(),
         rematchAcceptedPlayerIds: z.array(zIdentifier),
     }),
 ]);
@@ -633,6 +637,7 @@ export const zDatabaseGamePlayer = z.object({
 export type DatabaseGamePlayer = z.infer<typeof zDatabaseGamePlayer>;
 
 export const zDatabaseGameResult = z.object({
+    abortedByPlayerId: zIdentifier.nullable().optional(),
     winningPlayerId: zIdentifier.nullable(),
     durationMs: z.number().int().nonnegative().nullable(),
     reason: zSessionFinishReason,

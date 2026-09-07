@@ -7,13 +7,13 @@ import { getNeutralResultLabel, getPersonalResultLabel } from './finishedGames';
 import { getPlayerResultMessage, getResultLabel, getSessionFinishReasonSentenceLabel, getSpectatorResultMessage, getSpectatorResultTitle } from './sessionResult';
 
 test('result text preserves perspectives, fallbacks, and language switching', async () => {
-    const reasons: SessionFinishReason[] = ['six-in-a-row', 'surrender', 'timeout', 'disconnect', 'draw-agreement', 'terminated'];
+    const reasons: SessionFinishReason[] = ['six-in-a-row', 'surrender', 'timeout', 'disconnect', 'draw-agreement', 'terminated', 'aborted'];
     const originalLanguage = i18next.language;
     try {
         for (const lng of ['en', 'de', 'ko-KR', 'zh-CN', 'en']) {
             await i18next.changeLanguage(lng);
             for (const reason of reasons) {
-                const shared = reason === 'draw-agreement' || reason === 'terminated';
+                const shared = reason === 'draw-agreement' || reason === 'terminated' || reason === 'aborted';
                 for (const variant of ['win', 'lose', 'draw'] as const) {
                     const message = getPlayerResultMessage(variant, reason);
                     assert.ok(message);
@@ -34,9 +34,9 @@ test('result text preserves perspectives, fallbacks, and language switching', as
                     players: [{ profileId: 'profile', playerId: 'one' }],
                     gameResult: { reason, winningPlayerId: 'one' },
                 } as FinishedGameSummary;
-                assert.equal(getPersonalResultLabel(game, 'profile').tone, reason === 'draw-agreement' ? 'neutral' : 'win');
+                assert.equal(getPersonalResultLabel(game, 'profile').tone, reason === 'draw-agreement' || reason === 'aborted' ? 'neutral' : 'win');
                 game.gameResult!.winningPlayerId = 'two';
-                assert.equal(getPersonalResultLabel(game, 'profile').tone, reason === 'draw-agreement' ? 'neutral' : 'loss');
+                assert.equal(getPersonalResultLabel(game, 'profile').tone, reason === 'draw-agreement' || reason === 'aborted' ? 'neutral' : 'loss');
                 assert.equal(getPersonalResultLabel(game, null).tone, 'neutral');
                 assert.equal(getPersonalResultLabel(game, 'unknown').label, getNeutralResultLabel(game));
             }

@@ -1,4 +1,9 @@
 {
+  "youAbortedGame": "你中止了对局，ELO 等级分未作调整。",
+  "opponentAbortedGame": "对手中止了对局，ELO 等级分未作调整。",
+  "abortGame": "中止对局",
+  "gameAborted": "对局已中止",
+  "gameAbortedNoRating": "对局已中止，ELO 等级分未作调整。",
   "resultYouCompletedSix": "你连成了六子。",
   "resultOpponentCompletedSix": "对手连成了六子。",
   "resultOpponentSurrendered": "对手认输了。",
