@@ -1,4 +1,5 @@
 {
+  "eloRatingValue": "ELO 等级分 {{elo}}",
   "unrated": "不计分",
   "gameDuration": "时长：{{duration}}",
   "projectHistory": "项目历史",

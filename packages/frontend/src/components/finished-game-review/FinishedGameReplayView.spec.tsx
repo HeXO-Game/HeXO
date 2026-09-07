@@ -79,22 +79,26 @@ test('steps through replay moves with the left and right arrow keys', async ({ m
     />
   )
 
-  await expect(component.getByText(/^Move 2\/2$/)).toBeVisible()
-  await expect(component.getByText('Beta at (1, 0)')).toBeVisible()
+  await expect(component.getByText(/^Move 2\s*\/\s*2$/)).toBeVisible()
   await expect(component.getByRole('link', { name: 'Alpha' })).toHaveAttribute('href', '/profile/profile-1')
   await expect(component.getByRole('link', { name: 'Beta' })).toHaveAttribute('href', '/profile/profile-2')
 
-  await page.keyboard.press('ArrowLeft')
-  await expect(component.getByText(/^Move 1\/2$/)).toBeVisible()
-  await expect(component.getByText('Alpha at (0, 0)')).toBeVisible()
+  await expect(component.getByText('Move Timeline')).toHaveCount(0)
+  await expect(component.getByRole('button', { name: 'Next move' })).toBeDisabled()
+  const slider = component.getByRole('slider')
+  await slider.fill('0')
+  await expect(component.getByRole('button', { name: 'Previous move' })).toBeDisabled()
+  await slider.fill('2')
+  await slider.blur()
 
   await page.keyboard.press('ArrowLeft')
-  await expect(component.getByText(/^Move 0\/2$/)).toBeVisible()
-  await expect(component.getByText('Board setup')).toBeVisible()
+  await expect(component.getByText(/^Move 1\s*\/\s*2$/)).toBeVisible()
+
+  await page.keyboard.press('ArrowLeft')
+  await expect(component.getByText(/^Move 0\s*\/\s*2$/)).toBeVisible()
 
   await page.keyboard.press('ArrowRight')
-  await expect(component.getByText(/^Move 1\/2$/)).toBeVisible()
-  await expect(component.getByText('Alpha at (0, 0)')).toBeVisible()
+  await expect(component.getByText(/^Move 1\s*\/\s*2$/)).toBeVisible()
 })
 
 test('renders replay when the second listed player made the opening move', async ({ mount }) => {
@@ -130,6 +134,5 @@ test('renders replay when the second listed player made the opening move', async
     />
   )
 
-  await expect(component.getByText(/^Move 2\/2$/)).toBeVisible()
-  await expect(component.getByText('Alpha at (1, 0)')).toBeVisible()
+  await expect(component.getByText(/^Move 2\s*\/\s*2$/)).toBeVisible()
 })

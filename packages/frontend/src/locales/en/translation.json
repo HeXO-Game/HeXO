@@ -1,4 +1,5 @@
 {
+  "eloRatingValue": "{{elo}} ELO",
   "unrated": "Unrated",
   "gameDuration": "Duration: {{duration}}",
   "projectHistory": "Project History",

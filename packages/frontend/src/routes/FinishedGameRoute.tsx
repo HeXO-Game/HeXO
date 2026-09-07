@@ -1,6 +1,9 @@
 import { Navigate, useLocation, useParams } from 'react-router';
 
-import FinishedGameReviewScreen from '../components/FinishedGameReviewScreen';
+import FinishedGameReplayView from '../components/finished-game-review/FinishedGameReplayView';
+import FinishedGameReviewError from '../components/finished-game-review/FinishedGameReviewError';
+import FinishedGameReviewLoading from '../components/finished-game-review/FinishedGameReviewLoading';
+import FinishedGameReviewNotFound from '../components/finished-game-review/FinishedGameReviewNotFound';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import { useQueryAccount, useQueryAccountPreferences } from '../query/accountClient';
 import { useQueryFinishedGame } from '../query/finishedGamesClient';
@@ -16,7 +19,7 @@ function FinishedGameRoute() {
     const accountPreferencesQuery = useQueryAccountPreferences({
         enabled: Boolean(accountQuery.data?.user),
     });
-    const finishedGameQuery = useQueryFinishedGame(gameId ?? null, {
+    const { data: game, isLoading, error, refetch } = useQueryFinishedGame(gameId ?? null, {
         enabled: Boolean(gameId),
     });
     const isOwnReplay = location.pathname.startsWith(`/account/`);
@@ -25,12 +28,15 @@ function FinishedGameRoute() {
         return <Navigate to="/" replace />;
     }
 
+    const onRetry = () => void refetch();
+    const errorMessage = error instanceof Error ? error.message : null;
+
     return (
         <>
             <PageMetadata
-                {...(finishedGameQuery.data
-                    ? describeFinishedGameMetadata(finishedGameQuery.data, isOwnReplay)
-                    : !finishedGameQuery.isLoading
+                {...(game
+                    ? describeFinishedGameMetadata(game, isOwnReplay)
+                    : !isLoading
                         ? {
                             title: t('replayNotFoundDefault_page_title', 'Replay Not Found • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
                             description: t('theRequestedFinishedMatchCouldNotBeFound', 'The requested finished match could not be found.'),
@@ -47,13 +53,19 @@ function FinishedGameRoute() {
                         })}
             />
 
-            <FinishedGameReviewScreen
-                game={finishedGameQuery.data ?? null}
-                isLoading={finishedGameQuery.isLoading}
-                errorMessage={finishedGameQuery.error instanceof Error ? finishedGameQuery.error.message : null}
-                theme={getBoardTheme(accountPreferencesQuery.data?.preferences.boardTheme)}
-                onRetry={() => void finishedGameQuery.refetch()}
-            />
+            {isLoading ? (
+                <FinishedGameReviewLoading onRetry={onRetry} />
+            ) : errorMessage ? (
+                <FinishedGameReviewError errorMessage={errorMessage} onRetry={onRetry} />
+            ) : game ? (
+                <FinishedGameReplayView
+                    game={game}
+                    theme={getBoardTheme(accountPreferencesQuery.data?.preferences.boardTheme)}
+                    onRetry={onRetry}
+                />
+            ) : (
+                <FinishedGameReviewNotFound onRetry={onRetry} />
+            )}
         </>
     );
 }

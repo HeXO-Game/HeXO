@@ -1,4 +1,5 @@
 {
+  "eloRatingValue": "ELO {{elo}}",
   "unrated": "비레이팅전",
   "gameDuration": "대국 시간: {{duration}}",
   "projectHistory": "프로젝트 이력",
