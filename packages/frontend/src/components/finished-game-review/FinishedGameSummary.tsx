@@ -43,8 +43,7 @@ function FinishedGameSummary({ game, theme }: Readonly<FinishedGameSummaryProps>
                     </div>
 
                     <div className="mt-1 text-sm text-white">
-                        {`Duration `}
-                        {formatMinutesSeconds(gameResult?.durationMs ?? 0)}
+                        {t('gameDuration', 'Duration: {{duration}}', { duration: formatMinutesSeconds(gameResult?.durationMs ?? 0) })}
                     </div>
                 </div>
 
@@ -54,7 +53,7 @@ function FinishedGameSummary({ game, theme }: Readonly<FinishedGameSummaryProps>
                     </div>
 
                     <div className="mt-1 text-sm text-white">
-                        {game.gameOptions.rated ? `Rated` : `Casual`}
+                        {game.gameOptions.rated ? t('rated', 'Rated') : t('casual', 'Casual')}
                     </div>
                 </div>
 

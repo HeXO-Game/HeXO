@@ -51,120 +51,99 @@ export function getSpectatorRematchStatus(players: SessionPlayer[], state: Sessi
     }
 }
 
-export function getSessionFinishReasonLabel(reason: SessionFinishReason | null | undefined) {
-    if (reason === `six-in-a-row`) {
-        return i18next.t('sixInARow', 'Six In A Row');
-    }
+export type PersonalResultTone = `win` | `loss` | `neutral`;
 
-    if (reason === `timeout`) {
-        return `Timeout`;
-    }
+type ResultText = {
+    reason: string
+    label: string
+    lossLabel?: string
+    message: string
+    lossMessage?: string
+    spectator: string
+};
 
-    if (reason === `surrender`) {
-        return `Surrender`;
-    }
+const RESULTS: Record<SessionFinishReason, (winningPlayerLabel: string) => ResultText> = {
+    'six-in-a-row': (winningPlayerLabel) => ({
+        reason: i18next.t('sixInARow2', 'Six in a row'),
+        label: i18next.t('wonBySixInARow', 'Won by six in a row'),
+        lossLabel: i18next.t('lostDueToSixInARow', 'Lost due to six in a row'),
+        message: i18next.t('resultYouCompletedSix', 'You completed a six-tile row.'),
+        lossMessage: i18next.t('resultOpponentCompletedSix', 'The other player completed a six-tile row.'),
+        spectator: i18next.t('winningplayerlabelConnectedSixHexagonsInARow', '{{winningPlayerLabel}} connected six hexagons in a row.', { winningPlayerLabel }),
+    }),
+    'surrender': (winningPlayerLabel) => ({
+        reason: i18next.t('finishReasonSurrender', 'Surrender'),
+        label: i18next.t('wonBySurrender', 'Won by surrender'),
+        lossLabel: i18next.t('lostDueToSurrender', 'Lost due to surrender'),
+        message: i18next.t('resultOpponentSurrendered', 'The other player surrendered.'),
+        lossMessage: i18next.t('resultYouSurrendered', 'You surrendered the match.'),
+        spectator: i18next.t('winningplayerlabelWonAfterTheOtherPlayerSurrendered', '{{winningPlayerLabel}} won after the other player surrendered.', { winningPlayerLabel }),
+    }),
+    'timeout': (winningPlayerLabel) => ({
+        reason: i18next.t('finishReasonTimeout', 'Timeout'),
+        label: i18next.t('wonOnTime', 'Won on time'),
+        lossLabel: i18next.t('lostDueToTimeout', 'Lost due to timeout'),
+        message: i18next.t('resultOpponentTimedOut', 'The other player ran out of time.'),
+        lossMessage: i18next.t('resultYouTimedOut', 'You ran out of time.'),
+        spectator: i18next.t('winningplayerlabelWonOnTimeAfterTheOtherPlayerRanOutOfTime', '{{winningPlayerLabel}} won on time after the other player ran out of time.', { winningPlayerLabel }),
+    }),
+    'disconnect': (winningPlayerLabel) => ({
+        reason: i18next.t('finishReasonDisconnect', 'Disconnect'),
+        label: i18next.t('wonByDisconnect', 'Won by disconnect'),
+        lossLabel: i18next.t('lostDueToDisconnect', 'Lost due to disconnect'),
+        message: i18next.t('resultOpponentDisconnected', 'The other player disconnected.'),
+        lossMessage: i18next.t('resultYouLeft', 'You left the match before it finished.'),
+        spectator: i18next.t('winningplayerlabelWonAfterTheOtherPlayerDisconnected', '{{winningPlayerLabel}} won after the other player disconnected.', { winningPlayerLabel }),
+    }),
+    'draw-agreement': () => ({
+        reason: i18next.t('draw', 'Draw'),
+        label: i18next.t('drawAgreed', 'Draw agreed'),
+        message: i18next.t('resultDrawAgreed', 'Both players agreed to a draw.'),
+        spectator: i18next.t('bothPlayersAgreedToEndTheMatchInADraw', 'Both players agreed to end the match in a draw.'),
+    }),
+    'terminated': () => ({
+        reason: i18next.t('finishReasonTerminated', 'Terminated'),
+        label: i18next.t('matchTerminated', 'Match terminated'),
+        message: i18next.t('resultTerminated', 'The match has been terminated.'),
+        spectator: i18next.t('theMatchWasTerminatedBeforeAWinnerCouldBeDeclared', 'The match was terminated before a winner could be declared.'),
+    }),
+};
 
-    if (reason === `disconnect`) {
-        return `Disconnect`;
-    }
+function getResultText(reason: SessionFinishReason | null | undefined, winnerName?: string | null) {
+    return RESULTS[reason ?? `terminated`](winnerName ?? i18next.t('aPlayer', 'A player'));
+}
 
-    if (reason === `draw-agreement`) {
-        return `Draw`;
-    }
-
-    return `Terminated`;
+export function getResultLabel(reason: SessionFinishReason, tone: PersonalResultTone) {
+    const result = getResultText(reason);
+    return tone === `loss` ? result.lossLabel ?? result.label : result.label;
 }
 
 export function getSessionFinishReasonSentenceLabel(reason: SessionFinishReason | null | undefined) {
-    if (reason === `six-in-a-row`) {
-        return i18next.t('sixInARow2', 'Six in a row');
-    }
-
-    if (reason === `timeout`) {
-        return `Timeout`;
-    }
-
-    if (reason === `surrender`) {
-        return `Surrender`;
-    }
-
-    if (reason === `disconnect`) {
-        return `Disconnect`;
-    }
-
-    if (reason === `draw-agreement`) {
-        return `Draw`;
-    }
-
-    return `Terminated`;
+    return getResultText(reason).reason;
 }
 
-type ResultMessageVariant = `win` | `lose` | `draw`;
+export function getSessionFinishReasonLabel(reason: SessionFinishReason | null | undefined) {
+    return reason === `six-in-a-row`
+        ? i18next.t('sixInARow', 'Six In A Row')
+        : getSessionFinishReasonSentenceLabel(reason);
+}
 
-const kResultMessages: Record<`${ResultMessageVariant}-${SessionFinishReason}`, string> = {
-    "win-six-in-a-row": `You completed a six-tile row.`,
-    "win-surrender": `The other player surrendered.`,
-    "win-timeout": `The other player ran out of time.`,
-    'win-disconnect': `The other player disconnected.`,
-    'win-draw-agreement': `Both players agreed to a draw.`,
-    'win-terminated': `The match has been terminated.`,
-
-    'lose-six-in-a-row': `The other player completed a six-tile row.`,
-    'lose-surrender': `You surrendered the match.`,
-    'lose-timeout': `You ran out of time.`,
-    'lose-disconnect': `You left the match before it finished.`,
-    'lose-draw-agreement': `Both players agreed to a draw.`,
-    'lose-terminated': `The match has been terminated.`,
-
-    'draw-six-in-a-row': `The match ended without a winner.`,
-    'draw-surrender': `The match ended without a winner.`,
-    'draw-timeout': `The match ended without a winner.`,
-    'draw-disconnect': `The match ended without a winner.`,
-    'draw-draw-agreement': `Both players agreed to a draw.`,
-    'draw-terminated': `The match has been terminated.`,
-};
-
-export function getPlayerResultMessage(variant: ResultMessageVariant, finishReason: SessionFinishReason) {
-    return kResultMessages[`${variant}-${finishReason}`];
+export function getPlayerResultMessage(variant: `win` | `lose` | `draw`, reason: SessionFinishReason) {
+    const result = getResultText(reason);
+    if (variant === `draw` && reason !== `draw-agreement` && reason !== `terminated`) {
+        return i18next.t('resultNoWinner', 'The match ended without a winner.');
+    }
+    return variant === `lose` ? result.lossMessage ?? result.message : result.message;
 }
 
 export function getSpectatorResultTitle(reason: SessionFinishReason | null | undefined, winnerName: string | null) {
-    if (winnerName) {
-        return i18next.t('winnernameWon', '{{winnerName}} Won', { winnerName });
-    }
-
-    if (reason === `draw-agreement`) {
-        return `Match Drawn`;
-    }
-
-    return `Match Finished`;
+    return winnerName
+        ? i18next.t('winnernameWon', '{{winnerName}} Won', { winnerName })
+        : reason === `draw-agreement`
+            ? i18next.t('matchDrawn', 'Match Drawn')
+            : i18next.t('matchFinished', 'Match Finished');
 }
 
-export function getSpectatorResultMessage(
-    reason: SessionFinishReason | null | undefined,
-    winnerName: string | null,
-) {
-    const winningPlayerLabel = winnerName ?? i18next.t('aPlayer', 'A player');
-
-    if (reason === `timeout`) {
-        return i18next.t('winningplayerlabelWonOnTimeAfterTheOtherPlayerRanOutOfTime', '{{winningPlayerLabel}} won on time after the other player ran out of time.', { winningPlayerLabel });
-    }
-
-    if (reason === `six-in-a-row`) {
-        return i18next.t('winningplayerlabelConnectedSixHexagonsInARow', '{{winningPlayerLabel}} connected six hexagons in a row.', { winningPlayerLabel });
-    }
-
-    if (reason === `surrender`) {
-        return i18next.t('winningplayerlabelWonAfterTheOtherPlayerSurrendered', '{{winningPlayerLabel}} won after the other player surrendered.', { winningPlayerLabel });
-    }
-
-    if (reason === `disconnect`) {
-        return i18next.t('winningplayerlabelWonAfterTheOtherPlayerDisconnected', '{{winningPlayerLabel}} won after the other player disconnected.', { winningPlayerLabel });
-    }
-
-    if (reason === `draw-agreement`) {
-        return i18next.t('bothPlayersAgreedToEndTheMatchInADraw', 'Both players agreed to end the match in a draw.');
-    }
-
-    return i18next.t('theMatchWasTerminatedBeforeAWinnerCouldBeDeclared', 'The match was terminated before a winner could be declared.');
+export function getSpectatorResultMessage(reason: SessionFinishReason | null | undefined, winnerName: string | null) {
+    return getResultText(reason, winnerName).spectator;
 }

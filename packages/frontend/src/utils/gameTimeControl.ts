@@ -3,7 +3,7 @@ import i18next from 'i18next'
 
 export function formatGameTimeSeconds(totalSeconds: number) {
     if (totalSeconds % 60 === 0) {
-        return `${totalSeconds / 60}m`;
+        return i18next.t('gameTimeMinutes', '{{minutes}}m', { minutes: totalSeconds / 60 });
     }
 
     return i18next.t('totalsecondss', '{{totalSeconds}}s', { totalSeconds });
@@ -11,7 +11,7 @@ export function formatGameTimeSeconds(totalSeconds: number) {
 
 export function formatTimeControl(timeControl: GameTimeControl) {
     if (timeControl.mode === `unlimited`) {
-        return `Unlimited`;
+        return i18next.t('unlimited', 'Unlimited');
     }
 
     if (timeControl.mode === `turn`) {
