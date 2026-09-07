@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 
 import PageCorpus from '../components/PageCorpus';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
-import TournamentEditorCard, { buildCreateTournamentRequestFromDetail } from '../components/TournamentEditorCard';
+import TournamentEditorDialog, { buildCreateTournamentRequestFromDetail } from '../components/TournamentEditorDialog';
 import { useQueryAccount } from '../query/accountClient';
 import { devResolveAll, devResolveCurrentRound, devResolveN, seedTournamentWithDevUsers } from '../query/devAuthClient';
 import {
@@ -1534,16 +1534,15 @@ function TournamentRoute() {
             </PageCorpus>
 
             {/* ── Edit modal ── */}
-            <Modal open={editOpen} onClose={() => setEditOpen(false)} title={t('editTournament', 'Edit Tournament')}>
-                {tournament && (
-                    <TournamentEditorCard
-                        formKey={t('idupdatedat', '{{id}}:{{updatedAt}}', { id: tournament.id, updatedAt: tournament.updatedAt })} title="Settings" description=""
-                        defaultRequest={buildCreateTournamentRequestFromDetail(tournament)}
-                        submitLabel="Save" submitting={busy}
-                        onSubmit={(request) => void run(() => updateTournament(tournament.id, request), `Updated.`).then(() => setEditOpen(false))}
-                    />
-                )}
-            </Modal>
+            {editOpen && tournament && (
+                <TournamentEditorDialog
+                    onClose={() => setEditOpen(false)}
+                    formKey={t('idupdatedat', '{{id}}:{{updatedAt}}', { id: tournament.id, updatedAt: tournament.updatedAt })} title={t('editTournament', 'Edit Tournament')} description=""
+                    defaultRequest={buildCreateTournamentRequestFromDetail(tournament)}
+                    submitLabel="Save" submitting={busy}
+                    onSubmit={(request) => void run(() => updateTournament(tournament.id, request), `Updated.`).then(() => setEditOpen(false))}
+                />
+            )}
 
             {/* ── Manage modal (search + add/swap + dev seed) ── */}
             <Modal open={manageOpen} onClose={() => setManageOpen(false)} title={t('managePlayers', 'Manage Players')}>

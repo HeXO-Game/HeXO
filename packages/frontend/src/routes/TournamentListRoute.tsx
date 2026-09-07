@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 
 import PageCorpus from '../components/PageCorpus';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
-import TournamentEditorCard, { createDefaultTournamentRequest } from '../components/TournamentEditorCard';
+import TournamentEditorDialog, { createDefaultTournamentRequest } from '../components/TournamentEditorDialog';
 import { useQueryAccount } from '../query/accountClient';
 import { createQuickSealBot16Tournament, createQuickSealBotTournament, seedTournamentWithDevUsers } from '../query/devAuthClient';
 import {
@@ -500,30 +500,21 @@ function TournamentListRoute() {
 
                         {acct ? (
                             <>
-                                {!showCreateForm && (
-                                    <Button
-                                        type="button" onClick={() => setShowCreateForm(true)}
-                                        variant="outline" size="sm" className="w-full text-center"
-                                    >
-                                        {t('createTournament', '+ Create Tournament')}
-                                    </Button>
-                                )}
+                                <Button
+                                    type="button" onClick={() => setShowCreateForm(true)}
+                                    variant="outline" size="sm" className="w-full text-center"
+                                >
+                                    {t('createTournament', '+ Create Tournament')}
+                                </Button>
                                 {showCreateForm && (
-                                    <div>
-                                        <TournamentEditorCard
-                                            formKey="create" title={t('newTournament', 'New Tournament')}
-                                            description=""
-                                            defaultRequest={{ ...createDefaultTournamentRequest(), visibility: `private` }}
-                                            submitLabel="Create" submitting={submitting}
-                                            onSubmit={(request) => void handleCreate(request)}
-                                        />
-                                        <Button
-                                            type="button" onClick={() => setShowCreateForm(false)}
-                                            variant="ghost" size="bare" className="mt-2 w-full text-center"
-                                        >
-                                            {t('cancel', 'Cancel')}
-                                        </Button>
-                                    </div>
+                                    <TournamentEditorDialog
+                                        onClose={() => setShowCreateForm(false)}
+                                        formKey="create" title={t('newTournament', 'New Tournament')}
+                                        description=""
+                                        defaultRequest={{ ...createDefaultTournamentRequest(), visibility: `private` }}
+                                        submitLabel="Create" submitting={submitting}
+                                        onSubmit={(request) => void handleCreate(request)}
+                                    />
                                 )}
                             </>
                         ) : (

@@ -1,7 +1,7 @@
 import type { CreateTournamentRequest, TournamentDetail } from '@ih3t/shared';
 import { expect, test } from '@playwright/experimental-ct-react';
 
-import TournamentEditorCardComponent from './TournamentEditorCard';
+import TournamentEditorDialogComponent from './TournamentEditorDialog';
 
 test.use({
     viewport: {
@@ -27,11 +27,12 @@ const baseRequest: CreateTournamentRequest = {
     },
 };
 
-test(`submits 256-player elimination tournaments without shrinking the bracket`, async ({ mount }) => {
+test(`submits 256-player elimination tournaments without shrinking the bracket`, async ({ mount, page }) => {
     let submitted: CreateTournamentRequest | null = null;
 
-    const component = await mount(
-        <TournamentEditorCardComponent
+    await mount(
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
             formKey="edit"
             title="Edit Tournament"
             description=""
@@ -48,16 +49,17 @@ test(`submits 256-player elimination tournaments without shrinking the bracket`,
         />,
     );
 
-    await component.getByRole(`button`, { name: `Save` }).click();
+    await page.getByRole(`button`, { name: `Save` }).click();
 
     await expect.poll(() => submitted?.maxPlayers ?? null).toBe(256);
 });
 
-test(`submits 256-player swiss tournaments without clamping to 128`, async ({ mount }) => {
+test(`submits 256-player swiss tournaments without clamping to 128`, async ({ mount, page }) => {
     let submitted: CreateTournamentRequest | null = null;
 
-    const component = await mount(
-        <TournamentEditorCardComponent
+    await mount(
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
             formKey="edit"
             title="Edit Tournament"
             description=""
@@ -74,16 +76,17 @@ test(`submits 256-player swiss tournaments without clamping to 128`, async ({ mo
         />,
     );
 
-    await component.getByRole(`button`, { name: `Save` }).click();
+    await page.getByRole(`button`, { name: `Save` }).click();
 
     await expect.poll(() => submitted?.maxPlayers ?? null).toBe(256);
 });
 
-test(`preserves a zero join timeout when editing an existing tournament`, async ({ mount }) => {
+test(`preserves a zero join timeout when editing an existing tournament`, async ({ mount, page }) => {
     let submitted: CreateTournamentRequest | null = null;
 
-    const component = await mount(
-        <TournamentEditorCardComponent
+    await mount(
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
             formKey="edit"
             title="Edit Tournament"
             description=""
@@ -99,19 +102,20 @@ test(`preserves a zero join timeout when editing an existing tournament`, async 
         />,
     );
 
-    const joinTimeoutRow = component.getByText(`Join timeout`).locator(`..`);
+    const joinTimeoutRow = page.getByText(`Join timeout`).locator(`..`);
     await expect(joinTimeoutRow.locator(`input`)).toHaveValue(`0`);
 
-    await component.getByRole(`button`, { name: `Save` }).click();
+    await page.getByRole(`button`, { name: `Save` }).click();
 
     await expect.poll(() => submitted?.matchJoinTimeoutMinutes ?? null).toBe(0);
 });
 
-test(`preserves unsaved format changes across equivalent prop rerenders`, async ({ mount }) => {
+test(`preserves unsaved format changes across equivalent prop rerenders`, async ({ mount, page }) => {
     let submitted: CreateTournamentRequest | null = null;
 
     const component = await mount(
-        <TournamentEditorCardComponent
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
             formKey="edit:tournament-1"
             title="Edit Tournament"
             description=""
@@ -124,10 +128,11 @@ test(`preserves unsaved format changes across equivalent prop rerenders`, async 
         />,
     );
 
-    await component.getByRole(`button`, { name: `Swiss` }).click();
+    await page.getByRole(`button`, { name: `Swiss` }).click();
 
     await component.update(
-        <TournamentEditorCardComponent
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
             formKey="edit:tournament-1"
             title="Edit Tournament"
             description=""
@@ -140,16 +145,17 @@ test(`preserves unsaved format changes across equivalent prop rerenders`, async 
         />,
     );
 
-    await component.getByRole(`button`, { name: `Save` }).click();
+    await page.getByRole(`button`, { name: `Save` }).click();
 
     await expect.poll(() => submitted?.format ?? null).toBe(`swiss`);
 });
 
-test(`resets form state when the form key changes to a different tournament revision`, async ({ mount }) => {
+test(`resets form state when the form key changes to a different tournament revision`, async ({ mount, page }) => {
     let submitted: CreateTournamentRequest | null = null;
 
     const component = await mount(
-        <TournamentEditorCardComponent
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
             formKey="edit:tournament-1:1"
             title="Edit Tournament"
             description=""
@@ -162,10 +168,11 @@ test(`resets form state when the form key changes to a different tournament revi
         />,
     );
 
-    await component.getByRole(`button`, { name: `Swiss` }).click();
+    await page.getByRole(`button`, { name: `Swiss` }).click();
 
     await component.update(
-        <TournamentEditorCardComponent
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
             formKey="edit:tournament-1:2"
             title="Edit Tournament"
             description=""
@@ -181,13 +188,13 @@ test(`resets form state when the form key changes to a different tournament revi
         />,
     );
 
-    await component.getByRole(`button`, { name: `Save` }).click();
+    await page.getByRole(`button`, { name: `Save` }).click();
 
     await expect.poll(() => submitted?.format ?? null).toBe(`single-elimination`);
 });
 
 test(`maps join timeout and extension settings from tournament detail into the edit request`, async () => {
-    const { buildCreateTournamentRequestFromDetail, createDefaultTournamentRequest } = await import(`./TournamentEditorCard`);
+    const { buildCreateTournamentRequestFromDetail, createDefaultTournamentRequest } = await import(`./TournamentEditorDialog`);
     const request = buildCreateTournamentRequestFromDetail({
         id: `tournament-1`,
         name: `Test Tournament`,
@@ -259,4 +266,31 @@ test(`maps join timeout and extension settings from tournament detail into the e
     const defaultRequest = createDefaultTournamentRequest();
     expect(defaultRequest.matchJoinTimeoutMinutes).toBe(5);
     expect(defaultRequest.matchExtensionMinutes).toBe(5);
+});
+
+
+test(`dialog supports cancellation and blocks dismissal while submitting`, async ({ mount, page }) => {
+    let closed = false;
+    const component = await mount(
+        <TournamentEditorDialogComponent
+            onClose={() => { closed = true; }}
+            formKey="create" title="New Tournament" description=""
+            defaultRequest={baseRequest} submitLabel="Create" submitting={true}
+            onSubmit={() => {}}
+        />,
+    );
+    await expect(page.getByRole('dialog', { name: 'New Tournament' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    await page.keyboard.press('Escape');
+    expect(closed).toBe(false);
+    await component.update(
+        <TournamentEditorDialogComponent
+            onClose={() => { closed = true; }}
+            formKey="create" title="New Tournament" description=""
+            defaultRequest={baseRequest} submitLabel="Create" submitting={false}
+            onSubmit={() => {}}
+        />,
+    );
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect.poll(() => closed).toBe(true);
 });
