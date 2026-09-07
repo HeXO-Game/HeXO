@@ -27,6 +27,7 @@
         "@tanstack/react-query-devtools": "^5.95.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "cn": "^0.2.6",
         "i18next": "^26.4.1",
         "immer": "^10.2.0",
         "lucide-react": "^1.38.0",

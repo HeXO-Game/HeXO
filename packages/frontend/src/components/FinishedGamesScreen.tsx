@@ -1,19 +1,10 @@
-import { Button } from '@/components/ui/button';
-import type { FinishedGamesPage, FinishedGameSummary } from '@ih3t/shared';
+import type { FinishedGamesPage } from '@ih3t/shared';
 
 import type { FinishedGamesArchiveView, FinishedGamesRatedFilter } from '../query/queryDefinitions';
-import { formatDateTime, useIntlFormatProvider } from '../utils/dateTime';
-import { formatCompactDuration } from '../utils/duration';
-import {
-    getNeutralResultLabel,
-    getPersonalResultLabel,
-    type PersonalResultTone,
-} from '../utils/finishedGames';
-import { getPlayerLabel, getPlayerColor } from '../utils/gameBoard';
-import { getVisiblePageNumbers } from '../utils/pagination';
+import FinishedGameCard from './FinishedGameCard';
 import PageCorpus from './PageCorpus';
+import PageNavigation from './PageNavigation';
 import RatedFilterTabs from './RatedFilterTabs';
-import { Badge } from './ui/badge';
 import { useTranslation } from 'react-i18next'
 
 type FinishedGamesScreenProps = {
@@ -24,52 +15,11 @@ type FinishedGamesScreenProps = {
     showSignInHint: boolean
     isLoading: boolean
     errorMessage: string | null
-    onOpenGame: (gameId: string) => void
     onChangePage: (page: number) => void
     onRefresh: () => void
     ratedFilter: FinishedGamesRatedFilter
     onChangeRatedFilter: (ratedFilter: FinishedGamesRatedFilter) => void
 };
-
-function getResultPresentation(
-    game: FinishedGameSummary,
-    isOwnArchive: boolean,
-    currentProfileId: string | null,
-): {
-    label: string
-    tone: PersonalResultTone
-    cardClassName: string
-    titleClassName: string
-    sessionClassName: string
-} {
-    const result = isOwnArchive
-        ? getPersonalResultLabel(game, currentProfileId)
-        : { label: getNeutralResultLabel(game), tone: `neutral` as const };
-    const sharedCardClassName = `border-white/10 bg-white/6 hover:border-sky-300/30 hover:bg-white/10`;
-
-    if (result.tone === `win`) {
-        return {
-            ...result,
-            cardClassName: `${sharedCardClassName} pl-6 shadow-[inset_3px_0_0_rgba(16,185,129,1),inset_22px_0_28px_-24px_rgba(16,185,129,0.95)]`,
-            titleClassName: `text-white`,
-            sessionClassName: `text-sky-200/75`,
-        };
-    } else if (result.tone === `loss`) {
-        return {
-            ...result,
-            cardClassName: `${sharedCardClassName} pl-6 shadow-[inset_3px_0_0_rgba(244,63,94,1),inset_22px_0_28px_-24px_rgba(244,63,94,0.95)]`,
-            titleClassName: `text-white`,
-            sessionClassName: `text-sky-200/75`,
-        };
-    }
-
-    return {
-        ...result,
-        cardClassName: `${sharedCardClassName} ${isOwnArchive ? `pl-6` : ``}`,
-        titleClassName: `text-white`,
-        sessionClassName: `text-sky-200/75`,
-    };
-}
 
 function FinishedGamesScreen({
     archive,
@@ -79,13 +29,11 @@ function FinishedGamesScreen({
     showSignInHint,
     isLoading,
     errorMessage,
-    onOpenGame,
     onChangePage,
     ratedFilter,
     onChangeRatedFilter,
 }: Readonly<FinishedGamesScreenProps>) {
     const { t } = useTranslation()
-    const intlFormatProvider = useIntlFormatProvider();
     const isOwnArchive = archiveView === `mine`;
     const games = archive?.games ?? [];
     const pagination = archive?.pagination;
@@ -95,7 +43,6 @@ function FinishedGamesScreen({
     const totalMoves = pagination?.totalMoves ?? 0;
     const pageStart = games.length === 0 ? 0 : (currentPage - 1) * (pagination?.pageSize ?? games.length) + 1;
     const pageEnd = games.length === 0 ? 0 : pageStart + games.length - 1;
-    const visiblePageNumbers = getVisiblePageNumbers(currentPage, totalPages);
 
     return (
         <PageCorpus
@@ -193,112 +140,22 @@ function FinishedGamesScreen({
                 ) : (
                     <div className="flex flex-1 flex-col gap-6 overflow-hidden">
                         <div className="md:min-h-0 flex-1 space-y-4 md:overflow-y-auto overscroll-contain pr-1">
-                            {games.map((game) => {
-                                const presentation = getResultPresentation(game, isOwnArchive, currentProfileId);
-                                return (
-                                    <button
-                                        key={game.id}
-                                        onClick={() => onOpenGame(game.id)}
-                                        className={`w-full rounded-[1.2rem] border px-4 py-3.5 text-left transition hover:-translate-y-0.5 sm:rounded-3xl sm:px-4.5 sm:py-4 ${presentation.cardClassName}`}
-                                    >
-                                        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                                            <div className="min-w-0">
-                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                    <div className={`break-all text-[11px] uppercase tracking-[0.24em] sm:text-xs sm:tracking-[0.28em] ${presentation.sessionClassName}`}>
-                                                        {`Session `}
-                                                        {game.sessionId}
-                                                    </div>
-                                                </div>
-
-                                                <div className={`mt-1.5 text-lg font-bold sm:text-[1.45rem] ${presentation.titleClassName}`}>
-                                                    {presentation.label}
-                                                </div>
-
-                                                <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-300 sm:text-xs">
-                                                    <span className={`rounded-full px-2.5 py-0.5 ${game.gameOptions.rated
-                                                        ? `bg-amber-300/15 text-amber-100`
-                                                        : `bg-slate-900/60 text-slate-200`}`}
-                                                    >
-                                                        {game.gameOptions.rated ? t('rated', 'Rated') : t('unrated', 'Unrated')}
-                                                    </span>
-
-                                                    <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                        {t('moveCount', 'Moves: {{count}}', { count: game.moveCount })}
-                                                    </span>
-
-                                                    <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                        {game.players.flatMap((player, index) => [
-                                                            index > 0 && (
-                                                                <span className="mx-1.5" key={`vs-${index}`}>
-                                                                    vs
-                                                                </span>
-                                                            ),
-                                                            <span
-                                                                key={player.playerId}
-                                                                className="inline-flex items-center gap-1.5 rounded-full bg-slate-900/60"
-                                                            >
-                                                                <span
-                                                                    className="h-2 w-2 rounded-full"
-                                                                    style={{ backgroundColor: getPlayerColor(game.playerTiles, player.playerId) }}
-                                                                />
-
-                                                                <span>
-                                                                    {getPlayerLabel(game.players, player.playerId)}
-                                                                </span>
-                                                            </span>,
-                                                        ])}
-                                                    </span>
-
-                                                    <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                        {t('gameDuration', 'Duration: {{duration}}', { duration: formatCompactDuration(game.gameResult?.durationMs ?? 0) })}
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="text-[11px] text-slate-300 sm:text-right sm:text-xs">
-                                                <div className="font-semibold text-white">
-                                                    {formatDateTime(intlFormatProvider, game.finishedAt ?? game.startedAt)}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </button>
-                                );
-                            })}
+                            {games.map((game) => (
+                                <FinishedGameCard
+                                    key={game.id}
+                                    game={game}
+                                    context={isOwnArchive ? `user-history` : `history`}
+                                    currentProfileId={currentProfileId}
+                                />
+                            ))}
                         </div>
 
                         <div className="@container shrink-0">
-                            <div className="grid grid-cols-2 @min-[25em]:flex items-center justify-between gap-2 overflow-visible pb-1 sm:gap-3">
-                                <Button
-                                    onClick={() => onChangePage(currentPage - 1)}
-                                    disabled={currentPage <= 1}
-                                    variant="outline" size="sm" className="w-[10em]"
-                                >
-                                    {t('previous', 'Previous')}
-                                </Button>
-
-                                <div className="row-start-2 col-span-2 flex flex-1 flex-nowrap justify-center gap-1 sm:gap-2">
-                                    {visiblePageNumbers.map((pageNumber) => (
-                                        <Button
-                                            key={pageNumber}
-                                            variant={pageNumber === currentPage ? `secondary` : `outline`}
-                                            size="sm"
-                                            onClick={() => onChangePage(pageNumber)}
-                                            aria-current={pageNumber === currentPage ? `page` : undefined}
-                                            className="min-w-8 sm:min-w-11"
-                                        >
-                                            {pageNumber}
-                                        </Button>
-                                    ))}
-                                </div>
-
-                                <Button
-                                    onClick={() => onChangePage(currentPage + 1)}
-                                    disabled={currentPage >= totalPages}
-                                    variant="outline" size="sm" className="ml-auto w-[10em]"
-                                >
-                                    {t('next', 'Next')}
-                                </Button>
-                            </div>
+                            <PageNavigation
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onChangePage={onChangePage}
+                            />
 
                             <div className="mt-3 text-xs text-slate-400 sm:text-right sm:text-sm">
                                 {isOwnArchive

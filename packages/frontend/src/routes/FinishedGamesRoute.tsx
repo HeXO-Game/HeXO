@@ -5,7 +5,7 @@ import FinishedGamesScreen from '../components/FinishedGamesScreen';
 import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
 import { useQueryAccount } from '../query/accountClient';
 import { useQueryFinishedGames } from '../query/finishedGamesClient';
-import { buildFinishedGamePath, buildFinishedGamesPath, useArchiveRouteState } from './archiveRouteState';
+import { buildFinishedGamesPath, useArchiveRouteState } from './archiveRouteState';
 import { useTranslation } from 'react-i18next'
 
 function FinishedGamesRoute() {
@@ -69,12 +69,6 @@ function FinishedGamesRoute() {
                 currentProfileId={accountQuery.data?.user?.id ?? null}
                 requiresSignIn={isOwnArchive && !accountQuery.data?.user}
                 showSignInHint={!isOwnArchive && !accountQuery.isLoading && !accountQuery.data?.user}
-                onOpenGame={(gameId) => void navigate(
-                    buildFinishedGamePath(
-                        gameId,
-                        archiveRouteState.archiveView,
-                    ),
-                )}
                 onChangePage={(nextArchivePage) => void navigate(
                     buildFinishedGamesPath(
                         nextArchivePage,

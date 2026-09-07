@@ -1,5 +1,5 @@
 import { Button, buttonVariants } from '@/components/ui/button';
-import type { AccountEloHistory, AccountStatistics, FinishedGamesPage, FinishedGameSummary, LobbyInfo, PublicAccountProfile } from '@ih3t/shared';
+import type { AccountEloHistory, AccountStatistics, FinishedGamesPage, LobbyInfo, PublicAccountProfile } from '@ih3t/shared';
 import { type ReactNode, useMemo } from 'react';
 import React from 'react';
 import { Link } from 'react-router';
@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 
 import { signInWithDiscord } from '../query/authClient';
-import { buildFinishedGamePath, buildSessionPath } from '../routes/archiveRouteState';
+import { buildSessionPath } from '../routes/archiveRouteState';
 import { useSsrCompatibleNow } from '../ssrState';
 import {
     formatCalendarDate,
@@ -24,10 +24,7 @@ import {
     formatRelativeTimeFrom,
     useIntlFormatProvider,
 } from '../utils/dateTime';
-import { formatCompactDuration, formatDetailedDuration } from '../utils/duration';
-import { formatEloChange } from '../utils/elo';
-import { getPersonalResultLabel, type PersonalResultTone } from '../utils/finishedGames';
-import { getPlayerLabel, getPlayerColor } from '../utils/gameBoard';
+import { formatDetailedDuration } from '../utils/duration';
 import { formatTimeControl } from '../utils/gameTimeControl';
 import { formatLobbyPlayers } from '../utils/lobby';
 import {
@@ -35,6 +32,7 @@ import {
     formatWorldRank,
 } from '../utils/profileStats';
 import AccountPicture from './AccountPicture';
+import FinishedGameCard from './FinishedGameCard';
 import PageCorpus from './PageCorpus';
 import { useTranslation } from 'react-i18next'
 import i18next from 'i18next'
@@ -249,45 +247,6 @@ function LiveGameSection({
     );
 }
 
-function getRecentGamesPresentation(
-    game: FinishedGameSummary,
-    profileId: string,
-): {
-    label: string
-    tone: PersonalResultTone
-    cardClassName: string
-    titleClassName: string
-    sessionClassName: string
-} {
-    const result = getPersonalResultLabel(game, profileId);
-    const sharedCardClassName = `border-white/10 bg-slate-950/55 hover:border-sky-300/30 hover:bg-slate-900/70`;
-
-    if (result.tone === `win`) {
-        return {
-            ...result,
-            cardClassName: `${sharedCardClassName} pl-6 shadow-[inset_3px_0_0_rgba(16,185,129,1),inset_22px_0_28px_-24px_rgba(16,185,129,0.95)]`,
-            titleClassName: `text-white`,
-            sessionClassName: `text-sky-200/75`,
-        };
-    }
-
-    if (result.tone === `loss`) {
-        return {
-            ...result,
-            cardClassName: `${sharedCardClassName} pl-6 shadow-[inset_3px_0_0_rgba(244,63,94,1),inset_22px_0_28px_-24px_rgba(244,63,94,0.95)]`,
-            titleClassName: `text-white`,
-            sessionClassName: `text-sky-200/75`,
-        };
-    }
-
-    return {
-        ...result,
-        cardClassName: `${sharedCardClassName} pl-6`,
-        titleClassName: `text-white`,
-        sessionClassName: `text-sky-200/75`,
-    };
-}
-
 function RecentGamesSection({
     profileId,
     recentGames,
@@ -302,9 +261,7 @@ function RecentGamesSection({
     isPublicView: boolean
 }>) {
     const { t } = useTranslation()
-    const intlFormatProvider = useIntlFormatProvider();
     const games = recentGames?.games ?? [];
-    const archiveView = isPublicView ? `all` : `mine`;
 
     return (
         <section className="rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.72),rgba(15,23,42,0.5))] p-5 shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
@@ -336,78 +293,14 @@ function RecentGamesSection({
                 </div>
             ) : (
                 <div className="mt-5 space-y-4">
-                    {games.map((game) => {
-                        const presentation = getRecentGamesPresentation(game, profileId);
-                        const gamePath = buildFinishedGamePath(game.id, archiveView);
-                        const profilePlayer = game.players.find((player) => player.profileId === profileId);
-                        const profileEloChange = game.gameOptions.rated ? profilePlayer?.eloChange ?? null : null;
-
-                        return (
-                            <Link
-                                key={game.id}
-                                to={gamePath}
-                                className={`block rounded-[1.2rem] border px-4 py-3.5 text-left transition hover:-translate-y-0.5 sm:rounded-3xl sm:px-4.5 sm:py-4 ${presentation.cardClassName}`}
-                            >
-                                <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                                    <div className="min-w-0">
-                                        <div className={`break-all text-[11px] uppercase tracking-[0.24em] sm:text-xs sm:tracking-[0.28em] ${presentation.sessionClassName}`}>
-                                            {`Session `}
-                                            {game.sessionId}
-                                        </div>
-
-                                        <div className={`mt-1.5 text-lg font-bold sm:text-[1.45rem] ${presentation.titleClassName}`}>
-                                            {presentation.label}
-                                        </div>
-
-                                        <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-300 sm:text-xs">
-                                            {profileEloChange !== null && (
-                                                <span className={`rounded-full px-2.5 py-0.5 ${profileEloChange >= 0
-                                                    ? `bg-emerald-400/12 text-emerald-200`
-                                                    : `bg-rose-400/12 text-rose-200`
-                                                    }`}
-                                                >
-                                                    {t('eloChange', 'ELO {{change}}', { change: formatEloChange(profileEloChange) })}
-                                                </span>
-                                            )}
-
-                                            <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                {t('moveCount', 'Moves: {{count}}', { count: game.moveCount })}
-                                            </span>
-
-                                            <span className="rounded-full bg-slate-900/60 px-2.5 py-0.5">
-                                                {`Duration: `}
-                                                {formatCompactDuration(game.gameResult?.durationMs ?? 0)}
-                                            </span>
-                                        </div>
-
-                                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
-                                            {game.players.map((player) => (
-                                                <span
-                                                    key={player.playerId}
-                                                    className="inline-flex items-center gap-2 rounded-full bg-slate-900/60 px-3 py-1"
-                                                >
-                                                    <span
-                                                        className="h-2.5 w-2.5 rounded-full"
-                                                        style={{ backgroundColor: getPlayerColor(game.playerTiles, player.playerId) }}
-                                                    />
-
-                                                    <span>
-                                                        {getPlayerLabel(game.players, player.playerId)}
-                                                    </span>
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="text-[11px] text-slate-300 sm:text-right sm:text-xs">
-                                        <div className="font-semibold text-white">
-                                            {formatDateTime(intlFormatProvider, game.finishedAt ?? game.startedAt)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </Link>
-                        );
-                    })}
+                    {games.map((game) => (
+                        <FinishedGameCard
+                            key={game.id}
+                            game={game}
+                            context={isPublicView ? `user-profile` : `user-history`}
+                            currentProfileId={profileId}
+                        />
+                    ))}
                 </div>
             )}
         </section>
