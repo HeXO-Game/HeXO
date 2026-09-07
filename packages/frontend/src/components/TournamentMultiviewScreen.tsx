@@ -1,4 +1,5 @@
 import { Button, buttonVariants } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import type { GameState, LobbyOptions, SessionPlayer } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
@@ -443,7 +444,8 @@ function TournamentMultiviewScreen({
                         to={`/tournaments/${tournamentId}`}
                         className="text-[11px] font-medium text-slate-400 transition hover:text-white"
                     >
-                        {t('larrBack', '&larr; Back')}
+                        <ArrowLeft className="mr-1 inline-block size-3" aria-hidden="true" />
+                        {t('back', 'Back')}
                     </Link>
 
                     <div className="min-w-0 flex-1">

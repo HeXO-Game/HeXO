@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import type { TournamentFormat, TournamentMatch } from '@ih3t/shared';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -399,7 +400,8 @@ function TournamentBracketRoute() {
                     <div className="mx-auto flex max-w-[2000px] items-center gap-4 px-4 py-2.5 sm:px-6">
                         <Link to={`/tournaments/${tournamentId}`}
                             className="text-[11px] font-medium text-slate-400 transition hover:text-white">
-                            {t('larrBack', '&larr; Back')}
+                            <ArrowLeft className="mr-1 inline-block size-3" aria-hidden="true" />
+                            {t('back', 'Back')}
                         </Link>
 
                         <h1 className="min-w-0 truncate text-sm font-bold text-white">

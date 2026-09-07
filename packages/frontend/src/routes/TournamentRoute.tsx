@@ -1,4 +1,5 @@
 import { Button, buttonVariants, type ButtonProps } from '@/components/ui/button';
+import { ArrowRight } from 'lucide-react';
 import type { TournamentDetail, TournamentExtensionRequest, TournamentMatch, TournamentParticipant, TournamentStanding } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
@@ -933,7 +934,8 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         to={`/session/${match.sessionId}`}
                         className="ml-auto text-[9px] text-slate-500 transition hover:text-slate-300"
                     >
-                        {t('spectateRarr', 'spectate &rarr;')}
+                        {t('spectate', 'spectate')}
+                        <ArrowRight className="ml-1 inline-block size-3" aria-hidden="true" />
                     </Link>
                 )}
             </div>

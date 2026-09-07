@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import type { CreateTournamentRequest, TournamentSummary, TournamentUpcomingMatch } from '@ih3t/shared';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -131,8 +132,8 @@ function WeeklyCalendar({ tournaments, upcomingMatches, onNavigate }: {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/6 px-4 py-3">
                 <Button type="button" onClick={() => setWeekOffset((w) => w - 1)}
-                    variant="outline" size="xs">
-                    {t('larr', '&larr;')}
+                    variant="outline" size="icon" aria-label={t('previous', 'Previous')}>
+                    <ArrowLeft aria-hidden="true" />
                 </Button>
                 <div className="text-center">
                     <div className="text-[13px] font-bold text-white">{weekLabel}</div>
@@ -142,8 +143,8 @@ function WeeklyCalendar({ tournaments, upcomingMatches, onNavigate }: {
                     )}
                 </div>
                 <Button type="button" onClick={() => setWeekOffset((w) => w + 1)}
-                    variant="outline" size="xs">
-                    {t('rarr', '&rarr;')}
+                    variant="outline" size="icon" aria-label={t('next', 'Next')}>
+                    <ArrowRight aria-hidden="true" />
                 </Button>
             </div>
 
