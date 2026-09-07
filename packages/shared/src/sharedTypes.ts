@@ -256,9 +256,14 @@ export const zSandboxPositionCell = z.object({
 export type SandboxPositionCell = z.infer<typeof zSandboxPositionCell>;
 
 export const zSandboxGamePosition = z.object({
+    // Leading cells form a fixed starting board; omitted for legacy full-history positions.
+    initialCellCount: z.number().int().nonnegative().optional(),
     cells: z.array(zSandboxPositionCell),
     currentTurnPlayer: zSandboxPlayerSlot,
     placementsRemaining: z.number().int().min(1).max(2),
+}).refine(position => (position.initialCellCount ?? 0) <= position.cells.length, {
+    message: `Initial cell count cannot exceed the number of cells.`,
+    path: [`initialCellCount`],
 });
 export type SandboxGamePosition = z.infer<typeof zSandboxGamePosition>;
 

@@ -36,7 +36,8 @@ import {
     readSandboxBotTimeoutMs,
     sanitizeSandboxBotTimeoutMs,
 } from '../sandbox/sandboxBotSettings';
-import { createNotationGameState, type SandboxImportPosition } from '../sandbox/sandboxNotation';
+import { type SandboxImportPosition } from '../sandbox/sandboxNotation';
+import { restoreSandboxPosition } from '../sandbox/sandboxPosition';
 import { normalizeSandboxPositionId } from '../sandbox/sandboxPositionId';
 import { useSandboxBotController } from '../sandbox/useSandboxBotController';
 import { playTilePlacedSound } from '../soundEffects';
@@ -83,12 +84,13 @@ function getSandboxPlayerId(playerSlot: SandboxPlayerSlot): string {
     return playerSlot === `player-1` ? SANDBOX_PLAYERS[0].id : SANDBOX_PLAYERS[1].id;
 }
 
-function buildSandboxGamePosition(gameState: GameState): SandboxGamePosition | null {
+function buildSandboxGamePosition(gameState: GameState, initialCellCount = 0): SandboxGamePosition | null {
     if (!gameState.currentTurnPlayerId || gameState.placementsRemaining < 1) {
         return null;
     }
 
     return {
+        ...(initialCellCount > 0 ? { initialCellCount } : {}),
         cells: gameState.cells.map((cell, index) => ({
             x: cell.x,
             y: cell.y,
@@ -97,43 +99,6 @@ function buildSandboxGamePosition(gameState: GameState): SandboxGamePosition | n
         })),
         currentTurnPlayer: getSandboxPlayerSlot(gameState.currentTurnPlayerId),
         placementsRemaining: gameState.placementsRemaining,
-    };
-}
-
-function restoreSandboxPosition(gamePosition: SandboxGamePosition, isNotation = false) {
-    if (isNotation) {
-        const gameState = createNotationGameState(gamePosition, [SANDBOX_PLAYERS[0].id, SANDBOX_PLAYERS[1].id]);
-        return { gameState, gameHistory: [cloneGameState(gameState)] };
-    }
-
-    const orderedCells = [...gamePosition.cells].sort((leftCell, rightCell) => leftCell.moveId - rightCell.moveId);
-
-    const nextGameState = createSandboxGameState(orderedCells[0]?.player);
-    const gameHistory: GameState[] = [cloneGameState(nextGameState)];
-
-    for (const cell of orderedCells) {
-        applyGameMove(nextGameState, {
-            playerId: getSandboxPlayerId(cell.player),
-            x: cell.x,
-            y: cell.y,
-        });
-        gameHistory.push(cloneGameState(nextGameState));
-    }
-
-    const expectedCurrentTurnPlayerId = getSandboxPlayerId(gamePosition.currentTurnPlayer);
-    if (
-        nextGameState.currentTurnPlayerId !== expectedCurrentTurnPlayerId
-        || nextGameState.placementsRemaining !== gamePosition.placementsRemaining
-    ) {
-        throw new Error(`Sandbox position is inconsistent.`);
-    }
-
-    nextGameState.currentTurnExpiresInMs = null;
-    nextGameState.playerTimeRemainingMs = {};
-
-    return {
-        gameState: nextGameState,
-        gameHistory,
     };
 }
 
@@ -308,7 +273,10 @@ function SandboxRoute() {
         positionId: string | null,
         isNotation = false,
     ) {
-        const { gameState: nextGameState, gameHistory: nextGameHistory } = restoreSandboxPosition(gamePosition, isNotation);
+        const { gameState: nextGameState, gameHistory: nextGameHistory } = restoreSandboxPosition(
+            isNotation ? { ...gamePosition, initialCellCount: gamePosition.cells.length } : gamePosition,
+            [SANDBOX_PLAYERS[0].id, SANDBOX_PLAYERS[1].id],
+        );
         const nextLoadedSnapshot = createSandboxSnapshot(nextGameState, nextGameHistory, positionName);
 
         previousCellCountRef.current = nextGameState.cells.length;
@@ -664,7 +632,7 @@ function SandboxRoute() {
 
                         <SandboxShareModal
                             open={isShareModalOpen}
-                            gamePosition={buildSandboxGamePosition(currentGameState)}
+                            gamePosition={buildSandboxGamePosition(currentGameState, game.history[0].cells.length)}
                             initialName={currentPositionName}
                             onClose={closeShareModal}
                             onCreate={handlePositionShared}

@@ -126,3 +126,30 @@ test('imports multiline notation locally with the selected next turn', async ({ 
     });
     expect(requests).toBe(0);
 });
+
+test('sharing can exclude placement history and resets the option on reopening', async ({ mount, page }) => {
+    let request: unknown;
+    const gamePosition = {
+        ...position.gamePosition,
+        cells: [{ x: 0, y: 0, player: 'player-1' as const, moveId: 1 }],
+        currentTurnPlayer: 'player-2' as const,
+        placementsRemaining: 2,
+    };
+    await page.route('**/api/sandbox-positions', route => {
+        request = route.request().postDataJSON();
+        return route.fulfill({ json: { id: position.id, name: position.name } });
+    });
+    const modal = (open: boolean) => <SandboxShareModal open={open} gamePosition={gamePosition}
+        initialName={position.name} onClose={() => {}} onCreate={() => {}} />;
+    const component = await mount(modal(true));
+    const checkbox = page.getByRole('checkbox', { name: 'Include placement history' });
+    await expect(checkbox).toBeChecked();
+    await checkbox.uncheck();
+    await page.getByRole('button', { name: 'Create Link' }).click();
+    await expect(page.getByRole('button', { name: 'Copy Link' })).toBeVisible();
+    expect(request).toEqual({ name: position.name, gamePosition: { ...gamePosition, initialCellCount: 1 } });
+    await component.update(modal(false));
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await component.update(modal(true));
+    await expect(checkbox).toBeChecked();
+});

@@ -27,6 +27,8 @@ function SandboxShareModal({
     const { t } = useTranslation()
     const nameInputId = useId();
     const shareLinkInputId = useId();
+    const historyInputId = useId();
+    const [includeHistory, setIncludeHistory] = useState(true);
     const [positionName, setPositionName] = useState(initialName ?? ``);
     const [shareUrl, setShareUrl] = useState<string | null>(null);
     const session = useRef(0);
@@ -35,7 +37,10 @@ function SandboxShareModal({
             if (!gamePosition) {
                 throw new Error(`Only active sandbox positions can be shared.`);
             }
-            return await createSandboxPosition(name, gamePosition);
+            return await createSandboxPosition(name, includeHistory ? gamePosition : {
+                ...gamePosition,
+                initialCellCount: gamePosition.cells.length,
+            });
         },
         onMutate: () => session.current,
         onSuccess: (response, _name, currentSession) => {
@@ -48,6 +53,7 @@ function SandboxShareModal({
 
     useEffect(() => {
         setPositionName(initialName ?? ``);
+        setIncludeHistory(true);
         setShareUrl(null);
         shareMutation.reset();
         return () => { session.current += 1; };
@@ -113,6 +119,27 @@ function SandboxShareModal({
                             autoFocus
                             className="h-auto w-full"
                         />
+                    </Field>
+                )}
+
+                {!isLinkReady && (
+                    <Field orientation="horizontal" className="mt-4 items-start text-left">
+                        <Input
+                            id={historyInputId}
+                            type="checkbox"
+                            checked={includeHistory}
+                            onChange={event => setIncludeHistory(event.target.checked)}
+                            disabled={shareMutation.isPending}
+                            className="mt-1 size-4 shrink-0 accent-violet-400"
+                        />
+                        <div>
+                            <FieldLabel htmlFor={historyInputId}>
+                                {t('includePlacementHistory', 'Include placement history')}
+                            </FieldLabel>
+                            <p className="mt-1 text-xs text-slate-300">
+                                {t('excludePlacementHistoryHelp', 'Uncheck to share only the current board. Its stones cannot be undone after importing; new moves can still be undone.')}
+                            </p>
+                        </div>
                     </Field>
                 )}
 
