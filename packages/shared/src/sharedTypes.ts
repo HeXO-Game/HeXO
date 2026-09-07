@@ -430,7 +430,7 @@ function setCurrentTurn(
     }
 }
 
-function findWinningLine(
+export function findWinningLine(
     gameState: GameState,
     playerId: string,
     x: number,

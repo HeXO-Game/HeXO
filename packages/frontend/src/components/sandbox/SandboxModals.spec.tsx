@@ -1,5 +1,6 @@
 import type { CreateSandboxPositionResponse, SandboxPositionResponse } from '@ih3t/shared';
 import { expect, test } from '@playwright/experimental-ct-react';
+import type { SandboxImportPosition } from '../../sandbox/sandboxNotation';
 import SandboxImportModal from './SandboxImportModal';
 import SandboxShareModal from './SandboxShareModal';
 import SandboxWelcomeModal from './SandboxWelcomeModal';
@@ -55,7 +56,7 @@ test('all sandbox dialogs follow open and reset forms on reopening', async ({ mo
 });
 
 test('import validates links, reports failures, and returns the loaded position', async ({ mount, page }) => {
-    let imported: SandboxPositionResponse | null = null;
+    let imported: SandboxImportPosition | null = null;
     await page.route('**/api/sandbox-positions/abc1234', route => route.fulfill({
         status: 404, json: { error: 'Position missing' },
     }));
@@ -97,4 +98,31 @@ test('share creates a named position and copies its link', async ({ mount, page,
     expect(url).toContain('/sandbox/abc1234');
     await page.getByRole('button', { name: 'Copy Link' }).click();
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(url);
+});
+
+test('imports multiline notation locally with the selected next turn', async ({ mount, page }) => {
+    let imported: SandboxImportPosition | null = null;
+    let requests = 0;
+    await page.route('**/api/sandbox-positions/**', route => {
+        requests++;
+        return route.abort();
+    });
+    await mount(<SandboxImportModal open onClose={() => {}} onImport={value => { imported = value; }} />);
+    await page.getByRole('textbox', { name: 'Position', exact: true }).fill('.x\nxx');
+    await page.getByLabel('Next Player').selectOption('player-2');
+    await page.getByLabel('Placements Remaining').selectOption('1');
+    await page.getByRole('button', { name: 'Import', exact: true }).click();
+    await expect.poll(() => imported).toMatchObject({
+        id: null,
+        gamePosition: {
+            cells: [
+                { x: 1, y: 0, player: 'player-1' },
+                { x: 0, y: 1, player: 'player-1' },
+                { x: 1, y: 1, player: 'player-1' },
+            ],
+            currentTurnPlayer: 'player-2',
+            placementsRemaining: 1,
+        },
+    });
+    expect(requests).toBe(0);
 });

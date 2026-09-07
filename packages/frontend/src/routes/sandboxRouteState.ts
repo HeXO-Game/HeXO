@@ -1,6 +1,7 @@
 import type { SandboxGamePosition, SandboxPlayerSlot } from '@ih3t/shared';
 
 export type SandboxRouteInitialPosition = {
+    isNotation?: boolean
     name: string
     gamePosition: SandboxGamePosition
 };

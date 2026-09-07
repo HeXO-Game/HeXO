@@ -36,6 +36,7 @@ import {
     readSandboxBotTimeoutMs,
     sanitizeSandboxBotTimeoutMs,
 } from '../sandbox/sandboxBotSettings';
+import { createNotationGameState, type SandboxImportPosition } from '../sandbox/sandboxNotation';
 import { normalizeSandboxPositionId } from '../sandbox/sandboxPositionId';
 import { useSandboxBotController } from '../sandbox/useSandboxBotController';
 import { playTilePlacedSound } from '../soundEffects';
@@ -99,7 +100,12 @@ function buildSandboxGamePosition(gameState: GameState): SandboxGamePosition | n
     };
 }
 
-function restoreSandboxPosition(gamePosition: SandboxGamePosition) {
+function restoreSandboxPosition(gamePosition: SandboxGamePosition, isNotation = false) {
+    if (isNotation) {
+        const gameState = createNotationGameState(gamePosition, [SANDBOX_PLAYERS[0].id, SANDBOX_PLAYERS[1].id]);
+        return { gameState, gameHistory: [cloneGameState(gameState)] };
+    }
+
     const orderedCells = [...gamePosition.cells].sort((leftCell, rightCell) => leftCell.moveId - rightCell.moveId);
 
     const nextGameState = createSandboxGameState(orderedCells[0]?.player);
@@ -300,8 +306,9 @@ function SandboxRoute() {
         positionName: string,
         gamePosition: SandboxGamePosition,
         positionId: string | null,
+        isNotation = false,
     ) {
-        const { gameState: nextGameState, gameHistory: nextGameHistory } = restoreSandboxPosition(gamePosition);
+        const { gameState: nextGameState, gameHistory: nextGameHistory } = restoreSandboxPosition(gamePosition, isNotation);
         const nextLoadedSnapshot = createSandboxSnapshot(nextGameState, nextGameHistory, positionName);
 
         previousCellCountRef.current = nextGameState.cells.length;
@@ -402,7 +409,7 @@ function SandboxRoute() {
         }
 
         lastAppliedLocationKeyRef.current = location.key;
-        applySandboxPosition(routeInitialPosition.name, routeInitialPosition.gamePosition, null);
+        applySandboxPosition(routeInitialPosition.name, routeInitialPosition.gamePosition, null, routeInitialPosition.isNotation);
         setIsWelcomeModalVisible(false);
     }, [
         location.key, routeInitialPosition, routePositionId,
@@ -530,8 +537,14 @@ function SandboxRoute() {
         }
     };
 
-    const handlePositionImported = (response: SandboxPositionResponse) => {
-        applyLoadedSandboxPosition(response);
+    const handlePositionImported = (response: SandboxImportPosition) => {
+        if (response.id === null) {
+            void navigate(`/sandbox`, {
+                state: { initialPosition: { name: response.name, gamePosition: response.gamePosition, isNotation: true } } satisfies SandboxRouteState,
+            });
+            return;
+        }
+        applySandboxPosition(response.name, response.gamePosition, response.id);
         setIsWelcomeModalVisible(false);
         if (routePositionId !== response.id) {
             void navigate(`/sandbox/${response.id}`);
