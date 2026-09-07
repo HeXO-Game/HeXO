@@ -186,6 +186,7 @@ export class ApiQueryService {
             id,
             name: sandboxPosition.name,
             gamePosition: sandboxPosition.gamePosition,
+            originalPositionId: sandboxPosition.originalPositionId,
         };
     }
 

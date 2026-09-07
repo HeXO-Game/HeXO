@@ -634,6 +634,7 @@ function SandboxRoute() {
                             open={isShareModalOpen}
                             gamePosition={buildSandboxGamePosition(currentGameState, game.history[0].cells.length)}
                             initialName={currentPositionName}
+                            originalPositionId={loadedSnapshot ? lastLoadedPositionIdRef.current : null}
                             onClose={closeShareModal}
                             onCreate={handlePositionShared}
                         />

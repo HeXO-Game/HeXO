@@ -20,7 +20,7 @@ export class SandboxPositionError extends Error {
 export class SandboxPositionService {
     constructor(@inject(SandboxPositionRepository) private readonly sandboxPositionRepository: SandboxPositionRepository) {}
 
-    async createPosition(gamePosition: SandboxGamePosition, name: SandboxPositionName, userProfileId: string): Promise<string> {
+    async createPosition(gamePosition: SandboxGamePosition, name: SandboxPositionName, userProfileId: string, originalPositionId: string | null): Promise<string> {
         for (let attempt = 0; attempt < MAX_SHORT_ID_ATTEMPTS; attempt += 1) {
             const id = this.generateShortId();
 
@@ -29,6 +29,7 @@ export class SandboxPositionService {
                     id,
                     name,
                     gamePosition,
+                    originalPositionId,
                     createdAt: Date.now(),
                     createdBy: userProfileId,
                 });

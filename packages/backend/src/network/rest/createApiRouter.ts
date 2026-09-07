@@ -904,7 +904,7 @@ export class ApiRouter {
             }
 
             const request = zCreateSandboxPositionRequest.parse(req.body ?? {});
-            const id = await this.sandboxPositionService.createPosition(request.gamePosition, request.name, user.id);
+            const id = await this.sandboxPositionService.createPosition(request.gamePosition, request.name, user.id, request.originalPositionId);
             const response: CreateSandboxPositionResponse = {
                 id,
                 name: request.name,

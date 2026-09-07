@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { applyGameMove, zCreateSandboxPositionRequest, zSandboxGamePosition, type SandboxGamePosition } from '@ih3t/shared';
+import { applyGameMove, zCreateSandboxPositionRequest, zSandboxPositionResponse, zSandboxGamePosition, type SandboxGamePosition } from '@ih3t/shared';
 import { restoreSandboxPosition } from './sandboxPosition';
 
 const position: SandboxGamePosition = {
@@ -21,7 +21,7 @@ test('existing shared positions retain their full placement history', () => {
 
 test('sharing without history survives API serialization and fixes imported stones', () => {
     const request = zCreateSandboxPositionRequest.parse({
-        name: 'Fixed board', gamePosition: { ...position, initialCellCount: 3 },
+        name: 'Fixed board', originalPositionId: null, gamePosition: { ...position, initialCellCount: 3 },
     });
     const stored = zSandboxGamePosition.parse(JSON.parse(JSON.stringify(request.gamePosition)));
     const restored = restoreSandboxPosition(stored, ['x', 'o']);
@@ -60,4 +60,14 @@ test('invalid history boundaries are rejected', () => {
     }
     assert.throws(() => restoreSandboxPosition({ ...position, initialCellCount: 3,
         cells: [position.cells[0], position.cells[0], position.cells[2]] }, ['x', 'o']));
+});
+
+test('source sandbox IDs survive the API contract and require an explicit source ID or null', () => {
+    const request = zCreateSandboxPositionRequest.parse({ name: 'Derived', gamePosition: position, originalPositionId: 'src1234' });
+    const response = zSandboxPositionResponse.parse({ id: 'new1234', ...request });
+    assert.equal(response.originalPositionId, 'src1234');
+    assert.equal(zCreateSandboxPositionRequest.parse({ name: 'Fresh', gamePosition: position, originalPositionId: null }).originalPositionId, null);
+    assert.throws(() => zSandboxPositionResponse.parse({ id: 'old1234', name: 'Legacy', gamePosition: position }));
+    assert.throws(() => zCreateSandboxPositionRequest.parse({ name: 'Missing source', gamePosition: position }));
+    assert.throws(() => zCreateSandboxPositionRequest.parse({ name: 'Invalid', gamePosition: position, originalPositionId: 'not-an-id' }));
 });

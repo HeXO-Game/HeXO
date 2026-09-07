@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 type SandboxShareModalProps = {
     open: boolean
     gamePosition: SandboxGamePosition | null
+    originalPositionId: string | null
     initialName: string | null
     onClose: () => void
     onCreate: (position: CreateSandboxPositionResponse) => void
@@ -21,6 +22,7 @@ function SandboxShareModal({
     open,
     gamePosition,
     initialName,
+    originalPositionId,
     onClose,
     onCreate,
 }: Readonly<SandboxShareModalProps>) {
@@ -40,7 +42,7 @@ function SandboxShareModal({
             return await createSandboxPosition(name, includeHistory ? gamePosition : {
                 ...gamePosition,
                 initialCellCount: gamePosition.cells.length,
-            });
+            }, originalPositionId);
         },
         onMutate: () => session.current,
         onSuccess: (response, _name, currentSession) => {

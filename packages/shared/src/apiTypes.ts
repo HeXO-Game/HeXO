@@ -71,6 +71,7 @@ export type AdminServerSettingsResponse = z.infer<
 >;
 
 export const zCreateSandboxPositionRequest = z.object({
+    originalPositionId: zSandboxPositionId.nullable(),
     name: zSandboxPositionName,
     gamePosition: zSandboxGamePosition,
 });
@@ -87,6 +88,7 @@ export type CreateSandboxPositionResponse = z.infer<
 >;
 
 export const zSandboxPositionResponse = z.object({
+    originalPositionId: zSandboxPositionId.nullable(),
     id: zSandboxPositionId,
     name: zSandboxPositionName,
     gamePosition: zSandboxGamePosition,

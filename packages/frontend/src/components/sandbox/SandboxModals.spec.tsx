@@ -8,6 +8,7 @@ import SandboxBotFactoryModal from './SandboxBotFactoryModal';
 
 const position: SandboxPositionResponse = {
     id: 'abc1234',
+    originalPositionId: null,
     name: 'Opening',
     gamePosition: { cells: [], currentTurnPlayer: 'player-1', placementsRemaining: 1 },
 };
@@ -16,7 +17,7 @@ test('all sandbox dialogs follow open and reset forms on reopening', async ({ mo
     const modals = (open: boolean) => <>
         <SandboxWelcomeModal open={open} onStartCleanBoard={() => {}} onImportPosition={() => {}} />
         <SandboxImportModal open={false} onClose={() => {}} onImport={() => {}} />
-        <SandboxShareModal open={false} initialName={null} gamePosition={position.gamePosition} onClose={() => {}} onCreate={() => {}} />
+        <SandboxShareModal originalPositionId={null} open={false} initialName={null} gamePosition={position.gamePosition} onClose={() => {}} onCreate={() => {}} />
         <SandboxBotFactoryModal open={false} selectedEngine={null} onClose={() => {}} onSelectBotFactory={() => {}} />
     </>;
     const component = await mount(modals(false));
@@ -40,7 +41,7 @@ test('all sandbox dialogs follow open and reset forms on reopening', async ({ mo
     await expect(page.getByRole('textbox')).toHaveValue('');
     await importer.unmount();
 
-    const shareModal = (open: boolean) => <SandboxShareModal open={open} initialName="Opening" gamePosition={position.gamePosition} onClose={() => {}} onCreate={() => {}} />;
+    const shareModal = (open: boolean) => <SandboxShareModal originalPositionId={null} open={open} initialName="Opening" gamePosition={position.gamePosition} onClose={() => {}} onCreate={() => {}} />;
     const sharer = await mount(shareModal(true));
     await page.getByRole('textbox').fill('Changed');
     await sharer.update(shareModal(false));
@@ -82,7 +83,7 @@ test('share creates a named position and copies its link', async ({ mount, page,
         request = route.request().postDataJSON();
         return route.fulfill({ json: { id: position.id, name: position.name } });
     });
-    await mount(<SandboxShareModal
+    await mount(<SandboxShareModal originalPositionId={null}
         open
         gamePosition={position.gamePosition}
         initialName={null}
@@ -93,7 +94,7 @@ test('share creates a named position and copies its link', async ({ mount, page,
     await page.getByRole('textbox').fill(' Opening ');
     await page.getByRole('button', { name: 'Create Link' }).click();
     await expect.poll(() => created).toEqual({ id: position.id, name: position.name });
-    expect(request).toEqual({ name: position.name, gamePosition: position.gamePosition });
+    expect(request).toEqual({ name: position.name, gamePosition: position.gamePosition, originalPositionId: null });
     const url = await page.getByRole('textbox').inputValue();
     expect(url).toContain('/sandbox/abc1234');
     await page.getByRole('button', { name: 'Copy Link' }).click();
@@ -139,7 +140,7 @@ test('sharing can exclude placement history and resets the option on reopening',
         request = route.request().postDataJSON();
         return route.fulfill({ json: { id: position.id, name: position.name } });
     });
-    const modal = (open: boolean) => <SandboxShareModal open={open} gamePosition={gamePosition}
+    const modal = (open: boolean) => <SandboxShareModal open={open} gamePosition={gamePosition} originalPositionId="src1234"
         initialName={position.name} onClose={() => {}} onCreate={() => {}} />;
     const component = await mount(modal(true));
     const checkbox = page.getByRole('checkbox', { name: 'Include placement history' });
@@ -147,7 +148,7 @@ test('sharing can exclude placement history and resets the option on reopening',
     await checkbox.uncheck();
     await page.getByRole('button', { name: 'Create Link' }).click();
     await expect(page.getByRole('button', { name: 'Copy Link' })).toBeVisible();
-    expect(request).toEqual({ name: position.name, gamePosition: { ...gamePosition, initialCellCount: 1 } });
+    expect(request).toEqual({ name: position.name, originalPositionId: "src1234", gamePosition: { ...gamePosition, initialCellCount: 1 } });
     await component.update(modal(false));
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await component.update(modal(true));

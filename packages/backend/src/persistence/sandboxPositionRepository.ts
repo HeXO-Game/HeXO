@@ -18,6 +18,7 @@ const zSandboxPositionDocument = z.object({
     id: zSandboxPositionId,
     name: zSandboxPositionName,
     gamePosition: zSandboxGamePosition,
+    originalPositionId: zSandboxPositionId.nullable(),
     createdAt: z.number().int()
         .nonnegative(),
     createdBy: z.string().trim()
@@ -32,6 +33,7 @@ type CreateSandboxPositionDocumentParams = {
     id: string;
     name: SandboxPositionName;
     gamePosition: SandboxGamePosition;
+    originalPositionId: string | null;
     createdAt: number;
     createdBy: string;
 };
@@ -39,6 +41,7 @@ type CreateSandboxPositionDocumentParams = {
 export type LoadedSandboxPositionRecord = {
     name: SandboxPositionName;
     gamePosition: SandboxGamePosition;
+    originalPositionId: string | null;
 };
 
 @injectable()
@@ -59,6 +62,7 @@ export class SandboxPositionRepository {
             id: params.id,
             name: params.name,
             gamePosition: params.gamePosition,
+            originalPositionId: params.originalPositionId,
             createdAt: params.createdAt,
             createdBy: params.createdBy,
             loadCount: 0,
@@ -90,6 +94,7 @@ export class SandboxPositionRepository {
         return {
             name: parsedDocument.name,
             gamePosition: parsedDocument.gamePosition,
+            originalPositionId: parsedDocument.originalPositionId,
         };
     }
 
@@ -104,6 +109,7 @@ export class SandboxPositionRepository {
         return {
             name: parsedDocument.name,
             gamePosition: parsedDocument.gamePosition,
+            originalPositionId: parsedDocument.originalPositionId,
         };
     }
 

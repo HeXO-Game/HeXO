@@ -13,7 +13,7 @@ export async function fetchSandboxPosition(positionId: string) {
     return await fetchJson<SandboxPositionResponse>(`/api/sandbox-positions/${encodeURIComponent(positionId)}`);
 }
 
-export async function createSandboxPosition(name: string, gamePosition: SandboxGamePosition) {
+export async function createSandboxPosition(name: string, gamePosition: SandboxGamePosition, originalPositionId: string | null) {
     return await fetchJson<CreateSandboxPositionResponse>(`/api/sandbox-positions`, {
         method: `POST`,
         headers: {
@@ -22,6 +22,7 @@ export async function createSandboxPosition(name: string, gamePosition: SandboxG
         body: JSON.stringify({
             name,
             gamePosition,
+            originalPositionId,
         } satisfies CreateSandboxPositionRequest),
     });
 }
