@@ -4,7 +4,7 @@
     "private": true,
     "type": "module",
     "dependencies": {
-        "zod": "^4.3.6"
+        "zod": "^4.5.4"
     },
     "exports": {
         ".": {
@@ -13,6 +13,6 @@
         }
     },
     "devDependencies": {
-        "@openreplay/tracker": "^18.0.6"
+        "@openreplay/tracker": "^18.1.5"
     }
 }
