@@ -23,6 +23,7 @@ export class ServerConfig {
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     readonly logLevel = process.env.LOG_LEVEL?.trim() || (process.env.NODE_ENV === `production` ? `info` : `debug`);
     readonly prettyLogs = this.parseBoolean(process.env.LOG_PRETTY) ?? process.env.NODE_ENV !== `production`;
+    readonly botApiEnabled = this.parseBoolean(process.env.BOT_API_ENABLED) ?? false;
 
     toLogObject() {
         return {
@@ -35,6 +36,7 @@ export class ServerConfig {
             discordClientConfigured: true,
             logLevel: this.logLevel,
             prettyLogs: this.prettyLogs,
+            botApiEnabled: this.botApiEnabled,
         };
     }
 

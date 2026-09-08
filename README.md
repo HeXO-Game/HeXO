@@ -60,6 +60,7 @@ DISCORD_CLIENT_SECRET=replace-me
 Optional backend environment variables:
 
 - `ALLOWED_ORIGINS`
+- `BOT_API_ENABLED` (default `false`; enables the bot account endpoints)
 - `FRONTEND_DIST_PATH`
 - `LOG_LEVEL`
 - `LOG_PRETTY`

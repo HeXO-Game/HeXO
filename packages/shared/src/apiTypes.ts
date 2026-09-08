@@ -200,3 +200,35 @@ export const zUpdateAccountPreferencesRequest = z.object({
 export type UpdateAccountPreferencesRequest = z.infer<
     typeof zUpdateAccountPreferencesRequest
 >;
+
+export const zBotAccount = z.object({
+    id: zIdentifier,
+    username: z.string(),
+    image: z.string().nullable(),
+    ownerProfileId: zIdentifier,
+    createdAt: zTimestamp,
+    tokenRotatedAt: zTimestamp.nullable(),
+});
+export type BotAccount = z.infer<typeof zBotAccount>;
+
+export const zBotAccountsResponse = z.object({
+    bots: z.array(zBotAccount),
+    limit: z.number().int().positive(),
+});
+export type BotAccountsResponse = z.infer<typeof zBotAccountsResponse>;
+
+export const zCreateBotAccountRequest = z.object({
+    username: zNormalizedUsername,
+});
+export type CreateBotAccountRequest = z.infer<
+    typeof zCreateBotAccountRequest
+>;
+
+/** The plaintext token is returned only here and on rotation; it is stored hashed. */
+export const zBotAccountTokenResponse = z.object({
+    bot: zBotAccount,
+    token: z.string(),
+});
+export type BotAccountTokenResponse = z.infer<
+    typeof zBotAccountTokenResponse
+>;
