@@ -986,5 +986,15 @@
   "startingPositionSet": "시작 포지션 설정됨",
   "placement": "배치",
   "board": "보드",
-  "import": "가져오기"
+  "import": "가져오기",
+  "botAccounts": "봇 계정",
+  "botAccountsDescription": "봇 계정을 사용하면 프로그램이 봇 API를 통해 대신 플레이할 수 있습니다. 최대 {{limit}}개까지 보유할 수 있습니다.",
+  "botName": "봇 이름",
+  "createBot": "봇 만들기",
+  "rotateToken": "토큰 재발급",
+  "delete": "삭제",
+  "botTokenShownOnce": "이 토큰을 지금 복사하세요. 다시 표시되지 않습니다:",
+  "botAccount": "봇",
+  "botAccountsUnavailable": "봇 계정을 불러올 수 없습니다.",
+  "botTokenIssued": "{{date}}에 발급된 토큰"
 }
