@@ -228,7 +228,7 @@ export const zGameState = z.object({
 });
 export type GameState = z.infer<typeof zGameState>;
 export type Game = {
-    history: GameState[];
+    history: readonly GameState[];
     currentStateIndex: number;
 };
 
@@ -255,16 +255,21 @@ export const zSandboxPositionCell = z.object({
 });
 export type SandboxPositionCell = z.infer<typeof zSandboxPositionCell>;
 
-export const zSandboxGamePosition = z.object({
-    // Leading cells form a fixed starting board; omitted for legacy full-history positions.
-    initialCellCount: z.number().int().nonnegative().optional(),
-    cells: z.array(zSandboxPositionCell),
-    currentTurnPlayer: zSandboxPlayerSlot,
-    placementsRemaining: z.number().int().min(1).max(2),
-}).refine(position => (position.initialCellCount ?? 0) <= position.cells.length, {
-    message: `Initial cell count cannot exceed the number of cells.`,
-    path: [`initialCellCount`],
-});
+export const zSandboxGamePosition = z
+    .object({
+        // Leading cells form a fixed starting board; omitted for legacy full-history positions.
+        initialCellCount: z.number().int().nonnegative().optional(),
+        cells: z.array(zSandboxPositionCell),
+        currentTurnPlayer: zSandboxPlayerSlot,
+        placementsRemaining: z.number().int().min(1).max(2),
+    })
+    .refine(
+        (position) => (position.initialCellCount ?? 0) <= position.cells.length,
+        {
+            message: `Initial cell count cannot exceed the number of cells.`,
+            path: [`initialCellCount`],
+        },
+    );
 export type SandboxGamePosition = z.infer<typeof zSandboxGamePosition>;
 
 export type ApplyGameMoveParams = {
@@ -333,11 +338,10 @@ export function initializeGameState(
     gameState.currentTurnExpiresInMs = null;
     gameState.playerTimeRemainingMs = {};
 
-    const resolvedStartingPlayerId =
-        startingPlayerId && playerIds.includes(startingPlayerId)
-            ? startingPlayerId
-            : (playerIds[0] ?? null);
-    setCurrentTurn(gameState, resolvedStartingPlayerId, 1);
+    if (!startingPlayerId || !playerIds.includes(startingPlayerId)) {
+        startingPlayerId = playerIds[0];
+    }
+    setCurrentTurn(gameState, startingPlayerId, 1);
 }
 
 export function getPublicGameState(gameState: GameState): GameState {
@@ -849,11 +853,20 @@ export type AdminUserStatsWindow = z.infer<typeof zAdminUserStatsWindow>;
 export const zAdminTimelineRange = z.enum([`24h`, `7d`, `14d`, `30d`]);
 export type AdminTimelineRange = z.infer<typeof zAdminTimelineRange>;
 export const ADMIN_TIMELINE_WINDOWS = {
-    '24h': { durationMs: 24 * 60 * 60 * 1000, bucketSizeMs: 5 * 60 * 1000 },
-    '7d': { durationMs: 7 * 24 * 60 * 60 * 1000, bucketSizeMs: 10 * 60 * 1000 },
-    '14d': { durationMs: 14 * 24 * 60 * 60 * 1000, bucketSizeMs: 60 * 60 * 1000 },
-    '30d': { durationMs: 30 * 24 * 60 * 60 * 1000, bucketSizeMs: 60 * 60 * 1000 },
-} satisfies Record<AdminTimelineRange, { durationMs: number; bucketSizeMs: number }>;
+    "24h": { durationMs: 24 * 60 * 60 * 1000, bucketSizeMs: 5 * 60 * 1000 },
+    "7d": { durationMs: 7 * 24 * 60 * 60 * 1000, bucketSizeMs: 10 * 60 * 1000 },
+    "14d": {
+        durationMs: 14 * 24 * 60 * 60 * 1000,
+        bucketSizeMs: 60 * 60 * 1000,
+    },
+    "30d": {
+        durationMs: 30 * 24 * 60 * 60 * 1000,
+        bucketSizeMs: 60 * 60 * 1000,
+    },
+} satisfies Record<
+    AdminTimelineRange,
+    { durationMs: number; bucketSizeMs: number }
+>;
 
 export const zAdminActiveGamesTimelinePoint = z.object({
     timestamp: zTimestamp,

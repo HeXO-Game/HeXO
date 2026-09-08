@@ -1,6 +1,6 @@
 import { Input } from '@/components/ui/input';
 import { Field, FieldLabel } from '@/components/ui/field';
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import SandboxOverlay from './SandboxOverlay';
 import { Button } from '@/components/ui/button';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { SandboxGamePosition, CreateSandboxPositionResponse } from '@ih3t/shared';
@@ -94,17 +94,17 @@ function SandboxShareModal({
     const isLinkReady = Boolean(shareUrl);
 
     return (
-        <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-            <DialogContent showCloseButton={false} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto text-white w-[calc(100%-2rem)] max-w-xl rounded-[1.5rem] border border-violet-300/20 bg-slate-900/95 px-6 py-6 shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
-                <DialogTitle className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
+        <SandboxOverlay open={open} label={t('sharePosition', 'Share Position')} onClose={onClose}
+            className="text-white w-full max-w-xl rounded-[1.5rem] border border-violet-300/20 bg-slate-900/95 px-6 py-6 shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
+                <h2 className="mt-3 text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
                     {t('sharePosition', 'Share Position')}
-                </DialogTitle>
+                </h2>
 
-                <DialogDescription className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
+                <p className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
                     {isLinkReady
                         ? <>{t('sandboxLinkReady', 'Sandbox Link Ready')}. {t('anyoneWithThisLinkCanLoadTheCurrentSandboxPositionOntoTheirOwnBoard', 'Anyone with this link can load the current sandbox position onto their own board.')}</>
                         : t('giveThisSandboxPositionANameBeforeCreatingTheShareLink', 'Give this sandbox position a name before creating the share link.')}
-                </DialogDescription>
+                </p>
 
                 {!isLinkReady && (
                     <Field className="mt-6 text-left" data-invalid={Boolean(visibleErrorMessage)}>
@@ -203,8 +203,7 @@ function SandboxShareModal({
                         </Button>
                     )}
                 </div>
-            </DialogContent>
-        </Dialog>
+        </SandboxOverlay>
     );
 }
 

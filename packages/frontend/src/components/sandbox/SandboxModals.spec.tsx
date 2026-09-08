@@ -154,3 +154,23 @@ test('sharing can exclude placement history and resets the option on reopening',
     await component.update(modal(true));
     await expect(checkbox).toBeChecked();
 });
+
+
+test('sandbox overlays leave the surrounding page interactive', async ({ mount, page }) => {
+    let outsideClicks = 0;
+    await mount(
+        <div>
+            <button onClick={() => { outsideClicks++; }}>Outside sandbox</button>
+            <div data-testid="sandbox" style={{ position: 'relative', height: 600, width: 700 }}>
+                <SandboxWelcomeModal open onStartCleanBoard={() => {}} onImportPosition={() => {}} />
+                <SandboxImportModal open onClose={() => {}} onImport={() => {}} />
+            </div>
+        </div>,
+    );
+    const overlay = page.getByRole('dialog', { name: 'Import Position' });
+    await expect(overlay).toBeVisible();
+    await expect(page.getByTestId('sandbox').getByRole('dialog', { name: 'Import Position' })).toBeVisible();
+    await page.getByRole('button', { name: 'Outside sandbox' }).click();
+    await expect.poll(() => outsideClicks).toBe(1);
+    await expect(overlay).toBeVisible();
+});

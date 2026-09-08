@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import SandboxOverlay from './SandboxOverlay';
 import { Button } from '@/components/ui/button';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { SandboxGamePosition, SandboxPlayerSlot } from '@ih3t/shared';
@@ -68,15 +68,15 @@ function SandboxImportModal({ open, onClose, onImport }: Readonly<SandboxImportM
     const visibleErrorMessage = parsedNotation.error ?? importMutation.error?.message;
 
     return (
-        <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && !importMutation.isPending) onClose(); }}>
-            <DialogContent showCloseButton={false} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto text-white w-[calc(100%-2rem)] max-w-lg rounded-3xl border border-sky-300/20 bg-slate-900/95 px-6 py-6 shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
-                <DialogTitle className="text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
+        <SandboxOverlay open={open} label={t('importPosition', 'Import Position')} onClose={() => { if (!importMutation.isPending) onClose(); }}
+            className="text-white w-full max-w-lg rounded-3xl border border-sky-300/20 bg-slate-900/95 px-6 py-6 shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
+                <h2 className="text-3xl font-black uppercase tracking-[0.08em] text-white sm:text-4xl">
                     {t('importPosition', 'Import Position')}
-                </DialogTitle>
+                </h2>
 
-                <DialogDescription className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
+                <p className="mt-4 text-sm leading-6 text-slate-200 sm:text-base">
                     {t('pasteSandboxIdLinkOrNotation', 'Paste a sandbox ID or link, rectilinear or BKE notation, combined notation, HTTTX, or a Tyto analysis link.')}
-                </DialogDescription>
+                </p>
 
                 <Field className="mt-6">
                     <FieldLabel htmlFor={inputId}>{t('position', 'Position')}</FieldLabel>
@@ -153,8 +153,7 @@ function SandboxImportModal({ open, onClose, onImport }: Readonly<SandboxImportM
                         {importMutation.isPending ? `Loading...` : `Import`}
                     </Button>
                 </div>
-            </DialogContent>
-        </Dialog>
+        </SandboxOverlay>
     );
 }
 

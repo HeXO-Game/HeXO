@@ -3,6 +3,7 @@ import type { GameState, SessionPlayer } from '@ih3t/shared';
 
 import { getPlayerLabel, getPlayerColor } from '../../utils/gameBoard';
 import { useTranslation } from 'react-i18next'
+import { cn } from "cn";
 
 type SandboxTurnIndicatorProps = {
     theme?: BoardTheme
@@ -11,6 +12,7 @@ type SandboxTurnIndicatorProps = {
     winnerId: string | null
     botPlayerIds?: readonly string[]
     isBotThinking?: boolean
+    className?: string
 };
 
 function SandboxTurnIndicator({
@@ -20,6 +22,7 @@ function SandboxTurnIndicator({
     winnerId,
     botPlayerIds = [],
     isBotThinking = false,
+    className
 }: Readonly<SandboxTurnIndicatorProps>) {
     const { t } = useTranslation()
     const playerIds = players.map(player => player.id);
@@ -51,7 +54,7 @@ function SandboxTurnIndicator({
     }
 
     return (
-        <div className="absolute left-3 right-3 top-3 flex justify-center md:left-0 md:right-0">
+        <div className={cn("absolute left-3 right-3 top-3 flex justify-center md:left-0 md:right-0", className)}>
             <div className="pointer-events-none w-full max-w-xl rounded-md bg-slate-800/95 px-3 py-2.5 shadow-xxl sm:px-4">
                 <div
                     className="flex min-w-0 items-center gap-2 text-sm font-bold uppercase tracking-[0.16em] leading-tight"

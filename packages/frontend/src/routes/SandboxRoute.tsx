@@ -18,7 +18,7 @@ import { useLocation, useNavigate, useParams } from 'react-router';
 import { toast } from 'react-toastify';
 
 import GameBoardView from '../components/game-screen/GameBoardView';
-import PageMetadata, { DEFAULT_PAGE_TITLE } from '../components/PageMetadata';
+import PageMetadata, { DEFAULT_PAGE_TITLE, type PageMetadataProps } from '../components/PageMetadata';
 import SandboxBotFactoryModal from '../components/sandbox/SandboxBotFactoryModal';
 import SandboxBotPanel from '../components/sandbox/SandboxBotPanel';
 import SandboxHud from '../components/sandbox/SandboxHud';
@@ -46,6 +46,7 @@ import { formatPlacementSummary, formatSandboxPlayerLabel } from '../utils/route
 import type { SandboxRouteState } from './sandboxRouteState';
 import BoardHelp from "../components/game-screen/BoardHelp.tsx";
 import { useTranslation } from 'react-i18next'
+import { cn } from 'cn';
 
 type SandboxSnapshot = {
     positionName: string | null
@@ -53,7 +54,7 @@ type SandboxSnapshot = {
     gameHistory: GameState[]
 };
 
-const SANDBOX_PLAYERS: SessionPlayer[] = [
+const kSandboxSessionPlayers: SessionPlayer[] = [
     {
         id: `sandbox-player-1`,
         displayName: `Player 1`,
@@ -72,16 +73,15 @@ const SANDBOX_PLAYERS: SessionPlayer[] = [
     },
 ];
 
-function createSandboxGameState(player?: SandboxPlayerSlot) {
-    return createStartedGameState(SANDBOX_PLAYERS.map((player) => player.id), getSandboxPlayerId(player ?? `player-1`));
+function createSandboxGameState() {
+    return createStartedGameState(
+        kSandboxSessionPlayers.map(player => player.id),
+        kSandboxSessionPlayers[0].id
+    );
 }
 
 function getSandboxPlayerSlot(playerId: string): SandboxPlayerSlot {
-    return playerId === SANDBOX_PLAYERS[0].id ? `player-1` : `player-2`;
-}
-
-function getSandboxPlayerId(playerSlot: SandboxPlayerSlot): string {
-    return playerSlot === `player-1` ? SANDBOX_PLAYERS[0].id : SANDBOX_PLAYERS[1].id;
+    return playerId === kSandboxSessionPlayers[0].id ? `player-1` : `player-2`;
 }
 
 function buildSandboxGamePosition(gameState: GameState, initialCellCount = 0): SandboxGamePosition | null {
@@ -115,6 +115,9 @@ function createSandboxSnapshot(gameState: GameState, gameHistory: readonly GameS
     };
 }
 
+const kEmptyGameHistory = [createSandboxGameState()] as const;
+const kCleanBoardState = createSandboxGameState();
+
 function SandboxRoute() {
     const { t } = useTranslation()
     const location = useLocation();
@@ -124,17 +127,16 @@ function SandboxRoute() {
 
     const { positionId: routePositionId } = useParams<{ positionId?: string }>();
 
-    const emptyGameHistory = [createSandboxGameState()];
-    const [game, setGame] = useState<Game>({ history: emptyGameHistory, currentStateIndex: 0 });
+    const [game, setGame] = useState<Game>({ history: kEmptyGameHistory, currentStateIndex: 0 });
     const currentGameState = game.history[game.currentStateIndex];
 
-    const setGameHistory = (gameHistory: GameState[]) => setGame({
+    const setGameHistory = (gameHistory: readonly GameState[]) => setGame({
         history: gameHistory, currentStateIndex: gameHistory.length - 1,
     });
-    const resetGame = () => setGame({ history: emptyGameHistory, currentStateIndex: 0 });
+    const resetGame = () => setGame({ history: kEmptyGameHistory, currentStateIndex: 0 });
 
     const [loadedSnapshot, setLoadedSnapshot] = useState<SandboxSnapshot | null>(null);
-    const [isWelcomeModalVisible, setIsWelcomeModalVisible] = useState(() => !routePositionId);
+    const [isWelcomeModalVisible, setIsWelcomeModalVisible] = useState(true);
     const [isWinnerBannerVisible, setIsWinnerBannerVisible] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [isImportingPosition, setIsImportingPosition] = useState(false);
@@ -144,7 +146,6 @@ function SandboxRoute() {
     const [selectedBotEngine, setSelectedBotEngine] = useState<SandboxBotEngineInfo | null>(null);
     const [isBotPanelOpen, setIsBotPanelOpen] = useState(false);
     const [isBotFactoryModalOpen, setIsBotFactoryModalOpen] = useState(false);
-    const cleanBoardStateRef = useRef(createSandboxGameState());
     const previousCellCountRef = useRef(currentGameState.cells.length);
     const lastLoadedPositionIdRef = useRef<string | null>(null);
     const lastInvalidRoutePositionIdRef = useRef<string | null>(null);
@@ -154,7 +155,7 @@ function SandboxRoute() {
     const routeInitialPosition = routeState?.initialPosition ?? null;
     const routeBotGame = routeState?.botGame ?? null;
 
-    const initialBoardState = loadedSnapshot?.gameState ?? cleanBoardStateRef.current;
+    const initialBoardState = loadedSnapshot?.gameState ?? kCleanBoardState;
     const initialBoardStateKey = getSandboxPositionKey(initialBoardState);
     const currentBoardStateKey = getSandboxPositionKey(currentGameState);
     const currentPositionName = loadedSnapshot?.positionName ?? null;
@@ -164,7 +165,7 @@ function SandboxRoute() {
     const isCurrentTurnBotControlled = currentTurnPlayerSlot
         ? botPlayerModes[currentTurnPlayerSlot] === `bot`
         : false;
-    const localPlayerId = currentGameState.winner === null && !isCurrentTurnBotControlled ? (currentGameState.currentTurnPlayerId ?? SANDBOX_PLAYERS[0].id)
+    const localPlayerId = currentGameState.winner === null && !isCurrentTurnBotControlled ? (currentGameState.currentTurnPlayerId ?? kSandboxSessionPlayers[0].id)
         : null;
     const canUndo = game.currentStateIndex > 0;
     const canRedo = game.currentStateIndex !== game.history.length - 1;
@@ -178,7 +179,7 @@ function SandboxRoute() {
         = Boolean(normalizedRoutePositionId)
         && routeSandboxPositionQuery.isFetching
         && lastLoadedPositionIdRef.current !== normalizedRoutePositionId;
-    const botPlayerIds = SANDBOX_PLAYERS
+    const botPlayerIds = kSandboxSessionPlayers
         .filter((player) => botPlayerModes[getSandboxPlayerSlot(player.id)] === `bot`)
         .map((player) => player.id);
     const isSandboxInteractionEnabled
@@ -275,7 +276,7 @@ function SandboxRoute() {
     ) {
         const { gameState: nextGameState, gameHistory: nextGameHistory } = restoreSandboxPosition(
             isNotation ? { ...gamePosition, initialCellCount: gamePosition.cells.length } : gamePosition,
-            [SANDBOX_PLAYERS[0].id, SANDBOX_PLAYERS[1].id],
+            [kSandboxSessionPlayers[0].id, kSandboxSessionPlayers[1].id],
         );
         const nextLoadedSnapshot = createSandboxSnapshot(nextGameState, nextGameHistory, positionName);
 
@@ -298,7 +299,7 @@ function SandboxRoute() {
     }
 
     function handlePlaceCell(x: number, y: number) {
-        const actingPlayerId = currentGameState.currentTurnPlayerId ?? SANDBOX_PLAYERS[0].id;
+        const actingPlayerId = currentGameState.currentTurnPlayerId ?? kSandboxSessionPlayers[0].id;
         const nextGameState = cloneGameState(currentGameState);
 
         try {
@@ -464,7 +465,7 @@ function SandboxRoute() {
             : createSandboxGameState();
         const nextGameHistory = loadedSnapshot
             ? loadedSnapshot.gameHistory.map((entry) => cloneGameState(entry))
-            : emptyGameHistory;
+            : kEmptyGameHistory;
 
         previousCellCountRef.current = nextGameState.cells.length;
         setGameHistory(nextGameHistory);
@@ -519,11 +520,6 @@ function SandboxRoute() {
         }
     };
 
-    const closeImportModal = () => {
-        setIsImportModalOpen(false);
-        setIsWelcomeModalVisible(true);
-    };
-
     const closeShareModal = () => {
         setIsShareModalOpen(false);
     };
@@ -549,84 +545,85 @@ function SandboxRoute() {
         setBotTimeoutMs(sanitizeSandboxBotTimeoutMs(nextTimeoutMs));
     };
 
+    let pageMetadata: Partial<PageMetadataProps>;
+    if (routeSandboxPositionQuery.data) {
+        pageMetadata = {
+            title: t('nameSandboxModeDefault_page_title', '{{name}} • Sandbox Mode • {{DEFAULT_PAGE_TITLE}}', { name: routeSandboxPositionQuery.data.name, DEFAULT_PAGE_TITLE }),
+            description: t('openTheNameSandboxPositionWithLengthPlacedValVal2ToMoveWithVal3', 'Open the "{{name}}" sandbox position with {{length}} placed {{val}}. {{val2}} to move with {{val3}}.', { name: routeSandboxPositionQuery.data.name, length: routeSandboxPositionQuery.data.gamePosition.cells.length, val: routeSandboxPositionQuery.data.gamePosition.cells.length === 1 ? `cell` : `cells`, val2: formatSandboxPlayerLabel(routeSandboxPositionQuery.data.gamePosition.currentTurnPlayer), val3: formatPlacementSummary(routeSandboxPositionQuery.data.gamePosition.placementsRemaining) }),
+            ogType: `article`,
+        };
+    } else if (normalizedRoutePositionId && routeSandboxPositionQuery.error) {
+        pageMetadata = {
+            title: t('sandboxPositionNotFoundDefault_page_title', 'Sandbox Position Not Found • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+            description: t('theRequestedSandboxPositionCouldNotBeFoundOpenSandboxModeToStartFromACleanBoardOrImportAnotherSharedPosition', 'The requested sandbox position could not be found. Open sandbox mode to start from a clean board or import another shared position.'),
+            ogType: `article`,
+            robots: 'noindex, nofollow',
+        };
+    } else {
+        pageMetadata = {
+            title: t('sandboxModeDefault_page_title', 'Sandbox Mode • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
+            description: t('playHexoLocallyWithNoClockControlBothSidesImportSharedPositionsAndExploreCustomBoards', 'Play HeXO locally with no clock, control both sides, import shared positions, and explore custom boards.'),
+        };
+    }
+
     return (
         <>
-            <PageMetadata
-                {...(routeSandboxPositionQuery.data
-                    ? {
-                        title: t('nameSandboxModeDefault_page_title', '{{name}} • Sandbox Mode • {{DEFAULT_PAGE_TITLE}}', { name: routeSandboxPositionQuery.data.name, DEFAULT_PAGE_TITLE }),
-                        description: t('openTheNameSandboxPositionWithLengthPlacedValVal2ToMoveWithVal3', 'Open the "{{name}}" sandbox position with {{length}} placed {{val}}. {{val2}} to move with {{val3}}.', { name: routeSandboxPositionQuery.data.name, length: routeSandboxPositionQuery.data.gamePosition.cells.length, val: routeSandboxPositionQuery.data.gamePosition.cells.length === 1 ? `cell` : `cells`, val2: formatSandboxPlayerLabel(routeSandboxPositionQuery.data.gamePosition.currentTurnPlayer), val3: formatPlacementSummary(routeSandboxPositionQuery.data.gamePosition.placementsRemaining) }),
-                        ogType: `article` as const,
-                    }
-                    : normalizedRoutePositionId && routeSandboxPositionQuery.error
-                        ? {
-                            title: t('sandboxPositionNotFoundDefault_page_title', 'Sandbox Position Not Found • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
-                            description: t('theRequestedSandboxPositionCouldNotBeFoundOpenSandboxModeToStartFromACleanBoardOrImportAnotherSharedPosition', 'The requested sandbox position could not be found. Open sandbox mode to start from a clean board or import another shared position.'),
-                            ogType: `article` as const,
-                            robots: 'noindex, nofollow' as const,
-                        }
-                        : {
-                            title: t('sandboxModeDefault_page_title', 'Sandbox Mode • {{DEFAULT_PAGE_TITLE}}', { DEFAULT_PAGE_TITLE }),
-                            description: t('playHexoLocallyWithNoClockControlBothSidesImportSharedPositionsAndExploreCustomBoards', 'Play HeXO locally with no clock, control both sides, import shared positions, and explore custom boards.'),
-                        })}
-            />
+            <PageMetadata {...pageMetadata} />
 
             <div className="relative h-full w-full overflow-hidden text-white">
-                {!isWelcomeModalVisible && !isImportModalOpen && (
-                    <GameBoardView
-                        gameState={currentGameState}
-                        highlightedCells={currentGameState.winner?.cells ?? `turn`}
-                        localPlayerId={localPlayerId}
-                        interactionEnabled={isSandboxInteractionEnabled}
-                        onPlaceCell={currentGameState.winner === null ? handlePlaceCell : undefined}
-                        theme={getBoardTheme(accountPreferences?.preferences.boardTheme)}
-                        controller={boardController}
-                    />
-                )}
+                <GameBoardView
+                    gameState={currentGameState}
+                    highlightedCells={currentGameState.winner?.cells ?? `turn`}
+                    localPlayerId={localPlayerId}
 
-                {!isWelcomeModalVisible && !isImportModalOpen && (
-                    <BoardHelp showUndoRedoShortcuts={true} />
-                )}
+                    interactionEnabled={isSandboxInteractionEnabled}
+
+                    onPlaceCell={currentGameState.winner === null ? handlePlaceCell : undefined}
+                    theme={getBoardTheme(accountPreferences?.preferences.boardTheme)}
+                    controller={boardController}
+                />
+
+                <BoardHelp showUndoRedoShortcuts={true} />
 
                 <div className="pointer-events-none absolute inset-0">
                     <div className="flex h-full flex-col justify-between gap-4">
-                        {!isWelcomeModalVisible && !isImportModalOpen && (
-                            <SandboxTurnIndicator
-                                theme={getBoardTheme(accountPreferences?.preferences.boardTheme)}
-                                players={SANDBOX_PLAYERS.map(player => ({
-                                    ...player,
-                                    displayName: botPlayerIds.includes(player.id) ? t('botAsDisplayname', 'Bot as {{displayName}}', { displayName: player.displayName }) : player.displayName,
-                                }))}
-                                botPlayerIds={botPlayerIds}
-                                gameState={currentGameState}
-                                winnerId={currentGameState.winner?.playerId ?? null}
-                                isBotThinking={isBotBusy}
-                            />
-                        )}
+                        <SandboxTurnIndicator
+                            theme={getBoardTheme(accountPreferences?.preferences.boardTheme)}
+                            players={kSandboxSessionPlayers.map(player => ({
+                                ...player,
+                                displayName: botPlayerIds.includes(player.id) ? t('botAsDisplayname', 'Bot as {{displayName}}', { displayName: player.displayName }) : player.displayName,
+                            }))}
+                            botPlayerIds={botPlayerIds}
+                            gameState={currentGameState}
+                            winnerId={currentGameState.winner?.playerId ?? null}
+                            isBotThinking={isBotBusy}
 
-                        {!isWelcomeModalVisible && !isImportModalOpen && (
-                            <SandboxWinnerBanner
-                                theme={getBoardTheme(accountPreferences?.preferences.boardTheme)}
-                                players={SANDBOX_PLAYERS}
-                                gameState={currentGameState}
-                                winnerId={isWinnerBannerVisible ? currentGameState.winner?.playerId ?? null : null}
-                                onResetBoard={resetSandbox}
-                                onExploreBoard={() => setIsWinnerBannerVisible(false)}
-                            />
-                        )}
+                            className={cn(
+                                isWelcomeModalVisible && "hidden"
+                            )}
+                        />
+
+                        <SandboxWinnerBanner
+                            theme={getBoardTheme(accountPreferences?.preferences.boardTheme)}
+                            players={kSandboxSessionPlayers}
+                            gameState={currentGameState}
+                            winnerId={isWinnerBannerVisible ? currentGameState.winner?.playerId ?? null : null}
+                            onResetBoard={resetSandbox}
+                            onExploreBoard={() => setIsWinnerBannerVisible(false)}
+                            className={cn(
+                                isWelcomeModalVisible && "hidden"
+                            )}
+                        />
 
                         <SandboxWelcomeModal
                             open={isWelcomeModalVisible}
                             onStartCleanBoard={() => setIsWelcomeModalVisible(false)}
-                            onImportPosition={() => {
-                                setIsWelcomeModalVisible(false);
-                                setIsImportModalOpen(true);
-                            }}
+                            onImportPosition={() => setIsImportModalOpen(true)}
                         />
 
                         <SandboxImportModal
                             open={isImportModalOpen}
-                            onClose={closeImportModal}
+                            onClose={() => setIsImportModalOpen(false)}
                             onImport={handlePositionImported}
                         />
 

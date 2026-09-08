@@ -4,6 +4,7 @@ import type { GameState, SessionPlayer } from '@ih3t/shared';
 
 import { getPlayerLabel, getPlayerColor } from '../../utils/gameBoard';
 import { useTranslation } from 'react-i18next'
+import { cn } from "cn";
 
 type SandboxWinnerBannerProps = {
     theme?: BoardTheme
@@ -12,6 +13,7 @@ type SandboxWinnerBannerProps = {
     winnerId: string | null
     onResetBoard: () => void
     onExploreBoard: () => void
+    className?: string
 };
 
 function SandboxWinnerBanner({
@@ -21,6 +23,7 @@ function SandboxWinnerBanner({
     winnerId,
     onResetBoard,
     onExploreBoard,
+    className
 }: Readonly<SandboxWinnerBannerProps>) {
     const { t } = useTranslation()
     if (!winnerId) {
@@ -33,7 +36,7 @@ function SandboxWinnerBanner({
     const winnerColor = getPlayerColor(gameState.playerTiles, winnerId, theme);
 
     return (
-        <div className="absolute inset-0 flex items-center justify-center px-4">
+        <div className={cn("absolute inset-0 flex items-center justify-center px-4", className)}>
             <div className="pointer-events-auto w-full max-w-xl rounded-[1.75rem] border border-amber-300/35 bg-slate-900/95 px-6 py-6 text-center shadow-[0_30px_120px_rgba(15,23,42,0.58)] backdrop-blur sm:px-8 sm:py-8">
                 <div className="min-w-0">
                     <div className="mt-5">

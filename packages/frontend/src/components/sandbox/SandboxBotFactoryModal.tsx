@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import SandboxOverlay from './SandboxOverlay';
 import { Button } from '@/components/ui/button';
 import { kSandboxBotEngines, SandboxBotEngineInfo } from "../../sandbox/botLoader";
 import { useTranslation } from 'react-i18next'
@@ -23,8 +23,8 @@ function SandboxBotFactoryModal({
     const { t } = useTranslation()
 
     return (
-        <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-            <DialogContent showCloseButton={false} className="block max-h-[calc(100dvh-2rem)] overflow-y-auto w-[calc(100%-2rem)] max-w-lg text-white rounded-[1.75rem] border border-sky-300/18 bg-[linear-gradient(155deg,rgba(15,23,42,0.97),rgba(17,24,39,0.95)_55%,rgba(30,41,59,0.92))] px-5 py-5 shadow-[0_30px_120px_rgba(2,6,23,0.58)]">
+        <SandboxOverlay open={open} label={t('chooseAnEngine', 'Choose an engine')} onClose={onClose}
+            className="w-full max-w-lg text-white rounded-[1.75rem] border border-sky-300/18 bg-[linear-gradient(155deg,rgba(15,23,42,0.97),rgba(17,24,39,0.95)_55%,rgba(30,41,59,0.92))] px-5 py-5 shadow-[0_30px_120px_rgba(2,6,23,0.58)]">
                 <div className="absolute -right-10 -top-14 h-24 w-24 rounded-full bg-sky-400/12 blur-3xl" />
                 <div className="absolute -left-8 bottom-0 h-20 w-20 rounded-full bg-emerald-300/10 blur-3xl" />
 
@@ -34,13 +34,13 @@ function SandboxBotFactoryModal({
                             {t('botEngine', 'Bot Engine')}
                         </div>
 
-                        <DialogTitle className="mt-1 text-2xl font-bold text-white">
+                        <h2 className="mt-1 text-2xl font-bold text-white">
                             {t('chooseAnEngine', 'Choose an engine')}
-                        </DialogTitle>
+                        </h2>
 
-                        <DialogDescription className="mt-2 text-sm leading-6 text-slate-300">
+                        <p className="mt-2 text-sm leading-6 text-slate-300">
                             {t('pickWhichBotEngineTheBotShouldUse', 'Pick which bot engine the bot should use.')}
-                        </DialogDescription>
+                        </p>
                     </div>
 
                     <Button
@@ -105,8 +105,7 @@ function SandboxBotFactoryModal({
                     </Button>
                 )}
 
-            </DialogContent>
-        </Dialog>
+        </SandboxOverlay>
     );
 }
 
