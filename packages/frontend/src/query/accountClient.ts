@@ -2,6 +2,9 @@ import type {
     AccountPreferences,
     AccountPreferencesResponse,
     AccountResponse,
+    BotAccountsResponse,
+    BotAccountTokenResponse,
+    CreateBotAccountRequest,
     ProfileResponse,
     ProfileStatisticsResponse,
     UpdateAccountPreferencesRequest,
@@ -9,7 +12,7 @@ import type {
 } from "@ih3t/shared";
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchJson } from "./apiClient";
+import { fetchJson, fetchOptionalJson } from "./apiClient";
 import { queryClient } from "./queryClient";
 import { queryKeys } from "./queryDefinitions";
 
@@ -126,3 +129,50 @@ export function useQueryProfileStatistics(
         staleTime: 60 * 1000,
     });
 }
+
+/** Resolves to null while BOT_API_ENABLED is off, because the routes are not mounted. */
+async function fetchAccountBots() {
+    return await fetchOptionalJson<BotAccountsResponse>(`/api/account/bots`);
+}
+
+export function useQueryAccountBots(options?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: queryKeys.accountBots,
+        queryFn: fetchAccountBots,
+        enabled: options?.enabled,
+    });
+}
+
+export async function createAccountBot(username: string) {
+    const response = await fetchJson<BotAccountTokenResponse>(`/api/account/bots`, {
+        method: `POST`,
+        headers: {
+            "Content-Type": `application/json`,
+        },
+        body: JSON.stringify({ username } satisfies CreateBotAccountRequest),
+    });
+
+    await queryClient.invalidateQueries({ queryKey: queryKeys.accountBots });
+    return response;
+}
+
+export async function rotateAccountBotToken(botId: string) {
+    const response = await fetchJson<BotAccountTokenResponse>(
+        `/api/account/bots/${encodeURIComponent(botId)}/token`,
+        { method: `POST` },
+    );
+
+    await queryClient.invalidateQueries({ queryKey: queryKeys.accountBots });
+    return response;
+}
+
+export async function deleteAccountBot(botId: string) {
+    const response = await fetchJson<BotAccountsResponse>(
+        `/api/account/bots/${encodeURIComponent(botId)}`,
+        { method: `DELETE` },
+    );
+
+    queryClient.setQueryData(queryKeys.accountBots, response);
+    return response;
+}
+
