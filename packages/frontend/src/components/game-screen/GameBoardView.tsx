@@ -16,6 +16,7 @@ type GameBoardViewProps = {
     highlightedCells: `last` | `turn` | HexCoordinate[]
     localPlayerId: string | null
     interactionEnabled: boolean
+    editCells?: boolean
     viewInteractionEnabled?: boolean
     focusRecentMovesOnNumberKeys?: boolean
     onPlaceCell?: (x: number, y: number) => void
@@ -33,6 +34,7 @@ function GameBoardView({
     highlightedCells,
     localPlayerId,
     interactionEnabled,
+    editCells = false,
     viewInteractionEnabled,
     focusRecentMovesOnNumberKeys = false,
     onPlaceCell,
@@ -45,8 +47,7 @@ function GameBoardView({
     const [inspectedRecentMoveDistance, setInspectedRecentMoveDistance] = useState<number | null>(null);
     const canPlaceCell = interactionEnabled
         && Boolean(onPlaceCell)
-        && localPlayerId !== null
-        && gameState.currentTurnPlayerId === localPlayerId;
+        && (editCells || (localPlayerId !== null && gameState.currentTurnPlayerId === localPlayerId));
 
     const boardState = useMemo(
         () => toRendererBoardState(gameState),
@@ -132,6 +133,7 @@ function GameBoardView({
                 options={{
                     viewInteractions: viewInteractionEnabled ?? interactionEnabled,
                     cellInteractions: canPlaceCell,
+                    editCells,
                     theme,
                 }}
 

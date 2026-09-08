@@ -412,7 +412,7 @@ class CanvasBoardRenderer {
         }
 
         const target = this.screenToCell(clientX, clientY);
-        if (!target || this.cells.get(getCellKey(target.x, target.y))?.status !== `empty`) {
+        if (!target || (!this.options.editCells && this.cells.get(getCellKey(target.x, target.y))?.status !== `empty`)) {
             return;
         }
 
@@ -563,6 +563,7 @@ class CanvasBoardRenderer {
 export type GameBoardRenderOptions = {
     viewInteractions: boolean,
     cellInteractions: boolean,
+    editCells?: boolean,
     theme?: BoardTheme,
 }
 

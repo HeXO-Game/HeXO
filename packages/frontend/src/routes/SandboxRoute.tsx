@@ -1,4 +1,4 @@
-import { BoardController, getRenderableCellCount } from '@ih3t/board-renderer';
+import { BoardController } from '@ih3t/board-renderer';
 import {
     applyGameMove,
     cloneGameState,
@@ -22,6 +22,9 @@ import PageMetadata, { DEFAULT_PAGE_TITLE, type PageMetadataProps } from '../com
 import SandboxBotFactoryModal from '../components/sandbox/SandboxBotFactoryModal';
 import SandboxBotPanel from '../components/sandbox/SandboxBotPanel';
 import SandboxHud from '../components/sandbox/SandboxHud';
+import SandboxPlacementPanel from '../components/sandbox/SandboxPlacementPanel';
+import SandboxBoardPanel from '../components/sandbox/SandboxBoardPanel';
+import SandboxPositionPanel from '../components/sandbox/SandboxPositionPanel';
 import SandboxImportModal from '../components/sandbox/SandboxImportModal';
 import SandboxShareModal from '../components/sandbox/SandboxShareModal';
 import SandboxTurnIndicator from '../components/sandbox/SandboxTurnIndicator';
@@ -37,11 +40,12 @@ import {
     sanitizeSandboxBotTimeoutMs,
 } from '../sandbox/sandboxBotSettings';
 import { type SandboxImportPosition } from '../sandbox/sandboxNotation';
+import { editSandboxCell, type SandboxPlacementMode } from '../sandbox/sandboxPlacement';
 import { restoreSandboxPosition } from '../sandbox/sandboxPosition';
 import { normalizeSandboxPositionId } from '../sandbox/sandboxPositionId';
 import { useSandboxBotController } from '../sandbox/useSandboxBotController';
 import { playTilePlacedSound } from '../soundEffects';
-import { getBoardTheme, toRendererBoardState } from '../utils/gameBoard';
+import { getBoardTheme } from '../utils/gameBoard';
 import { formatPlacementSummary, formatSandboxPlayerLabel } from '../utils/routeMetadata';
 import type { SandboxRouteState } from './sandboxRouteState';
 import BoardHelp from "../components/game-screen/BoardHelp.tsx";
@@ -127,13 +131,13 @@ function SandboxRoute() {
 
     const { positionId: routePositionId } = useParams<{ positionId?: string }>();
 
-    const [game, setGame] = useState<Game>({ history: kEmptyGameHistory, currentStateIndex: 0 });
+    const [game, setGame] = useState<Game>({ history: [...kEmptyGameHistory], currentStateIndex: 0 });
     const currentGameState = game.history[game.currentStateIndex];
 
     const setGameHistory = (gameHistory: readonly GameState[]) => setGame({
-        history: gameHistory, currentStateIndex: gameHistory.length - 1,
+        history: [...gameHistory], currentStateIndex: gameHistory.length - 1,
     });
-    const resetGame = () => setGame({ history: kEmptyGameHistory, currentStateIndex: 0 });
+    const resetGame = () => setGame({ history: [...kEmptyGameHistory], currentStateIndex: 0 });
 
     const [loadedSnapshot, setLoadedSnapshot] = useState<SandboxSnapshot | null>(null);
     const [isWelcomeModalVisible, setIsWelcomeModalVisible] = useState(true);
@@ -144,7 +148,8 @@ function SandboxRoute() {
     const [botPlayerModes, setBotPlayerModes] = useState(() => createDefaultSandboxPlayerModes());
     const [botTimeoutMs, setBotTimeoutMs] = useState(() => readSandboxBotTimeoutMs());
     const [selectedBotEngine, setSelectedBotEngine] = useState<SandboxBotEngineInfo | null>(null);
-    const [isBotPanelOpen, setIsBotPanelOpen] = useState(false);
+    const [placementMode, setPlacementMode] = useState<SandboxPlacementMode>('turn');
+    const [hasBoardEdits, setHasBoardEdits] = useState(false);
     const [isBotFactoryModalOpen, setIsBotFactoryModalOpen] = useState(false);
     const previousCellCountRef = useRef(currentGameState.cells.length);
     const lastLoadedPositionIdRef = useRef<string | null>(null);
@@ -191,7 +196,8 @@ function SandboxRoute() {
         && !isBotFactoryModalOpen
         && !isRoutePositionLoading;
     const isBotPlaybackEnabled
-        = !isWelcomeModalVisible
+        = placementMode === 'turn'
+        && !isWelcomeModalVisible
         && !isImportModalOpen
         && !isImportingPosition
         && !isShareModalOpen
@@ -215,17 +221,6 @@ function SandboxRoute() {
     const isBotBusy = sandboxBotController.isThinking;
 
     const boardController = useMemo(() => new BoardController(), []);
-    const rendererBoardState = useMemo(
-        () => toRendererBoardState(
-            currentGameState,
-        ),
-        [currentGameState],
-    );
-    const renderableCellCount = useMemo(
-        () => getRenderableCellCount(rendererBoardState),
-        [rendererBoardState],
-    );
-
     function applyBotMoves(moves: readonly HexCoordinate[]) {
         if (moves.length === 0) {
             return;
@@ -284,9 +279,10 @@ function SandboxRoute() {
         lastLoadedPositionIdRef.current = positionId;
         lastInvalidRoutePositionIdRef.current = null;
 
+        setPlacementMode('turn');
+        setHasBoardEdits(false);
         setLoadedSnapshot(nextLoadedSnapshot);
         setGameHistory(nextGameHistory);
-        setIsBotPanelOpen(false);
         setIsBotFactoryModalOpen(false);
         setIsWinnerBannerVisible(false);
         setIsImportModalOpen(false);
@@ -299,6 +295,14 @@ function SandboxRoute() {
     }
 
     function handlePlaceCell(x: number, y: number) {
+        if (placementMode !== 'turn') {
+            const nextState = editSandboxCell(currentGameState, placementMode, x, y,
+                [kSandboxSessionPlayers[0].id, kSandboxSessionPlayers[1].id]);
+            setGameHistory([...game.history.slice(0, game.currentStateIndex + 1), nextState]);
+            setHasBoardEdits(true);
+            setIsWinnerBannerVisible(false);
+            return;
+        }
         const actingPlayerId = currentGameState.currentTurnPlayerId ?? kSandboxSessionPlayers[0].id;
         const nextGameState = cloneGameState(currentGameState);
 
@@ -407,7 +411,6 @@ function SandboxRoute() {
             ?? null,
         );
         setIsWelcomeModalVisible(false);
-        setIsBotPanelOpen(false);
         setIsBotFactoryModalOpen(false);
         setIsWinnerBannerVisible(false);
         setIsImportModalOpen(false);
@@ -459,20 +462,28 @@ function SandboxRoute() {
         navigate, normalizedRoutePositionId, routeSandboxPositionQuery.error,
     ]);
 
-    const resetSandbox = () => {
-        const nextGameState = loadedSnapshot
+    const resetSandbox = (clearPosition = false) => {
+        if (clearPosition && !loadedSnapshot) return;
+        setHasBoardEdits(false);
+        const nextGameState = !clearPosition && loadedSnapshot
             ? cloneGameState(loadedSnapshot.gameState)
             : createSandboxGameState();
-        const nextGameHistory = loadedSnapshot
+        const nextGameHistory = !clearPosition && loadedSnapshot
             ? loadedSnapshot.gameHistory.map((entry) => cloneGameState(entry))
             : kEmptyGameHistory;
 
         previousCellCountRef.current = nextGameState.cells.length;
         setGameHistory(nextGameHistory);
-        setIsBotPanelOpen(false);
         setIsBotFactoryModalOpen(false);
         setIsWinnerBannerVisible(false);
         setIsShareModalOpen(false);
+        if (clearPosition) {
+            setLoadedSnapshot(null);
+            lastLoadedPositionIdRef.current = null;
+            setIsImportingPosition(false);
+            setIsImportModalOpen(false);
+            void navigate('/sandbox', { replace: true, state: null });
+        }
     };
 
     const undoMove = () => {
@@ -497,6 +508,18 @@ function SandboxRoute() {
         setGame({ ...game, currentStateIndex: game.currentStateIndex + 1 });
         closeShareModal();
     };
+
+    useEffect(() => {
+        if (isWelcomeModalVisible || isImportModalOpen) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.defaultPrevented || event.target instanceof HTMLElement &&
+                (event.target.closest('input, textarea, select, [role="dialog"], [data-slot="accordion-trigger"]') || event.target.isContentEditable)) return;
+            if (event.key === 'ArrowLeft' && canUndo) undoMove();
+            else if (event.key === 'ArrowRight' && canRedo) redoMove();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [canUndo, canRedo, undoMove, redoMove, isWelcomeModalVisible, isImportModalOpen]);
 
     const handlePositionShared = (response: CreateSandboxPositionResponse) => {
         setLoadedSnapshot(createSandboxSnapshot(currentGameState, game.history, response.name));
@@ -530,7 +553,6 @@ function SandboxRoute() {
             setBotPlayerModes(createDefaultSandboxPlayerModes());
         }
         setIsBotFactoryModalOpen(false);
-        setIsBotPanelOpen(true);
     };
 
     const handleBotPlayerModeChange = (playerSlot: SandboxPlayerSlot, nextMode: `human` | `bot`) => {
@@ -538,7 +560,6 @@ function SandboxRoute() {
             ...currentModes,
             [playerSlot]: nextMode,
         }));
-        setIsBotPanelOpen(true);
     };
 
     const handleBotTimeoutMsChange = (nextTimeoutMs: number) => {
@@ -578,7 +599,8 @@ function SandboxRoute() {
 
                     interactionEnabled={isSandboxInteractionEnabled}
 
-                    onPlaceCell={currentGameState.winner === null ? handlePlaceCell : undefined}
+                    editCells={placementMode !== 'turn'}
+                    onPlaceCell={placementMode !== 'turn' || currentGameState.winner === null ? handlePlaceCell : undefined}
                     theme={getBoardTheme(accountPreferences?.preferences.boardTheme)}
                     controller={boardController}
                 />
@@ -608,7 +630,7 @@ function SandboxRoute() {
                             players={kSandboxSessionPlayers}
                             gameState={currentGameState}
                             winnerId={isWinnerBannerVisible ? currentGameState.winner?.playerId ?? null : null}
-                            onResetBoard={resetSandbox}
+                            onResetBoard={() => resetSandbox()}
                             onExploreBoard={() => setIsWinnerBannerVisible(false)}
                             className={cn(
                                 isWelcomeModalVisible && "hidden"
@@ -629,7 +651,7 @@ function SandboxRoute() {
 
                         <SandboxShareModal
                             open={isShareModalOpen}
-                            gamePosition={buildSandboxGamePosition(currentGameState, game.history[0].cells.length)}
+                            gamePosition={buildSandboxGamePosition(currentGameState, hasBoardEdits ? currentGameState.cells.length : game.history[0].cells.length)}
                             initialName={currentPositionName}
                             originalPositionId={loadedSnapshot ? lastLoadedPositionIdRef.current : null}
                             onClose={closeShareModal}
@@ -643,43 +665,55 @@ function SandboxRoute() {
                             onSelectBotFactory={handleSelectBotEngine}
                         />
 
-                        {!isWelcomeModalVisible && !isImportModalOpen && (
+                        {!isWelcomeModalVisible && (
                             <div className="absolute inset-0 flex flex-col justify-end pointer-events-none">
-                                <SandboxBotPanel
-                                    isOpen={isBotPanelOpen}
-                                    onOpen={() => setIsBotPanelOpen(true)}
-                                    onClose={() => setIsBotPanelOpen(false)}
-
-                                    selectedFactory={selectedBotEngine ?? null}
-
-                                    botDisplayName={sandboxBotController.botDisplayName}
-                                    botCapabilities={sandboxBotController.botCapabilities}
-                                    botAvailabilityMessage={sandboxBotController.botAvailabilityMessage}
-                                    botErrorMessage={sandboxBotController.lastErrorMessage}
-
-                                    botPlayerModes={botPlayerModes}
-                                    currentTurnPlayerSlot={currentTurnPlayerSlot}
-                                    botTimeoutMs={botTimeoutMs}
-                                    isBotThinking={isBotBusy}
-                                    isCurrentTurnBotControlled={isCurrentTurnBotControlled}
-                                    onChangeBotEngine={() => setIsBotFactoryModalOpen(true)}
-                                    onBotPlayerModeChange={handleBotPlayerModeChange}
-                                    onBotTimeoutMsChange={handleBotTimeoutMsChange}
-                                />
-
                                 <SandboxHud
-                                    positionName={currentPositionName}
-                                    isAuthenticated={isAuthenticated}
-                                    occupiedCellCount={currentGameState.cells.length}
-                                    renderableCellCount={renderableCellCount}
-                                    onResetBoard={resetSandbox}
-                                    onUndo={undoMove}
-                                    onRedo={redoMove}
-                                    onResetView={() => boardController.resetView()}
-                                    canUndo={canUndo}
-                                    canRedo={canRedo}
-                                    onSharePosition={() => setIsShareModalOpen(true)}
-                                    canSharePosition={canSharePosition && !isShareModalOpen}
+                                    positionName={loadedSnapshot?.positionName ?? null}
+                                    placementPanel={
+                                        <SandboxPlacementPanel
+                                            placementMode={placementMode}
+                                            onPlacementModeChange={(mode) => { setPlacementMode(mode); setIsWinnerBannerVisible(false); }}
+                                        />
+                                    }
+                                    boardPanel={
+                                        <SandboxBoardPanel
+                                            onResetBoard={() => resetSandbox()}
+                                            onUndo={undoMove}
+                                            onRedo={redoMove}
+                                            onResetView={() => boardController.resetView()}
+                                            canUndo={canUndo}
+                                            canRedo={canRedo}
+                                        />
+                                    }
+                                    positionPanel={
+                                        <SandboxPositionPanel
+                                            hasPosition={loadedSnapshot !== null}
+                                            onImportPosition={() => setIsImportModalOpen(true)}
+                                            onResetPosition={() => resetSandbox(true)}
+                                            onSharePosition={() => setIsShareModalOpen(true)}
+                                            canSharePosition={canSharePosition && !isShareModalOpen}
+                                        />
+                                    }
+                                    botPanel={
+                                        <SandboxBotPanel
+
+                                            selectedFactory={selectedBotEngine ?? null}
+
+                                            botDisplayName={sandboxBotController.botDisplayName}
+                                            botCapabilities={sandboxBotController.botCapabilities}
+                                            botAvailabilityMessage={sandboxBotController.botAvailabilityMessage}
+                                            botErrorMessage={sandboxBotController.lastErrorMessage}
+
+                                            botPlayerModes={botPlayerModes}
+                                            currentTurnPlayerSlot={currentTurnPlayerSlot}
+                                            botTimeoutMs={botTimeoutMs}
+                                            isBotThinking={isBotBusy}
+                                            isCurrentTurnBotControlled={isCurrentTurnBotControlled}
+                                            onChangeBotEngine={() => setIsBotFactoryModalOpen(true)}
+                                            onBotPlayerModeChange={handleBotPlayerModeChange}
+                                            onBotTimeoutMsChange={handleBotTimeoutMsChange}
+                                        />
+                                    }
                                 />
                             </div>
                         )}
