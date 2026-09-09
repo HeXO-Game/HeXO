@@ -37,8 +37,24 @@ async function fetchFinishedGame(gameId: string) {
     return await fetchJson<FinishedGameRecord>(`/api/finished-games/${encodeURIComponent(gameId)}`);
 }
 
-async function fetchPublicProfileGames(profileId: string) {
-    return await fetchJson<FinishedGamesPage>(`/api/profiles/${encodeURIComponent(profileId)}/games`);
+async function fetchPublicProfileGames(
+    profileId: string,
+    page: number,
+    baseTimestamp: number,
+    ratedFilter: FinishedGamesRatedFilter,
+) {
+    const params = new URLSearchParams({
+        page: String(page),
+        pageSize: `10`,
+        baseTimestamp: String(baseTimestamp),
+    });
+    if (ratedFilter !== `all`) {
+        params.set(`rated`, ratedFilter);
+    }
+
+    return await fetchJson<FinishedGamesPage>(
+        `/api/profiles/${encodeURIComponent(profileId)}/games?${params.toString()}`,
+    );
 }
 
 export async function invalidateFinishedGames() {
@@ -76,15 +92,20 @@ export function useQueryFinishedGame(gameId: string | null, options?: { enabled?
     });
 }
 
-export function useQueryPublicProfileGames(profileId: string | null) {
+export function useQueryPublicProfileGames(
+    profileId: string | null,
+    page = 1,
+    baseTimestamp = Date.now(),
+    ratedFilter: FinishedGamesRatedFilter = `all`,
+) {
     return useQuery({
-        queryKey: queryKeys.profileRecentGames(profileId),
+        queryKey: [...queryKeys.profileRecentGames(profileId), page, ratedFilter],
         queryFn: () => {
             if (!profileId) {
                 throw new Error(`Missing profile id.`);
             }
 
-            return fetchPublicProfileGames(profileId);
+            return fetchPublicProfileGames(profileId, page, baseTimestamp, ratedFilter);
         },
         enabled: Boolean(profileId),
         staleTime: 60 * 1000,

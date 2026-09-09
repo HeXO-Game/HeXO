@@ -192,7 +192,7 @@ export class FrontendSsrRenderer {
             }
 
             if (recentGames) {
-                queryClient.setQueryData(queryKeys.profileRecentGames(profileId), recentGames);
+                queryClient.setQueryData([...queryKeys.profileRecentGames(profileId), 1, `all`], recentGames);
             }
         }
 
