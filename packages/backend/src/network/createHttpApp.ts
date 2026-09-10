@@ -173,6 +173,13 @@ export class HttpApplication {
 
             const normalizedError = error instanceof Error ? error : new Error(`Unexpected server error`);
             setHttpErrorContext(res, { err: normalizedError });
+
+            if ((error as { type?: unknown }).type === `entity.parse.failed`) {
+                /* express.json() could not parse the body: the caller's mistake, not ours. */
+                res.status(400).json({ error: `Request body is not valid JSON.` });
+                return;
+            }
+
             res.status(500).json({ error: `Internal server error.` });
         });
 
