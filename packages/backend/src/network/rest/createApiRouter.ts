@@ -1,6 +1,8 @@
 import {
     type AccountPreferencesResponse,
     type AccountResponse,
+    type BotAccountsResponse,
+    type BotAccountTokenResponse,
     type AdminBroadcastMessageResponse,
     type AdminServerSettingsResponse,
     type AdminShutdownControlResponse,
@@ -19,6 +21,7 @@ import {
     zAdminScheduleShutdownRequest,
     zAdminUpdateServerSettingsRequest,
     zAdminUpdateUserPermissionsRequest,
+    zCreateBotAccountRequest,
     zCreateSandboxPositionRequest,
     zCreateTournamentRequest,
     zLobbyFirstPlayer,
@@ -44,6 +47,8 @@ import { ServerSettingsService } from '../../admin/serverSettingsService';
 import { ServerShutdownService } from '../../admin/serverShutdownService';
 import { type AccountUserProfile, AuthRepository } from '../../auth/authRepository';
 import { AuthService } from '../../auth/authService';
+import { BotAccountService, MAX_BOTS_PER_OWNER } from '../../bots/botAccountService';
+import { ServerConfig } from '../../config/serverConfig';
 import { DevSupportService } from '../../dev/devSupportService';
 import { SandboxPositionService } from '../../sandbox/sandboxPositionService';
 import { SessionError, SessionManager } from '../../session/sessionManager';
@@ -136,6 +141,8 @@ export class ApiRouter {
         @inject(SessionManager) private readonly sessionManager: SessionManager,
         @inject(SandboxPositionService) private readonly sandboxPositionService: SandboxPositionService,
         @inject(TournamentService) private readonly tournamentService: TournamentService,
+        @inject(ServerConfig) private readonly serverConfig: ServerConfig,
+        @inject(BotAccountService) private readonly botAccountService: BotAccountService,
     ) {
         const router = express.Router();
 
@@ -204,6 +211,44 @@ export class ApiRouter {
             };
             res.json(response);
         });
+
+        if (this.serverConfig.botApiEnabled) {
+            router.get(`/account/bots`, async (req, res) => {
+                await this.handleBotAccountRequest(req, res, async (owner) => {
+                    const response: BotAccountsResponse = {
+                        bots: await this.botAccountService.listBots(owner),
+                        limit: MAX_BOTS_PER_OWNER,
+                    };
+                    res.json(response);
+                });
+            });
+
+            router.post(`/account/bots`, express.json(), async (req, res) => {
+                await this.handleBotAccountRequest(req, res, async (owner) => {
+                    const { username } = zCreateBotAccountRequest.parse(req.body);
+                    const response: BotAccountTokenResponse = await this.botAccountService.createBot(owner, username);
+                    res.status(201).json(response);
+                });
+            });
+
+            router.post(`/account/bots/:botId/token`, async (req, res) => {
+                await this.handleBotAccountRequest(req, res, async (owner) => {
+                    const response: BotAccountTokenResponse = await this.botAccountService.rotateToken(owner, req.params.botId);
+                    res.json(response);
+                });
+            });
+
+            router.delete(`/account/bots/:botId`, async (req, res) => {
+                await this.handleBotAccountRequest(req, res, async (owner) => {
+                    await this.botAccountService.deleteBot(owner, req.params.botId);
+                    const response: BotAccountsResponse = {
+                        bots: await this.botAccountService.listBots(owner),
+                        limit: MAX_BOTS_PER_OWNER,
+                    };
+                    res.json(response);
+                });
+            });
+        }
 
         router.get(`/profiles/:profileId`, async (req, res) => {
             const response = await this.apiQueryService.getProfile(req.params.profileId);
@@ -1139,5 +1184,28 @@ export class ApiRouter {
         }
 
         return user;
+    }
+
+    private async handleBotAccountRequest(
+        req: express.Request,
+        res: express.Response,
+        handle: (owner: AccountUserProfile) => Promise<void>,
+    ): Promise<void> {
+        const owner = await this.authService.getUserFromRequest(req);
+        if (!owner) {
+            res.status(401).json({ error: `Sign in with Discord to manage bots.` });
+            return;
+        }
+
+        try {
+            await handle(owner);
+        } catch (error: unknown) {
+            if (error instanceof ApiRequestError) {
+                res.status(error.statusCode).json({ error: error.message });
+                return;
+            }
+
+            throw error;
+        }
     }
 }

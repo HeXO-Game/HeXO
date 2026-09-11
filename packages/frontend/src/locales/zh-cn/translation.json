@@ -986,5 +986,15 @@
   "startingPositionSet": "已设置起始局面",
   "placement": "落子",
   "board": "棋盘",
-  "import": "导入"
+  "import": "导入",
+  "botAccounts": "机器人账户",
+  "botAccountsDescription": "机器人账户允许程序通过机器人 API 代替你进行游戏。你最多可以拥有 {{limit}} 个。",
+  "botName": "机器人名称",
+  "createBot": "创建机器人",
+  "rotateToken": "轮换令牌",
+  "delete": "删除",
+  "botTokenShownOnce": "请立即复制此令牌，它不会再次显示：",
+  "botAccount": "机器人",
+  "botAccountsUnavailable": "无法加载机器人账户。",
+  "botTokenIssued": "令牌签发于 {{date}}"
 }

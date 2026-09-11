@@ -5,6 +5,8 @@ import { ServerSettingsService } from '../admin/serverSettingsService';
 import { ServerShutdownService } from '../admin/serverShutdownService';
 import { AuthRepository } from '../auth/authRepository';
 import { AuthService } from '../auth/authService';
+import { BotAccountRepository } from '../bots/botAccountRepository';
+import { BotAccountService } from '../bots/botAccountService';
 import { ServerConfig } from '../config/serverConfig';
 import { DevSupportService } from '../dev/devSupportService';
 import { EloHandler } from '../elo/eloHandler';
@@ -47,6 +49,8 @@ export function createAppContainer(): DependencyContainer {
     appContainer.registerSingleton(AuthRepository);
     appContainer.registerSingleton(AuthService);
     appContainer.registerSingleton(DevSupportService);
+    appContainer.registerSingleton(BotAccountRepository);
+    appContainer.registerSingleton(BotAccountService);
     appContainer.registerSingleton(EloRepository);
     appContainer.registerSingleton(EloHandler);
     appContainer.registerSingleton(ServerSettingsRepository);

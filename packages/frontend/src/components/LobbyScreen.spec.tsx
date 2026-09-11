@@ -20,6 +20,7 @@ const signedInAccount: AccountProfile = {
   email: 'hex@example.com',
   image: 'https://cdn.discordapp.com/avatars/253552199546830848/fbf05fc7f4e899179daae5185c913703.png',
   role: 'user',
+  kind: 'human',
   permissions: [],
   registeredAt: 1_700_000_000_000,
   lastActiveAt: 1_700_000_500_000,

@@ -7,6 +7,7 @@ export type FinishedGamesRatedFilter = `all` | `rated` | `unrated`;
 export const queryKeys = {
     account: [`account`] as const,
     accountPreferences: [`account`, `preferences`] as const,
+    accountBots: [`account`, `bots`] as const,
 
     profile: (profileId: string | null) => [`profile`, profileId ?? `unknown`] as const,
     profileRecentGames: (profileId: string | null) => [

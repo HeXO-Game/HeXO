@@ -986,5 +986,15 @@
   "startingPositionSet": "Starting position set",
   "placement": "Placement",
   "board": "Board",
-  "import": "Import"
+  "import": "Import",
+  "botAccounts": "Bot Accounts",
+  "botAccountsDescription": "Bot accounts let a program play on your behalf through the bot API. You can own up to {{limit}}.",
+  "botName": "Bot name",
+  "createBot": "Create bot",
+  "rotateToken": "Rotate token",
+  "delete": "Delete",
+  "botTokenShownOnce": "Copy this token now, it is not shown again:",
+  "botAccount": "Bot",
+  "botAccountsUnavailable": "Bot accounts could not be loaded.",
+  "botTokenIssued": "Token issued {{date}}"
 }
