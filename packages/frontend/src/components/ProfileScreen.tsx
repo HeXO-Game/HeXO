@@ -586,7 +586,9 @@ function ProfileScreen({
                                                 </span>
 
                                                 <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-200">
-                                                    {t('discordAccount', 'Discord Account')}
+                                                    {account.kind === `bot`
+                                                        ? t('botAccount', 'Bot')
+                                                        : t('discordAccount', 'Discord Account')}
                                                 </span>
                                             </div>
 

@@ -986,5 +986,15 @@
   "startingPositionSet": "Startposition festgelegt",
   "placement": "Platzierung",
   "board": "Brett",
-  "import": "Importieren"
+  "import": "Importieren",
+  "botAccounts": "Bot-Konten",
+  "botAccountsDescription": "Mit Bot-Konten kann ein Programm über die Bot-API für dich spielen. Du kannst bis zu {{limit}} besitzen.",
+  "botName": "Bot-Name",
+  "createBot": "Bot erstellen",
+  "rotateToken": "Token erneuern",
+  "delete": "Löschen",
+  "botTokenShownOnce": "Kopiere diesen Token jetzt, er wird nicht erneut angezeigt:",
+  "botAccount": "Bot",
+  "botAccountsUnavailable": "Bot-Konten konnten nicht geladen werden.",
+  "botTokenIssued": "Token ausgestellt am {{date}}"
 }
