@@ -23,6 +23,9 @@ export class ServerConfig {
     // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     readonly logLevel = process.env.LOG_LEVEL?.trim() || (process.env.NODE_ENV === `production` ? `info` : `debug`);
     readonly prettyLogs = this.parseBoolean(process.env.LOG_PRETTY) ?? process.env.NODE_ENV !== `production`;
+    readonly botApiEnabled = this.parseBoolean(process.env.BOT_API_ENABLED) ?? false;
+    /* Concurrent games the house bots play in total, and the size of their engine worker pool. */
+    readonly houseBotMaxGames = this.parsePositiveInteger(process.env.HOUSE_BOT_MAX_GAMES) ?? 2;
 
     toLogObject() {
         return {
@@ -35,6 +38,8 @@ export class ServerConfig {
             discordClientConfigured: true,
             logLevel: this.logLevel,
             prettyLogs: this.prettyLogs,
+            botApiEnabled: this.botApiEnabled,
+            houseBotMaxGames: this.houseBotMaxGames,
         };
     }
 
@@ -75,6 +80,11 @@ export class ServerConfig {
         }
 
         return resolve(value);
+    }
+
+    private parsePositiveInteger(value: string | undefined): number | null {
+        const parsed = Number.parseInt(value?.trim() ?? ``, 10);
+        return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
     }
 
     private parseBoolean(value: string | undefined): boolean | null {

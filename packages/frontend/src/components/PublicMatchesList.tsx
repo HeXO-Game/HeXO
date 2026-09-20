@@ -11,8 +11,9 @@ import RatedFilterTabs from './RatedFilterTabs';
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { useQueryAccount } from '../query/accountClient';
-import { PlusIcon, ScanSearchIcon } from 'lucide-react';
+import { BotIcon, PlusIcon, ScanSearchIcon } from 'lucide-react';
 import { useQueryServerShutdown } from '../query/serverClient';
+import BotBadge from './BotBadge';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next'
 import i18next from 'i18next'
@@ -23,6 +24,8 @@ type PublicMatchesListProps = {
 
     onJoinGame: (sessionId: string) => void
     onCreate: (options: Partial<LobbyOptions>) => void
+    /** The empty state's way to a game when nobody is around; absent while there is no house bot. */
+    onPlayBot?: () => void
 
     className?: string
 };
@@ -128,6 +131,7 @@ function PlayerMatchup({ session }: { session: LobbyInfo }) {
         return (
             <div className="text-xl font-bold text-white sm:text-2xl">
                 {formatPlayerLabel(playerOne, session.rated)}
+                {playerOne.isBot && <BotBadge />}
             </div>
         );
     } else {
@@ -135,6 +139,7 @@ function PlayerMatchup({ session }: { session: LobbyInfo }) {
             <div className="text-xl font-bold text-white sm:text-2xl min-w-0 gap-2 flex flex-row justify-start">
                 <span className="shrink min-w-0 whitespace-nowrap overscroll-contain overflow-hidden text-ellipsis">
                     {formatPlayerLabel(playerOne, session.rated)}
+                    {playerOne.isBot && <BotBadge />}
                 </span>
 
                 <span className="whitespace-nowrap">
@@ -143,6 +148,7 @@ function PlayerMatchup({ session }: { session: LobbyInfo }) {
 
                 <span className="shrink min-w-0 whitespace-nowrap overscroll-contain overflow-hidden text-ellipsis text-right">
                     {formatPlayerLabel(playerTwo, session.rated)}
+                    {playerTwo.isBot && <BotBadge />}
                 </span>
             </div>
         );
@@ -241,6 +247,7 @@ export default function PublicMatchesList({
 
     onJoinGame,
     onCreate,
+    onPlayBot,
 }: Readonly<PublicMatchesListProps>) {
     const { t } = useTranslation()
     const navigate = useNavigate();
@@ -334,6 +341,16 @@ export default function PublicMatchesList({
                             >
                                 <PlusIcon className={"mr-2"} /> {t('createMatch', 'Create Match')}
                             </Button>
+                            {onPlayBot && (
+                                <Button
+                                    variant={"secondary"}
+                                    className={"w-full sm:w-40"}
+                                    onClick={onPlayBot}
+                                    disabled={shutdown !== null}
+                                >
+                                    <BotIcon className={"mr-2"} /> {t('playVsBot', 'Play vs Bot')}
+                                </Button>
+                            )}
                         </div>
                     </div>
                 ) : (

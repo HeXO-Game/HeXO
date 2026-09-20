@@ -5,6 +5,12 @@ import { ServerSettingsService } from '../admin/serverSettingsService';
 import { ServerShutdownService } from '../admin/serverShutdownService';
 import { AuthRepository } from '../auth/authRepository';
 import { AuthService } from '../auth/authService';
+import { BotAccountRepository } from '../bots/botAccountRepository';
+import { BotAccountService } from '../bots/botAccountService';
+import { BotSeatManager } from '../bots/botSeatManager';
+import { EngineDriver } from '../bots/drivers/engineDriver';
+import { EngineWorkerPool } from '../bots/drivers/engineWorkerPool';
+import { HouseBotService } from '../bots/houseBotService';
 import { ServerConfig } from '../config/serverConfig';
 import { DevSupportService } from '../dev/devSupportService';
 import { EloHandler } from '../elo/eloHandler';
@@ -47,6 +53,16 @@ export function createAppContainer(): DependencyContainer {
     appContainer.registerSingleton(AuthRepository);
     appContainer.registerSingleton(AuthService);
     appContainer.registerSingleton(DevSupportService);
+    appContainer.registerSingleton(BotAccountRepository);
+    appContainer.registerSingleton(BotAccountService);
+    appContainer.registerSingleton(BotSeatManager);
+    /* Sized like the house-bot cap: one worker per game the engines may be in. */
+    appContainer.registerInstance(EngineWorkerPool, new EngineWorkerPool(
+        appContainer.resolve(ROOT_LOGGER),
+        { size: serverConfig.houseBotMaxGames },
+    ));
+    appContainer.registerSingleton(EngineDriver);
+    appContainer.registerSingleton(HouseBotService);
     appContainer.registerSingleton(EloRepository);
     appContainer.registerSingleton(EloHandler);
     appContainer.registerSingleton(ServerSettingsRepository);

@@ -8,6 +8,7 @@ import type { Logger } from 'pino';
 import { inject, injectable } from 'tsyringe';
 
 import { ServerSettingsService } from './admin/serverSettingsService';
+import { HouseBotService } from './bots/houseBotService';
 import { ServerConfig } from './config/serverConfig';
 import { EloRepository } from './elo/eloRepository';
 import { ROOT_LOGGER } from './logger';
@@ -41,6 +42,7 @@ export class ApplicationServer {
         @inject(SessionManager) private readonly sessionManager: SessionManager,
         @inject(TournamentService) private readonly tournamentService: TournamentService,
         @inject(ServerConfig) private readonly serverConfig: ServerConfig,
+        @inject(HouseBotService) private readonly houseBotService: HouseBotService,
     ) {
         this.logger = rootLogger.child({ component: `application-server` });
         this.server = createServer(httpApplication.app);
@@ -71,6 +73,10 @@ export class ApplicationServer {
         await this.databaseMigrationRunner.run();
         await this.eloRepository.initialize();
         await this.serverSettingsService.initialize();
+        if (this.serverConfig.botApiEnabled) {
+            /* After the migrations, which seed the bots it loads; off, nothing listens. */
+            await this.houseBotService.attach();
+        }
 
         await this.startCronJobs();
 
@@ -116,6 +122,7 @@ export class ApplicationServer {
 
             await this.stopCronJobs();
             this.timeControl.dispose();
+            await this.houseBotService.shutdown();
 
             try {
                 await this.mongoDatabase.close();

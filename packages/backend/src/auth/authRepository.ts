@@ -5,6 +5,7 @@ import type {
     AdapterUser,
 } from "@auth/express/adapters";
 import {
+    type AccountKind,
     type AccountPermission,
     type AccountPreferences,
     kDefaultAccountPreferences,
@@ -32,6 +33,7 @@ type AuthUserDocument = {
     emailVerified?: Date | null;
     image?: string | null;
     role?: UserRole;
+    kind?: AccountKind;
     permissions?: AccountPermission[];
     preferences?: AccountPreferences;
     registeredAt?: number;
@@ -70,6 +72,7 @@ type AuthVerificationTokenDocument = {
 
 type StoredAdapterUser = AdapterUser & {
     role: UserRole;
+    kind: AccountKind;
     permissions: AccountPermission[];
     registeredAt: number;
     lastActiveAt: number;
@@ -88,6 +91,7 @@ export type AccountUserProfile = {
     email: string | null;
     image: string | null;
     role: UserRole;
+    kind: AccountKind;
     permissions: AccountPermission[];
     registeredAt: number;
     lastActiveAt: number;
@@ -820,6 +824,7 @@ export class AuthRepository implements Adapter {
             emailVerified: document.emailVerified ?? null,
             image: document.image ?? null,
             role: document.role ?? `user`,
+            kind: document.kind ?? `human`,
             permissions: this.normalizeAccountPermissions(document.permissions),
             registeredAt,
             lastActiveAt: this.resolveLastActiveAt(document, registeredAt),
@@ -845,6 +850,7 @@ export class AuthRepository implements Adapter {
             this.normalizeTimestamp(user.registeredAt) ?? Date.now();
         const typedUser = user as AdapterUser & {
             role?: UserRole;
+            kind?: AccountKind;
             permissions?: AccountPermission[];
             registeredAt?: number;
             lastActiveAt?: number;
@@ -856,6 +862,7 @@ export class AuthRepository implements Adapter {
             email: user.email || null,
             image: user.image ?? null,
             role: typedUser.role ?? `user`,
+            kind: typedUser.kind ?? `human`,
             permissions: this.normalizeAccountPermissions(
                 typedUser.permissions,
             ),
@@ -942,6 +949,7 @@ export class AuthRepository implements Adapter {
             this.normalizeTimestamp(user.registeredAt) ?? Date.now();
         const typedUser = user as AdapterUser & {
             role?: UserRole;
+            kind?: AccountKind;
             permissions?: AccountPermission[];
             registeredAt?: number;
             lastActiveAt?: number;
@@ -950,6 +958,7 @@ export class AuthRepository implements Adapter {
         return {
             ...user,
             role: typedUser.role ?? `user`,
+            kind: typedUser.kind ?? `human`,
             permissions: this.normalizeAccountPermissions(
                 typedUser.permissions,
             ),

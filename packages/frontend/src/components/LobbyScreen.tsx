@@ -1,9 +1,9 @@
 import { Button } from '@/components/ui/button';
-import type { AccountProfile, CreateSessionRequest, LobbyInfo, ShutdownState } from '@ih3t/shared';
+import type { AccountProfile, CreateSessionRequest, HouseBotsResponse, LobbyInfo, ShutdownState } from '@ih3t/shared';
 import { useState } from 'react';
 
 import { useHydratedDelay } from '../useHydratedDelay';
-import CreateLobbyDialog from './CreateLobbyDialog';
+import CreateLobbyDialog, { type LobbyOpponentChoice } from './CreateLobbyDialog';
 import ShutdownTimer from './game-screen/ShutdownTimer';
 import PublicMatchesList from './PublicMatchesList';
 import ScreenFooter from './ScreenFooter';
@@ -17,6 +17,8 @@ type LobbyScreenProps = {
     isAccountLoading: boolean
     liveSessions: LobbyInfo[]
     unreadChangelogEntries: number
+    /** The server's own opponents; null while the flag is off hides every trace of them. */
+    houseBots?: HouseBotsResponse | null
     onHostGame: (request: CreateSessionRequest) => void
     onJoinGame: (sessionId: string) => void
     onOpenSandbox: () => void
@@ -42,20 +44,23 @@ function LobbyScreen({
     account,
     liveSessions,
     unreadChangelogEntries,
+    houseBots = null,
     onHostGame,
     onJoinGame,
     onViewChangelog,
 }: Readonly<LobbyScreenProps>) {
     const { t } = useTranslation()
-    const [isCreateLobbyDialogOpen, setIsCreateLobbyDialogOpen] = useState(false);
+    const [createLobbyDialog, setCreateLobbyDialog] = useState<LobbyOpponentChoice | null>(null);
     const showClientBadges = useHydratedDelay(500);
 
     return (
         <div className="flex grow sm:h-full flex-col px-4 py-4 text-white sm:px-6 sm:py-6">
             <CreateLobbyDialog
-                isOpen={isCreateLobbyDialogOpen}
-                onClose={() => setIsCreateLobbyDialogOpen(false)}
+                isOpen={createLobbyDialog !== null}
+                initialOpponent={createLobbyDialog ?? `open`}
+                onClose={() => setCreateLobbyDialog(null)}
                 account={account}
+                houseBots={houseBots}
                 onCreateLobby={onHostGame}
             />
 
@@ -131,7 +136,8 @@ function LobbyScreen({
                     isConnected={isConnected}
 
                     onJoinGame={onJoinGame}
-                    onCreate={options => setIsCreateLobbyDialogOpen(true)}
+                    onCreate={() => setCreateLobbyDialog(`open`)}
+                    onPlayBot={houseBots ? () => setCreateLobbyDialog(`bot`) : undefined}
 
                     className="lg:col-span-7"
                 />

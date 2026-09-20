@@ -16,6 +16,7 @@ const account: PublicAccountProfile = {
   username: 'Hex Master',
   image: 'https://cdn.discordapp.com/avatars/253552199546830848/fbf05fc7f4e899179daae5185c913703.png',
   role: 'user',
+  kind: 'human',
   permissions: [],
   registeredAt: 1_700_000_000_000,
   lastActiveAt: 1_700_000_500_000,
@@ -154,11 +155,13 @@ const liveGame: LobbyInfo = {
       displayName: account.username,
       profileId: account.id,
       elo: 1742,
+      isBot: false,
     },
     {
       displayName: 'Live Opponent',
       profileId: 'profile-live-2',
       elo: 1761,
+      isBot: false,
     },
   ],
   timeControl: {

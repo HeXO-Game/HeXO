@@ -59,6 +59,9 @@ importers:
       '@auth/mongodb-adapter':
         specifier: ^3.11.3
         version: 3.11.3(mongodb@7.6.0(socks@2.8.10))
+      '@ih3t/bot-engine-dummy':
+        specifier: workspace:*
+        version: link:../bot-engine-dummy
       '@ih3t/bot-engine-seal':
         specifier: workspace:*
         version: link:../bot-engine-seal

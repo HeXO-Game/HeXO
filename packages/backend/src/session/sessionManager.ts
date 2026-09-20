@@ -5,6 +5,7 @@ import type {
     BoardCell,
     CreateSessionResponse,
     FinishedGameTournamentInfo,
+    GameMove,
     GameState,
     HexCoordinate,
     LobbyInfo,
@@ -22,8 +23,11 @@ import type {
 } from "@ih3t/shared";
 import {
     ABORT_GAME_MAX_MOVES,
+    applyGameMove,
     buildPlayerTileConfigMap,
+    cloneGameState,
     DRAW_REQUEST_RETRY_TURNS,
+    GameRuleError,
 } from "@ih3t/shared";
 import type { Logger } from "pino";
 import { inject, injectable } from "tsyringe";
@@ -63,6 +67,12 @@ import {
     toSessionSpectator,
 } from "./types";
 
+type AppliedStone = {
+    placed: BoardCell;
+    move: GameMove;
+    continuedPlay: boolean;
+};
+
 export class SessionError extends Error {
     constructor(message: string) {
         super(message);
@@ -95,12 +105,19 @@ export type RematchCreateResult = {
     socketMapping: Record<string, string>;
 };
 
-const MAX_PLAYERS_PER_SESSION = 2;
+export const MAX_PLAYERS_PER_SESSION = 2;
 const MAX_SESSION_CHAT_MESSAGES = 100;
+
+/* A lobby where only bots sit is abandoned after this long. A bot's seat is
+ * "connected" from the moment it is claimed, so without this rule the empty-lobby
+ * cleanup can never reap it and every lobby nobody came for pins one of the bot's
+ * concurrent-game slots forever. */
+export const BOT_ONLY_LOBBY_ABANDONED_AFTER_MS = 60_000;
 
 @injectable()
 export class SessionManager {
     private eventHandlers: SessionManagerEventHandlers = {};
+    private readonly extraEventHandlers = new Set<SessionManagerEventHandlers>();
     private readonly logger: Logger;
     private readonly sessions = new Map<string, ServerGameSession>();
     private readonly shutdownHook: ShutdownHook;
@@ -219,6 +236,36 @@ export class SessionManager {
 
     setEventHandlers(eventHandlers: SessionManagerEventHandlers): void {
         this.eventHandlers = eventHandlers;
+    }
+
+    /**
+     * Adds a subscriber beside the primary one, which stays with the socket gateway:
+     * `setEventHandlers` replaces, so any second watcher needs this registry.
+     * Returns the unsubscribe.
+     */
+    addEventHandlers(eventHandlers: SessionManagerEventHandlers): () => void {
+        this.extraEventHandlers.add(eventHandlers);
+        return () => this.extraEventHandlers.delete(eventHandlers);
+    }
+
+    private dispatch<TEvent extends keyof SessionManagerEventHandlers>(
+        event: TEvent,
+        payload: Parameters<NonNullable<SessionManagerEventHandlers[TEvent]>>[0],
+    ): void {
+        /* The primary keeps its pre-existing semantics — a throw propagates — while
+         * extra subscribers are isolated, so a watcher cannot break the game it watches. */
+        const primary = this.eventHandlers[event] as ((payload: unknown) => void) | undefined;
+        primary?.(payload);
+
+        for (const eventHandlers of this.extraEventHandlers) {
+            const handler = eventHandlers[event] as ((payload: unknown) => void) | undefined;
+            try {
+                handler?.(payload);
+            } catch (error: unknown) {
+                /* A secondary subscriber must never break the game it is watching. */
+                this.logger.error({ err: error, event: `session.subscriber.failed`, sessionEvent: event }, `Session event subscriber failed`);
+            }
+        }
     }
 
     createSession(params: CreateSessionParams): CreateSessionResponse {
@@ -371,6 +418,7 @@ export class SessionManager {
                         deviceId: params.deviceId,
                         profileId,
                         displayName,
+                        isBot: params.profile?.kind === `bot`,
 
                         rating: playerRating,
                         ratingAdjustment: null,
@@ -429,9 +477,20 @@ export class SessionManager {
             spectators: session.spectators.map(({ id }) => id),
         });
 
-        this.emitSessionUpdated(session, [
-            participation.role === `player` ? `players` : `spectators`,
-        ]);
+        /* A session that gains a bot seat is never rated. Enforced here, under the
+         * lock, so no route or client can seat a bot into an Elo game — and the
+         * emitted gameOptions say so before the game starts. The join is not
+         * refused for a rated lobby: the flip is broadcast while the game can
+         * still be called off, and refusing would strand the human's lobby on a
+         * bot that cannot choose. */
+        const joinsAsBotPlayer = participation.role === `player` && params.profile?.kind === `bot`;
+        if (joinsAsBotPlayer) {
+            session.gameOptions.rated = false;
+        }
+
+        this.emitSessionUpdated(session, joinsAsBotPlayer
+            ? [`players`, `gameOptions`]
+            : [participation.role === `player` ? `players` : `spectators`]);
         this.emitLobbyUpdated(session);
 
         return participation;
@@ -532,6 +591,12 @@ export class SessionManager {
         await session.lock.runExclusive(async () => {
             this.assertCanParticipateInDraw(session, participantId);
 
+            if (session.players.some((player) => player.isBot)) {
+                /* Rejected at the source: no offer is stored, so no window exists in
+                 * which a bot would have to answer one. */
+                throw new SessionError(`A game against a bot cannot end in a draw.`);
+            }
+
             if (session.drawRequest) {
                 if (session.drawRequest === participantId) {
                     throw new SessionError(
@@ -607,16 +672,129 @@ export class SessionManager {
         playerId: string,
         cell: HexCoordinate,
     ) {
-        await session.lock.runExclusive(
-            async () => await this.placeCellLocked(session, playerId, cell),
-        );
+        await session.lock.runExclusive(async () => {
+            const stone = this.applyStoneLocked(session, playerId, cell, Date.now());
+            void this.gameHistoryRepository.appendMoves(session.gameId, [stone.move]);
+            await this.completeStoneLocked(session, stone);
+        });
     }
 
-    private async placeCellLocked(
+    /**
+     * Applies a whole turn under a single lock. Every placement is dry-run against a
+     * clone first, so a rejected second stone leaves the board untouched — a half-played
+     * turn is a state no caller can recover from. The per-cell commit path re-checks
+     * state and clock at the batch's instant, which is harmless double cover, and its
+     * `GameSimulation.applyMove` must stay the same rule engine the clone was judged
+     * by (`applyGameMove`) — that wrapper only adapts errors.
+     */
+    async placeCells(
+        session: ServerGameSession,
+        playerId: string,
+        cells: readonly HexCoordinate[],
+    ) {
+        await session.lock.runExclusive(async () => {
+            if (session.state !== `in-game`) {
+                throw new SessionError(`Game is not currently active`);
+            }
+
+            if (!session.players.some((participant) => participant.id === playerId)) {
+                throw new SessionError(`You are not part of this session`);
+            }
+
+            /* One instant for the whole turn: judging the second stone against a later
+             * clock read is how a half-played turn would become reachable. */
+            const timestamp = Date.now();
+            try {
+                this.timeControl.ensureTurnHasTimeRemaining(session, timestamp);
+            } catch (error: unknown) {
+                if (error instanceof GameTimeControlError) {
+                    throw new SessionError(error.message);
+                }
+
+                throw error;
+            }
+
+            const simulated = cloneGameState(session.gameState);
+            for (const cell of cells) {
+                if (simulated.winner) {
+                    /* A win on the first stone ends the turn; the rest is not played. */
+                    break;
+                }
+
+                try {
+                    applyGameMove(simulated, { playerId, x: cell.x, y: cell.y });
+                } catch (error: unknown) {
+                    if (error instanceof GameRuleError) {
+                        throw new SessionError(error.message);
+                    }
+
+                    throw error;
+                }
+            }
+
+            const stones: AppliedStone[] = [];
+            try {
+                for (const cell of cells) {
+                    stones.push(
+                        this.applyStoneLocked(session, playerId, cell, timestamp),
+                    );
+                    if (session.gameState.winner) {
+                        /* A win on an earlier stone ends the turn; the rest is not played. */
+                        break;
+                    }
+                }
+            } catch (error: unknown) {
+                /* Unreachable while the dry run and the commit path stay the same rule
+                 * engine; if they ever diverge, the stones that did land stay on the
+                 * board — record and announce them instead of stranding a half turn. */
+                await this.recordTurnLocked(session, stones);
+                throw error;
+            }
+
+            await this.recordTurnLocked(session, stones);
+        });
+    }
+
+    /**
+     * One history write per turn — per-stone fire-and-forget appends let the stones of
+     * a compound turn land in the history out of order — then the turn's per-stone
+     * announcements, each carrying the turn's final state. The append is fired before
+     * any finish work, so a winning move is in the write queue before the game is
+     * durably finalized.
+     */
+    private async recordTurnLocked(
+        session: ServerGameSession,
+        stones: readonly AppliedStone[],
+    ): Promise<void> {
+        assert(session.lock.isLocked());
+
+        if (stones.length > 0) {
+            void this.gameHistoryRepository.appendMoves(
+                session.gameId,
+                stones.map((stone) => stone.move),
+            );
+        }
+
+        for (const stone of stones) {
+            if (session.state !== `in-game`) {
+                break;
+            }
+
+            await this.completeStoneLocked(session, stone);
+        }
+    }
+
+    /**
+     * Applies one stone and reports it, `continuedPlay` telling the completer whether
+     * the game was still going once this stone landed. The caller owns the history
+     * strategy (`recordTurnLocked`).
+     */
+    private applyStoneLocked(
         session: ServerGameSession,
         playerId: string,
         cell: HexCoordinate,
-    ) {
+        timestamp: number,
+    ): AppliedStone {
         assert(session.lock.isLocked());
 
         if (session.state !== `in-game`) {
@@ -630,7 +808,6 @@ export class SessionManager {
         }
 
         let moveResult;
-        const timestamp = Date.now();
         const turnExpiresAt = session.currentTurnExpiresAt;
         try {
             this.timeControl.ensureTurnHasTimeRemaining(session, timestamp);
@@ -657,28 +834,40 @@ export class SessionManager {
             turnExpiresAt,
         });
 
-        void this.gameHistoryRepository.appendMove(session.gameId, {
-            moveNumber: session.gameState.cells.length + 1,
-            playerId,
-            x: cell.x,
-            y: cell.y,
-            timestamp,
-        });
+        return {
+            placed: session.gameState.cells.at(-1)!,
+            continuedPlay: session.gameState.winner === null,
+            move: {
+                /* The stone's 1-indexed position on the board — the origin is move 1. */
+                moveNumber: session.gameState.cells.length,
+                playerId,
+                x: cell.x,
+                y: cell.y,
+                timestamp,
+            },
+        };
+    }
 
-        if (session.gameState.winner) {
-            /* emit full state just to ensure everyone sees the same */
+    private async completeStoneLocked(
+        session: ServerGameSession,
+        stone: AppliedStone,
+    ): Promise<void> {
+        assert(session.lock.isLocked());
+
+        if (!stone.continuedPlay) {
+            /* This stone ended the game; emit full state so everyone sees the same. */
             this.emitGameState(session);
 
             await this.finishSessionLocked(
                 session,
                 `six-in-a-row`,
-                session.gameState.winner.playerId,
+                session.gameState.winner!.playerId,
             );
             return;
         }
 
         this.timeControl.syncTurnTimeout(session, this.handleTurnExpired);
-        this.emitCellPlacement(session, session.gameState.cells.at(-1)!);
+        this.emitCellPlacement(session, stone.placed);
     }
 
     sendChatMessage(
@@ -706,7 +895,7 @@ export class SessionManager {
             -MAX_SESSION_CHAT_MESSAGES,
         );
 
-        this.eventHandlers.sessionChat?.({
+        this.dispatch(`sessionChat`, {
             sessionId: session.id,
             message: chatMessage,
             senderDisplayName: participant.displayName,
@@ -838,6 +1027,7 @@ export class SessionManager {
                             ratingAdjustment: null,
                             ratingAdjusted: null,
 
+                            isBot: player.isBot,
                             profileId: player.profileId,
                         };
                     },
@@ -904,11 +1094,16 @@ export class SessionManager {
 
                 if (originalSession.id !== rematchSession.id) {
                     /* remove the original session */
-                    this.eventHandlers.lobbyRemoved?.({
+                    this.dispatch(`lobbyRemoved`, {
                         id: originalSession.id,
                     });
                 }
                 this.emitLobbyUpdated(rematchSession);
+                this.dispatch(`rematchCreated`, {
+                    sessionId: rematchSession.id,
+                    originalSessionId: originalSession.id,
+                    socketMapping: { ...socketMapping },
+                });
             });
 
             void this.tickSession(rematchSession);
@@ -1037,7 +1232,7 @@ export class SessionManager {
 
         this.timeControl.clearSession(session.id);
         this.sessions.delete(session.id);
-        this.eventHandlers.lobbyRemoved?.({ id: session.id });
+        this.dispatch(`lobbyRemoved`, { id: session.id });
         this.shutdownHook.tryShutdown();
     }
 
@@ -1076,6 +1271,11 @@ export class SessionManager {
 
         switch (session.state) {
             case `lobby`: {
+                if (isAbandonedBotOnlyLobby(session, Date.now())) {
+                    this.deleteSession(session, `bot-only-abandoned`);
+                    break;
+                }
+
                 /* time out players which could not connect within a certain given time */
                 let playersUpdated = false;
                 session.players = session.players.filter((player) => {
@@ -1153,6 +1353,7 @@ export class SessionManager {
                     },
                     `Session started`,
                 );
+                this.dispatch(`gameStarted`, { sessionId: session.id });
                 break;
             }
 
@@ -1252,9 +1453,10 @@ export class SessionManager {
         this.timeControl.clearSession(session.id);
 
         /* finished sessions are removed from the list */
-        this.eventHandlers.lobbyRemoved?.({ id: session.id });
+        this.dispatch(`lobbyRemoved`, { id: session.id });
 
         this.emitSessionUpdated(session, [`players`, `state`]);
+        this.dispatch(`gameFinished`, { sessionId: session.id, reason, winningPlayerId });
         this.shutdownHook.tryShutdown();
 
         this.logger.info(
@@ -1452,7 +1654,7 @@ export class SessionManager {
         }
 
         const lobbyInfo = this.toLobbyInfo(session);
-        this.eventHandlers.lobbyUpdated?.(lobbyInfo);
+        this.dispatch(`lobbyUpdated`, lobbyInfo);
     }
 
     private emitSessionUpdated(
@@ -1470,14 +1672,14 @@ export class SessionManager {
             Object.assign(partialInfo, fullInfo);
         }
 
-        this.eventHandlers.sessionUpdated?.({
+        this.dispatch(`sessionUpdated`, {
             sessionId: session.id,
             session: partialInfo,
         });
     }
 
     private emitGameState(session: ServerGameSession): void {
-        this.eventHandlers.gameStateUpdated?.({
+        this.dispatch(`gameStateUpdated`, {
             sessionId: session.id,
             gameState: this.getClientGameState(session),
         });
@@ -1488,7 +1690,7 @@ export class SessionManager {
         delete state.cells;
         delete state.playerTiles;
 
-        this.eventHandlers.gameCellPlacement?.({
+        this.dispatch(`gameCellPlacement`, {
             sessionId: session.id,
             state,
             cell: cell,
@@ -1585,6 +1787,43 @@ export class SessionManager {
                     }) satisfies ServerSessionParticipation,
             ),
         ];
+    }
+
+    /** Games carry a `gameId` only once they start; a lobby has none. */
+    getSessionByGameId(gameId: string): ServerGameSession | null {
+        if (!gameId) {
+            return null;
+        }
+
+        for (const session of this.sessions.values()) {
+            if (session.gameId === gameId) {
+                return session;
+            }
+        }
+
+        return null;
+    }
+
+    getPlayerParticipationsByProfileId(
+        profileId: string,
+    ): ServerSessionParticipation[] {
+        const participations: ServerSessionParticipation[] = [];
+        for (const session of this.sessions.values()) {
+            for (const player of session.players) {
+                if (player.profileId === profileId) {
+                    participations.push({ session, participant: player, role: `player` });
+                }
+            }
+        }
+
+        return participations;
+    }
+
+    /** Lobbies count too: refusing only once a game starts is refusing too late. */
+    countActivePlayerSessionsByProfileId(profileId: string): number {
+        return this.getPlayerParticipationsByProfileId(profileId)
+            .filter((participation) => participation.session.state !== `finished`)
+            .length;
     }
 
     getParticipationsBySocketId(
@@ -1834,6 +2073,7 @@ export class SessionManager {
                 displayName: player.displayName,
                 profileId: player.profileId,
                 elo: player.rating.eloScore,
+                isBot: player.isBot,
             })),
 
             timeControl: { ...session.gameOptions.timeControl },
@@ -1872,6 +2112,7 @@ export class SessionManager {
             profileId: player.profileId ?? player.id,
             elo: player.rating?.eloScore ?? null,
             eloChange: null,
+            isBot: player.isBot,
         }));
     }
 
@@ -2071,4 +2312,16 @@ export class SessionManager {
             (session) => session.state === `in-game`,
         );
     }
+}
+
+/**
+ * A bot-only lobby nobody human ever came for, reserved or open: the bot's seat
+ * counts as connected, so only this reaper can retire it. Tournaments never match
+ * (no bot seats them in this stack), and a lobby holding a human seat never matches.
+ */
+function isAbandonedBotOnlyLobby(session: ServerGameSession, now: number): boolean {
+    return session.tournament === null
+        && session.players.length > 0
+        && session.players.every((player) => player.isBot)
+        && now - session.createdAt >= BOT_ONLY_LOBBY_ABANDONED_AFTER_MS;
 }

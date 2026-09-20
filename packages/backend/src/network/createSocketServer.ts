@@ -37,7 +37,7 @@ import { ROOT_LOGGER } from "../logger";
 import { MetricsTracker } from "../metrics/metricsTracker";
 import { SessionError, SessionManager } from "../session/sessionManager";
 import { TournamentService } from "../tournament/tournamentService";
-import type { ClientGameParticipation } from "../session/types";
+import type { ClientGameParticipation, SessionRematchCreatedEvent } from "../session/types";
 import {
     getSocketClientInfo as parseSocketClientInfo,
     SocketClientInfo,
@@ -193,6 +193,9 @@ export class SocketServerGateway {
             },
             gameCellPlacement(event) {
                 io.to(event.sessionId).emit(`game-cell-place`, event);
+            },
+            rematchCreated: (event) => {
+                this.reseatRematchSockets(event);
             },
         });
         this.tournamentService.setEventHandlers({
@@ -607,35 +610,9 @@ export class SocketServerGateway {
                         }
                     }
 
-                    const { rematchSession, socketMapping } =
-                        await this.sessionManager.createRematchSession(
-                            sessionId,
-                        );
-                    for (const {
-                        participant,
-                    } of this.sessionManager.getParticipations(
-                        rematchSession,
-                    )) {
-                        const socketId = socketMapping[participant.id];
-                        if (!socketId) {
-                            continue;
-                        }
-
-                        const socket = this.io?.sockets.sockets.get(socketId);
-                        if (!socket) {
-                            continue;
-                        }
-
-                        void socket.leave(sessionId);
-
-                        const gameParticipation =
-                            this.sessionManager.assignParticipantSocket(
-                                rematchSession,
-                                participant.id,
-                                socketId,
-                            );
-                        this.putClientInGameState(socket, gameParticipation);
-                    }
+                    /* The sockets follow in `rematchCreated`, so a rematch a bot seat
+                     * completes reaches the human's socket the same way. */
+                    await this.sessionManager.createRematchSession(sessionId);
                 });
             },
         );
@@ -832,6 +809,36 @@ export class SocketServerGateway {
 
         this.io?.emit(`error`, `Server shutdown`);
         await this.io?.close();
+    }
+
+    /** Every seat of a fresh rematch that held a socket in the finished game gets it back. */
+    private reseatRematchSockets(event: SessionRematchCreatedEvent) {
+        const rematchSession = this.sessionManager.getSession(event.sessionId);
+        if (!rematchSession) {
+            return;
+        }
+
+        for (const { participant } of this.sessionManager.getParticipations(rematchSession)) {
+            const socketId = event.socketMapping[participant.id];
+            if (!socketId) {
+                continue;
+            }
+
+            const socket = this.io?.sockets.sockets.get(socketId);
+            if (!socket) {
+                /* A bot's virtual socket, or a client that dropped meanwhile. */
+                continue;
+            }
+
+            void socket.leave(event.originalSessionId);
+
+            const gameParticipation = this.sessionManager.assignParticipantSocket(
+                rematchSession,
+                participant.id,
+                socketId,
+            );
+            this.putClientInGameState(socket, gameParticipation);
+        }
     }
 
     private putClientInGameState(

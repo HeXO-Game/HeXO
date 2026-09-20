@@ -20,6 +20,7 @@ const signedInAccount: AccountProfile = {
   email: 'hex@example.com',
   image: 'https://cdn.discordapp.com/avatars/253552199546830848/fbf05fc7f4e899179daae5185c913703.png',
   role: 'user',
+  kind: 'human',
   permissions: [],
   registeredAt: 1_700_000_000_000,
   lastActiveAt: 1_700_000_500_000,
@@ -49,6 +50,7 @@ const ratedLobby: LobbyInfo = {
       displayName: 'Ranked Host',
       profileId: 'rated-host',
       elo: 1810,
+      isBot: false,
     },
   ],
   timeControl: {
@@ -68,11 +70,13 @@ const activeLobby: LobbyInfo = {
       displayName: 'Alpha',
       profileId: 'alpha',
       elo: 0,
+      isBot: false,
     },
     {
       displayName: 'Bravo',
       profileId: 'bravo',
       elo: 0,
+      isBot: false,
     },
   ],
   timeControl: {
@@ -90,6 +94,7 @@ const ownRatedLobby: LobbyInfo = {
       displayName: signedInAccount.username,
       profileId: signedInAccount.id,
       elo: 1742,
+      isBot: false,
     },
   ],
   timeControl: {
@@ -239,6 +244,34 @@ test('shows the empty live-session state when no public matches are available', 
   })
 
   await expect(component.getByText('No live sessions are available right now.')).toBeVisible()
+})
+
+test('the empty state offers a bot game only when house bots exist, preselected in the dialog', async ({ mount }) => {
+  const { props } = createLobbyScreenProps({ liveSessions: [], unreadChangelogEntries: 0 })
+  const withoutBots = await mount(<LobbyScreen {...props} />, { hooksConfig: { renderedAt: fixedTimestamp } })
+  await expect(withoutBots.getByRole('button', { name: /Play against a bot/i })).toHaveCount(0)
+  await withoutBots.unmount()
+
+  const component = await mount(
+    <LobbyScreen
+      {...props}
+      houseBots={{
+        bots: [{
+          profileId: 'house-seal',
+          displayName: 'SealBot',
+          engine: 'seal',
+          thinkMs: { min: 10, max: 5_000, default: 300 },
+          presets: [{ id: 'medium', thinkMs: 300 }],
+        }],
+        available: true,
+      }}
+    />,
+    { hooksConfig: { renderedAt: fixedTimestamp } },
+  )
+
+  await component.getByRole('button', { name: /Play against a bot/i }).click()
+  await expect(component.getByRole('heading', { name: 'Lobby Setup' })).toBeVisible()
+  await expect(component.getByText('SealBot 0.3s')).toBeVisible()
 })
 
 test('filters the public matches list by rating mode', async ({ mount }) => {

@@ -7,6 +7,8 @@ import React from 'react';
 import { NavLink } from 'react-router';
 import { toast } from 'react-toastify';
 
+import BotBadge from '../BotBadge';
+
 import { formatTimeControl } from '../../utils/gameTimeControl';
 import GameHudShell from './GameHudShell';
 import HudInfoBlock from './HudInfoBlock';
@@ -23,6 +25,7 @@ export type HudPlayerInfo = {
     displayName: string,
 
     isConnected: boolean,
+    isBot: boolean,
 
     rankingEloScore: number,
 };
@@ -132,7 +135,11 @@ function GameScreenHud({
     let hideSurrenderButton = false;
     let drawActionArea: React.ReactNode = null;
 
-    if (!isSpectator && localPlayerId && !tournament) {
+    /* A bot seat refuses every draw offer server-side; offering one would only ever
+     * produce a rejection, so the control is not shown at all. */
+    const botSeated = players.some(player => player.isBot);
+
+    if (!isSpectator && localPlayerId && !tournament && !botSeated) {
         if (requestedByLocalPlayer) {
             drawActionArea = (
                 <Button
@@ -305,7 +312,7 @@ function GameScreenHud({
                     </HudInfoBlock>
 
                     <HudInfoBlock label="Players">
-                        {players.map(({ playerId, profileId, displayColor, displayName, isConnected, rankingEloScore }) => {
+                        {players.map(({ playerId, profileId, displayColor, displayName, isConnected, isBot, rankingEloScore }) => {
                             let formattedName;
                             if (gameOptions.rated && !hideEloInHud) {
                                 formattedName = t('displaynameRankingeloscore', '{{displayName}} ({{rankingEloScore}})', { displayName, rankingEloScore });
@@ -333,6 +340,8 @@ function GameScreenHud({
                                             {formattedName}
                                         </span>
                                     )}
+
+                                    {isBot && <BotBadge />}
 
                                     {!isConnected && (
                                         <span

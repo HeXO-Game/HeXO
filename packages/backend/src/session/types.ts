@@ -125,6 +125,23 @@ export type ParticipantJoinedEvent = {
     session: SessionInfo;
 };
 
+export type SessionGameStartedEvent = {
+    sessionId: string;
+};
+
+export type SessionGameFinishedEvent = {
+    sessionId: string;
+    reason: SessionFinishReason;
+    winningPlayerId: string | null;
+};
+
+export type SessionRematchCreatedEvent = {
+    sessionId: string;
+    originalSessionId: string;
+    /** New participant id → the socket that seat held in the finished game. */
+    socketMapping: Record<string, string>;
+};
+
 export type SessionManagerEventHandlers = {
     lobbyUpdated?: (lobby: EventLobbyUpdated) => void,
     lobbyRemoved?: (event: EventLobbyRemoved) => void;
@@ -133,6 +150,16 @@ export type SessionManagerEventHandlers = {
     sessionChat?: (event: SessionChatEvent) => void;
     gameStateUpdated?: (payload: GameStateEvent) => void;
     gameCellPlacement?: (payload: GameCellPlaceEvent) => void,
+
+    /* Lifecycle edges the socket gateway does not need, because a client reads them
+     * off the session state it is already being sent. `gameFinished` is the only
+     * carrier of the finish reason; `gameStarted` names the start edge rather than
+     * leaving a subscriber to infer it from a state update. */
+    gameStarted?: (event: SessionGameStartedEvent) => void;
+    gameFinished?: (event: SessionGameFinishedEvent) => void;
+    /** The rematch session is registered and its seats are still socketless: whoever
+     * holds the sockets (the gateway, a bot driver) reattaches them from here. */
+    rematchCreated?: (event: SessionRematchCreatedEvent) => void;
 };
 
 export type RematchRequestResult = {
@@ -184,6 +211,7 @@ export function toSessionPlayer(player: ServerSessionPlayer): SessionPlayer {
 
         displayName: player.displayName,
         profileId: player.profileId,
+        isBot: player.isBot,
 
         rating: player.rating,
         ratingAdjustment: player.ratingAdjustment,

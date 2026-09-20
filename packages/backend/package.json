@@ -7,6 +7,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "tsx --watch src/server.ts",
+        "test:bots": "node --import tsx --test src/bots/botAccountRepository.test.ts src/bots/botAccountService.test.ts src/bots/botSeatManager.test.ts src/bots/drivers/engineWorkerPool.test.ts src/bots/drivers/engineDriver.test.ts src/bots/houseBotService.test.ts src/persistence/migrations/016-renumber-game-moves.test.ts src/network/rest/createApiRouter.test.ts",
         "test:session": "node --import tsx --test src/session/sessionManager.test.ts",
         "test:socket": "node --import tsx --test src/network/createSocketServer.test.ts",
         "test:tournament": "node --import tsx --test src/tournament/tournamentService.test.ts",
@@ -16,6 +17,7 @@
     "dependencies": {
         "@auth/express": "^0.12.3",
         "@auth/mongodb-adapter": "^3.11.3",
+        "@ih3t/bot-engine-dummy": "workspace:*",
         "@ih3t/bot-engine-seal": "workspace:*",
         "@ih3t/shared": "workspace:*",
         "@tanstack/react-query": "^5.102.8",

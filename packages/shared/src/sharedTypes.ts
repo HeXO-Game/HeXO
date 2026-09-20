@@ -25,6 +25,9 @@ export type UserRole = z.infer<typeof zUserRole>;
 export const zAccountPermission = z.enum([`official-tournament-organizer`]);
 export type AccountPermission = z.infer<typeof zAccountPermission>;
 
+export const zAccountKind = z.enum([`human`, `bot`]);
+export type AccountKind = z.infer<typeof zAccountKind>;
+
 export const zSessionParticipantRole = z.enum([`player`, `spectator`]);
 export type SessionParticipantRole = z.infer<typeof zSessionParticipantRole>;
 
@@ -524,6 +527,7 @@ export const zLobbyListParticipant = z.object({
     displayName: z.string(),
     profileId: zIdentifier.nullable(),
     elo: z.number().int(),
+    isBot: z.boolean(),
 });
 export type LobbyListParticipant = z.infer<typeof zLobbyListParticipant>;
 
@@ -563,6 +567,7 @@ export const zSessionPlayer = z.object({
 
     displayName: z.string(),
     profileId: zIdentifier.nullable(),
+    isBot: z.boolean(),
 
     rating: zPlayerRating,
     ratingAdjustment: zPlayerRatingAdjustment.nullable().default(null),
@@ -642,6 +647,7 @@ export const zDatabaseGamePlayer = z.object({
     profileId: zIdentifier,
     elo: z.number().int().nullable().default(null),
     eloChange: z.number().int().nullable().default(null),
+    isBot: z.boolean().optional(),
 });
 export type DatabaseGamePlayer = z.infer<typeof zDatabaseGamePlayer>;
 
@@ -800,6 +806,7 @@ export const zAccountProfile = z.object({
     email: z.string().nullable(),
     image: z.string().nullable(),
     role: zUserRole,
+    kind: zAccountKind.default(`human`),
     permissions: z.array(zAccountPermission).default([]),
     registeredAt: zTimestamp,
     lastActiveAt: zTimestamp,

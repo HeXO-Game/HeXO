@@ -402,6 +402,7 @@ function createAccountUser(overrides: Partial<AccountUserProfile> & Pick<Account
         email: overrides.email ?? null,
         image: overrides.image ?? null,
         role: overrides.role ?? `user`,
+        kind: overrides.kind ?? `human`,
         permissions: overrides.permissions ?? [],
         registeredAt: overrides.registeredAt ?? 1,
         lastActiveAt: overrides.lastActiveAt ?? 1,

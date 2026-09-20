@@ -95,8 +95,53 @@ export const zSandboxPositionResponse = z.object({
 });
 export type SandboxPositionResponse = z.infer<typeof zSandboxPositionResponse>;
 
+/* The server's own engine-driven opponents (`GET /api/house-bots`). Strength is one
+ * knob, the think time, because that is the only one `BotEngineInterface` has; the
+ * presets name points on it and the range bounds a custom pick. */
+export const zHouseBotStrengthPreset = z.object({
+    id: z.string(),
+    thinkMs: z.number().int().nonnegative(),
+});
+export type HouseBotStrengthPreset = z.infer<typeof zHouseBotStrengthPreset>;
+
+export const zHouseBotListing = z.object({
+    profileId: zIdentifier,
+    displayName: z.string(),
+    engine: z.string(),
+    thinkMs: z.object({
+        min: z.number().int().nonnegative(),
+        max: z.number().int().nonnegative(),
+        default: z.number().int().nonnegative(),
+    }),
+    presets: z.array(zHouseBotStrengthPreset),
+});
+export type HouseBotListing = z.infer<typeof zHouseBotListing>;
+
+export const zHouseBotsResponse = z.object({
+    bots: z.array(zHouseBotListing),
+    /* False while every engine slot is taken: the bots are shown but not offered. */
+    available: z.boolean(),
+});
+export type HouseBotsResponse = z.infer<typeof zHouseBotsResponse>;
+
+/** `300` → `0.3s`: how a think time reads on a seat and in the picker. */
+export function formatThinkSeconds(thinkMs: number): string {
+    return `${thinkMs / 1000}s`;
+}
+
+/* Who takes the other seat of a new lobby; absent means an open lobby. */
+export const zLobbyOpponent = z.discriminatedUnion(`kind`, [
+    z.object({
+        kind: z.literal(`house-bot`),
+        profileId: zIdentifier,
+        thinkMs: z.number().int().nonnegative(),
+    }),
+]);
+export type LobbyOpponent = z.infer<typeof zLobbyOpponent>;
+
 export const zCreateSessionRequest = z.object({
     lobbyOptions: zLobbyOptions.optional(),
+    opponent: zLobbyOpponent.optional(),
 });
 export type CreateSessionRequest = z.infer<typeof zCreateSessionRequest>;
 
@@ -199,4 +244,37 @@ export const zUpdateAccountPreferencesRequest = z.object({
 });
 export type UpdateAccountPreferencesRequest = z.infer<
     typeof zUpdateAccountPreferencesRequest
+>;
+
+export const zBotAccount = z.object({
+    id: zIdentifier,
+    username: z.string(),
+    image: z.string().nullable(),
+    /** `null` = server-owned (a house bot). */
+    ownerProfileId: zIdentifier.nullable(),
+    createdAt: zTimestamp,
+    tokenRotatedAt: zTimestamp.nullable(),
+});
+export type BotAccount = z.infer<typeof zBotAccount>;
+
+export const zBotAccountsResponse = z.object({
+    bots: z.array(zBotAccount),
+    limit: z.number().int().positive(),
+});
+export type BotAccountsResponse = z.infer<typeof zBotAccountsResponse>;
+
+export const zCreateBotAccountRequest = z.object({
+    username: zNormalizedUsername,
+});
+export type CreateBotAccountRequest = z.infer<
+    typeof zCreateBotAccountRequest
+>;
+
+/** The plaintext token is returned only here and on rotation; it is stored hashed. */
+export const zBotAccountTokenResponse = z.object({
+    bot: zBotAccount,
+    token: z.string(),
+});
+export type BotAccountTokenResponse = z.infer<
+    typeof zBotAccountTokenResponse
 >;

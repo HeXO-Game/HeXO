@@ -53,6 +53,7 @@ class FakeSessionManager {
     private eventHandlers: {
         sessionUpdated?: (event: SessionUpdatedEvent) => void
         gameStateUpdated?: (event: { sessionId: string; gameState: Partial<GameState> }) => void
+        rematchCreated?: (event: { sessionId: string; originalSessionId: string; socketMapping: Record<string, string> }) => void
     } = {};
 
     readonly sessions = new Map<string, FakeSession>();
@@ -113,11 +114,19 @@ class FakeSessionManager {
         return session;
     }
 
+    getParticipations(session: FakeSession): FakeParticipation[] {
+        return [
+            ...session.players.map((participant) => ({ session, participant, role: `player` as const })),
+            ...session.spectators.map((participant) => ({ session, participant, role: `spectator` as const })),
+        ];
+    }
+
     async joinSession(session: FakeSession, _params: unknown) {
         const participant: FakePlayer = {
             id: `${session.id}-player-${session.players.length + 1}`,
             displayName: `Guest`,
             profileId: null,
+            isBot: false,
             rating: { eloScore: 1000, gameCount: 0 },
             ratingAdjustment: null,
             connection: { status: `disconnected` },
@@ -223,6 +232,14 @@ class FakeSessionManager {
         });
     }
 
+    emitRematchCreated(sessionId: SessionId, socketMapping: Record<string, string>) {
+        this.eventHandlers.rematchCreated?.({
+            sessionId,
+            originalSessionId: sessionId,
+            socketMapping,
+        });
+    }
+
     private toSessionInfo(session: FakeSession): SessionInfo {
         return {
             id: session.id,
@@ -271,6 +288,7 @@ function createParticipant(id: string, displayName: string): FakePlayer {
         id,
         displayName,
         profileId: id,
+        isBot: false,
         rating: { eloScore: 1000, gameCount: 0 },
         ratingAdjustment: null,
         connection: { status: `connected` },
@@ -618,6 +636,41 @@ test(`watch-session does not consume the active join-session slot`, async () => 
 
             assert.equal(joined.session.id, `lobby-1`);
             assert.equal(joined.participantRole, `player`);
+        } finally {
+            socket.close();
+        }
+    } finally {
+        await harness.close();
+    }
+});
+
+test(`a created rematch moves a seated socket to its new seat, whoever completed it`, async () => {
+    const harness = await createHarness();
+    try {
+        harness.sessionManager.sessions.set(`lobby-1`, createFakeSession(`lobby-1`, `lobby`));
+
+        const socket = await harness.connectSocket();
+        try {
+            const joinedPromise = waitForEvent<{ participantId: string }>(socket, `session-joined`);
+            socket.emit(`join-session`, { sessionId: `lobby-1` });
+            const joined = await joinedPromise;
+            const [socketId] = [...harness.sessionManager.socketParticipations.keys()];
+            assert.ok(socketId);
+
+            /* The rematch keeps the session id and renames every seat, as the real manager does. */
+            const rematch = createFakeSession(`lobby-1`, `lobby`);
+            rematch.players = [createParticipant(`lobby-1-rematch-1`, `Guest`)];
+            rematch.players[0]!.connection = { status: `disconnected` };
+            harness.sessionManager.sessions.set(rematch.id, rematch);
+
+            const reseatedPromise = waitForEvent<{ participantId: string, session: SessionInfo }>(socket, `session-joined`);
+            harness.sessionManager.emitRematchCreated(rematch.id, { 'lobby-1-rematch-1': socketId });
+            const reseated = await reseatedPromise;
+
+            assert.notEqual(reseated.participantId, joined.participantId);
+            assert.equal(reseated.participantId, `lobby-1-rematch-1`);
+            assert.equal(rematch.players[0]!.connection.status, `connected`);
+            assert.equal(harness.sessionManager.socketParticipations.get(socketId)?.participant.id, `lobby-1-rematch-1`);
         } finally {
             socket.close();
         }

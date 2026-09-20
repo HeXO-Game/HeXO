@@ -6,6 +6,7 @@ import { cn } from '../utils/cn';
 import { formatDateTime, useIntlFormatProvider } from '../utils/dateTime';
 import { formatCompactDuration } from '../utils/duration';
 import { formatEloChange } from '../utils/elo';
+import BotBadge from './BotBadge';
 import {
     type PersonalResultTone,
     getNeutralResultLabel,
@@ -118,6 +119,8 @@ function FinishedGameCard({
                                 <span className="break-all">
                                     {player.displayName}
                                 </span>
+
+                                {player.isBot === true && <BotBadge />}
                             </span>,
                         ])}
                     </span>

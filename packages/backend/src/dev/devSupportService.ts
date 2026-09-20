@@ -1,25 +1,17 @@
 import { randomUUID } from 'node:crypto';
 
-import createSealEngine from '@ih3t/bot-engine-seal';
 import type {
-    BotEngineInterface,
     CreateTournamentRequest,
-    GameState,
     HexCoordinate,
     TournamentDetail,
     TournamentFormat,
     TournamentMatch,
     TournamentParticipant,
 } from '@ih3t/shared';
-import {
-    applyGameMove,
-    cloneGameState,
-    getCellKey,
-    isCellWithinPlacementRadius,
-} from '@ih3t/shared';
 import { inject, injectable } from 'tsyringe';
 
 import { type AccountUserProfile, AuthRepository } from '../auth/authRepository';
+import { EngineDriver } from '../bots/drivers/engineDriver';
 import { ServerConfig } from '../config/serverConfig';
 import { SessionError, SessionManager } from '../session/sessionManager';
 import type { ServerGameSession } from '../session/types';
@@ -86,7 +78,6 @@ export class DevSupportService {
     private autoplayInterval: ReturnType<typeof setInterval> | null = null;
     private autoplayTickInFlight = false;
     private nextAutoplayReconcileAt = 0;
-    private sealBotEnginePromise: Promise<BotEngineInterface> | null = null;
 
     constructor(
         @inject(ServerConfig) private readonly serverConfig: ServerConfig,
@@ -94,6 +85,7 @@ export class DevSupportService {
         @inject(SessionManager) private readonly sessionManager: SessionManager,
         @inject(TournamentRepository) private readonly tournamentRepository: TournamentRepository,
         @inject(TournamentService) private readonly tournamentService: TournamentService,
+        @inject(EngineDriver) private readonly engineDriver: EngineDriver,
     ) {}
 
     isEnabled(): boolean {
@@ -546,127 +538,13 @@ export class DevSupportService {
         sessionState.nextMoveAt = Date.now() + kSealBotTournamentMoveDelayMs;
     }
 
+    /** SealBot at a dev-sized budget, through the same off-loop pool the house bots use. */
     private async buildAutoplayMoves(session: ServerGameSession, playerId: string): Promise<HexCoordinate[]> {
-        const gameState = cloneGameState(session.gameState);
-        if (gameState.currentTurnPlayerId !== playerId || gameState.placementsRemaining <= 0) {
+        try {
+            return await this.engineDriver.suggestLegalTurn(`seal`, session.gameState, playerId, kSealBotSuggestionTimeoutMs);
+        } catch {
             return [];
         }
-
-        if (gameState.cells.length === 0) {
-            return this.sanitizeAutoplayMoves(gameState, playerId, [{ x: 0, y: 0 }]);
-        }
-
-        let suggestedMoves: readonly HexCoordinate[] = [];
-        try {
-            const engine = await this.getSealBotEngine();
-            const suggestion = await engine.suggestTurn(cloneGameState(gameState), kSealBotSuggestionTimeoutMs);
-            suggestedMoves = suggestion.status === `provide`
-                ? suggestion.suggestion
-                : [];
-        } catch {
-            suggestedMoves = [];
-        }
-
-        return this.sanitizeAutoplayMoves(gameState, playerId, suggestedMoves);
-    }
-
-    private sanitizeAutoplayMoves(
-        gameState: GameState,
-        playerId: string,
-        suggestedMoves: readonly HexCoordinate[],
-    ): HexCoordinate[] {
-        const simulatedState = cloneGameState(gameState);
-        const acceptedMoves: HexCoordinate[] = [];
-
-        for (const move of suggestedMoves) {
-            if (simulatedState.currentTurnPlayerId !== playerId || simulatedState.placementsRemaining <= 0) {
-                break;
-            }
-
-            try {
-                applyGameMove(simulatedState, {
-                    playerId,
-                    x: move.x,
-                    y: move.y,
-                });
-                acceptedMoves.push(move);
-            } catch {
-                /* Ignore invalid bot suggestions and fill with fallback moves below. */
-            }
-        }
-
-        while (simulatedState.currentTurnPlayerId === playerId && simulatedState.placementsRemaining > 0) {
-            const fallbackMove = this.findFallbackMove(simulatedState, playerId);
-            if (!fallbackMove) {
-                break;
-            }
-
-            applyGameMove(simulatedState, {
-                playerId,
-                x: fallbackMove.x,
-                y: fallbackMove.y,
-            });
-            acceptedMoves.push(fallbackMove);
-        }
-
-        return acceptedMoves;
-    }
-
-    private findFallbackMove(gameState: GameState, playerId: string): HexCoordinate | null {
-        if (gameState.currentTurnPlayerId !== playerId || gameState.placementsRemaining <= 0) {
-            return null;
-        }
-
-        if (gameState.cells.length === 0) {
-            return { x: 0, y: 0 };
-        }
-
-        const occupiedCells = new Set(gameState.cells.map((cell) => getCellKey(cell.x, cell.y)));
-        const maxCoordinate = gameState.cells.reduce((currentMax, cell) =>
-            Math.max(currentMax, Math.abs(cell.x), Math.abs(cell.y), Math.abs(cell.x + cell.y)), 0);
-        const searchRadius = maxCoordinate + 10;
-
-        for (let radius = 0; radius <= searchRadius; radius += 1) {
-            for (let x = -radius; x <= radius; x += 1) {
-                for (let y = -radius; y <= radius; y += 1) {
-                    const cellKey = getCellKey(x, y);
-                    if (occupiedCells.has(cellKey)) {
-                        continue;
-                    }
-
-                    const candidate = { x, y };
-                    if (!isCellWithinPlacementRadius(gameState.cells, candidate)) {
-                        continue;
-                    }
-
-                    const trialState = cloneGameState(gameState);
-                    try {
-                        applyGameMove(trialState, {
-                            playerId,
-                            x: candidate.x,
-                            y: candidate.y,
-                        });
-                        return candidate;
-                    } catch {
-                        /* Keep scanning until we find a legal fallback move. */
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private async getSealBotEngine(): Promise<BotEngineInterface> {
-        if (!this.sealBotEnginePromise) {
-            this.sealBotEnginePromise = createSealEngine()
-                .catch((error: unknown) => {
-                    this.sealBotEnginePromise = null;
-                    throw error;
-                });
-        }
-
-        return await this.sealBotEnginePromise;
     }
 
     private getAutoplayDeviceId(profileId: string): string {

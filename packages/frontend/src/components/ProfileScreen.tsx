@@ -17,6 +17,7 @@ import {
 import { signInWithDiscord } from '../query/authClient';
 import { buildSessionPath } from '../routes/archiveRouteState';
 import { useSsrCompatibleNow } from '../ssrState';
+import BotBadge from './BotBadge';
 import {
     formatCalendarDate,
     formatChartDate,
@@ -226,6 +227,7 @@ function LiveGameSection({
 
                     <div className="mt-2 text-sm leading-6 text-slate-300">
                         {formatLobbyPlayers(liveGame.players, liveGame.rated, `Waiting for players`)}
+                        {liveGame.players.some((player) => player.isBot) && <BotBadge />}
                     </div>
 
                     {liveGame.startedAt && (
@@ -586,7 +588,9 @@ function ProfileScreen({
                                                 </span>
 
                                                 <span className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-200">
-                                                    {t('discordAccount', 'Discord Account')}
+                                                    {account.kind === `bot`
+                                                        ? t('botAccount', 'Bot')
+                                                        : t('discordAccount', 'Discord Account')}
                                                 </span>
                                             </div>
 

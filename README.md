@@ -60,6 +60,8 @@ DISCORD_CLIENT_SECRET=replace-me
 Optional backend environment variables:
 
 - `ALLOWED_ORIGINS`
+- `BOT_API_ENABLED` (default `false`; enables the bot account endpoints)
+- `HOUSE_BOT_MAX_GAMES` (default `2`; how many games the built-in bots play at once, in total — one worker thread per concurrent game; each think uses a full core)
 - `FRONTEND_DIST_PATH`
 - `LOG_LEVEL`
 - `LOG_PRETTY`
@@ -70,6 +72,7 @@ Optional backend environment variables:
 - `MONGODB_AUTH_ACCOUNTS_COLLECTION`
 - `MONGODB_AUTH_SESSIONS_COLLECTION`
 - `MONGODB_AUTH_VERIFICATION_TOKENS_COLLECTION`
+- `MONGODB_BOT_TOKENS_COLLECTION`
 
 Discord OAuth must be configured with the backend callback URL:
 

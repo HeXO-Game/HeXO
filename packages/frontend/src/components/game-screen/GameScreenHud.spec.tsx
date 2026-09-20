@@ -26,6 +26,7 @@ function createProps(overrides: Partial<GameScreenHudProps> = {}): GameScreenHud
         displayColor: '#38bdf8',
         displayName: 'Alpha',
         isConnected: true,
+        isBot: false,
         rankingEloScore: 1520,
       },
       {
@@ -34,6 +35,7 @@ function createProps(overrides: Partial<GameScreenHudProps> = {}): GameScreenHud
         displayColor: '#f97316',
         displayName: 'Bravo',
         isConnected: true,
+        isBot: false,
         rankingEloScore: 1490,
       },
     ],
@@ -105,4 +107,38 @@ test('hides draw actions for tournament matches', async ({ mount }) => {
   await expect(component.getByRole('button', { name: 'Draw' })).toHaveCount(0)
   await expect(component.getByRole('button', { name: 'Accept Draw' })).toHaveCount(0)
   await expect(component.getByRole('button', { name: 'Decline Draw' })).toHaveCount(0)
+})
+
+test('hides draw actions when a bot holds a seat', async ({ mount }) => {
+  const component = await mount(
+    <div className="relative min-h-screen">
+      <GameScreenHud
+        {...createProps({
+          players: [
+            {
+              playerId: 'player-1',
+              profileId: null,
+              displayColor: '#38bdf8',
+              displayName: 'Alpha',
+              isConnected: true,
+              isBot: false,
+              rankingEloScore: 1520,
+            },
+            {
+              playerId: 'player-2',
+              profileId: 'bot-1',
+              displayColor: '#f97316',
+              displayName: 'Strix',
+              isConnected: true,
+              isBot: true,
+              rankingEloScore: 1500,
+            },
+          ],
+        })}
+      />
+    </div>,
+  )
+
+  await expect(component.getByRole('button', { name: 'Draw' })).toHaveCount(0)
+  await expect(component.getByText('Bot', { exact: true })).toBeVisible()
 })

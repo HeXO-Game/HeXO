@@ -105,6 +105,10 @@ export class GameHistoryRepository {
             await collection.insertOne({
                 id: gameId,
                 version: 3,
+                /* The numbering scheme this document's moves use: migration 016 shifts
+                 * the one-ahead numbers of documents written without it, and this
+                 * marker is what keeps them from ever being shifted twice. */
+                moveNumbering: 1,
 
                 sessionId,
                 startedAt,
@@ -134,25 +138,35 @@ export class GameHistoryRepository {
         return gameId;
     }
 
-    async appendMove(gameId: string, move: GameMove): Promise<void> {
-        const collection = await this.getCollection();
+    async appendMoves(
+        gameId: string,
+        moves: readonly GameMove[],
+    ): Promise<void> {
+        if (moves.length === 0) {
+            return;
+        }
 
         try {
+            /* Inside the try on purpose: the append is fire-and-forget for callers, so
+             * a failing collection init must land in the log, not as a rejection. */
+            const collection = await this.getCollection();
             const result = await collection.updateOne(
                 { id: gameId },
                 {
                     $push: {
-                        moves: move,
+                        moves: { $each: moves },
                     } as never,
                     $inc: {
-                        moveCount: 1,
+                        moveCount: moves.length,
                     },
                 },
             );
 
             if (result.matchedCount === 0) {
                 this.logMissingHistory(`game-history-move-error`, gameId, {
-                    moveNumber: move.moveNumber,
+                    moveCount: moves.length,
+                    firstMoveNumber: moves[0]!.moveNumber,
+                    lastMoveNumber: moves.at(-1)!.moveNumber,
                 });
             }
         } catch (error: unknown) {
@@ -163,9 +177,11 @@ export class GameHistoryRepository {
                     event: `game-history-move-error`,
                     storage: `mongodb`,
                     gameId,
-                    moveNumber: move.moveNumber,
+                    moveCount: moves.length,
+                    firstMoveNumber: moves[0]!.moveNumber,
+                    lastMoveNumber: moves.at(-1)!.moveNumber,
                 },
-                `Failed to append game move`,
+                `Failed to append game moves`,
             );
         }
     }

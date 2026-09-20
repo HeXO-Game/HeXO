@@ -93,6 +93,7 @@ function GameScreen({
             rankingEloScore: player.rating.eloScore,
 
             isConnected: player.connection.status === `connected`,
+            isBot: player.isBot,
         }));
     }, [gameState.playerTiles, players, theme]);
 
