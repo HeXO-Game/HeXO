@@ -254,7 +254,7 @@ function SessionRoute() {
 
     const autoPlaceOriginTile = accountPreferences?.preferences.autoPlaceOriginTile ?? false;
     const boardTheme = getBoardTheme(accountPreferences?.preferences.boardTheme);
-    const hideEloInHud = accountPreferences?.preferences.zenModeInGame ?? false;
+    const zenMode = accountPreferences?.preferences.zenModeInGame ?? false;
     const shouldBlockLeave = session?.state.status === `in-game` && session.localParticipantRole === `player`;
 
     const blocker = useBlocker(({ currentLocation, nextLocation }) => currentLocation.pathname !== nextLocation.pathname);
@@ -544,7 +544,7 @@ function SessionRoute() {
 
                 interactionEnabled={session.state.status === `in-game`}
                 theme={boardTheme}
-                hideEloInHud={hideEloInHud}
+                zenMode={zenMode}
                 tournament={session.tournament}
 
                 onPlaceCell={placeCell}

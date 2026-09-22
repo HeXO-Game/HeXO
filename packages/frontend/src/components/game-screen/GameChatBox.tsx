@@ -10,7 +10,7 @@ type SessionChatBoxProps = {
     currentParticipantId: string
     chat: SessionChat
     isOpen: boolean
-    hideEloInHud: boolean
+    zenMode: boolean
     onOpenChange: (isOpen: boolean) => void
     onSendMessage?: (message: string) => void
 };
@@ -36,7 +36,7 @@ function GameChatBox({
     currentParticipantId,
     chat,
     isOpen,
-    hideEloInHud = false,
+    zenMode = false,
     onOpenChange,
     onSendMessage,
 }: Readonly<SessionChatBoxProps>) {
@@ -160,7 +160,7 @@ function GameChatBox({
                         >
                             <div className="flex items-center justify-between gap-2">
                                 <div className={`text-[.75rem] font-medium uppercase tracking-widest ${isOwnMessage ? `text-sky-100/80` : `text-slate-200/66`}`}>
-                                    {isOwnMessage ? `You` : (hideEloInHud ? `Opponent` : chat.displayNames[message.senderId])}
+                                    {isOwnMessage ? `You` : (zenMode ? `Opponent` : chat.displayNames[message.senderId])}
                                 </div>
 
                                 <div className="text-[.8rem] text-slate-400/38">
