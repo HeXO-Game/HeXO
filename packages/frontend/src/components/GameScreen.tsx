@@ -31,7 +31,7 @@ type GameScreenProps = {
     overlay?: ReactNode
     interactionEnabled?: boolean
     theme?: BoardTheme
-    hideEloInHud?: boolean
+    zenMode?: boolean
     tournament: SessionTournamentInfo | null
 
     drawRequest: string | null,
@@ -62,7 +62,7 @@ function GameScreen({
     overlay,
     interactionEnabled = true,
     theme,
-    hideEloInHud = false,
+    zenMode = false,
     tournament,
 
     drawRequest,
@@ -159,6 +159,7 @@ function GameScreen({
                             currentParticipantId={currentPlayerId}
                             chat={chat}
                             isOpen={isChatOpen}
+                            zenMode={zenMode}
                             onOpenChange={onChatOpenChange}
                             onSendMessage={onSendChatMessage}
                         />
@@ -167,7 +168,7 @@ function GameScreen({
                             <GameScreenHud
                                 sessionId={sessionId}
                                 gameOptions={gameOptions}
-                                hideEloInHud={hideEloInHud}
+                                zenMode={zenMode}
                                 tournament={tournament}
 
                                 players={hudPlayerInfo}
