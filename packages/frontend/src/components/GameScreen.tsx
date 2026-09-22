@@ -159,6 +159,7 @@ function GameScreen({
                             currentParticipantId={currentPlayerId}
                             chat={chat}
                             isOpen={isChatOpen}
+                            hideEloInHud={hideEloInHud}
                             onOpenChange={onChatOpenChange}
                             onSendMessage={onSendChatMessage}
                         />

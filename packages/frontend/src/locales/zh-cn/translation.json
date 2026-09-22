@@ -963,6 +963,7 @@
   "yourRematchRequestHasBeenSentWaitingForTheOpponentToAccept": "再战请求已发送，正在等待对手接受。",
   "youveWon": "你赢了",
   "zenModeHidesEloInTheHud": "禅模式会隐藏对局界面中的 ELO。",
+  "zenModeHidesNamesInTheHud": "禅意模式会隐藏 HUD 中的玩家名称。",
   "zenModeIngame": "对局内禅模式",
   "timelineRange": "时间范围",
   "last14Days": "最近 14 天",

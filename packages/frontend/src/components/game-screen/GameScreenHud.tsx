@@ -305,53 +305,62 @@ function GameScreenHud({
                     </HudInfoBlock>
 
                     <HudInfoBlock label="Players">
-                        {players.map(({ playerId, profileId, displayColor, displayName, isConnected, rankingEloScore }) => {
-                            let formattedName;
-                            if (gameOptions.rated && !hideEloInHud) {
-                                formattedName = t('displaynameRankingeloscore', '{{displayName}} ({{rankingEloScore}})', { displayName, rankingEloScore });
-                            } else {
-                                formattedName = displayName;
-                            }
+                        {hideEloInHud ? (
+                            <div className="text-white">
+                                {t('zenModeHidesNamesInTheHud', 'Zen mode hides player names in the HUD.')}
+                            </div>
+                        ) : (
+                            <React.Fragment>
+                            {players.map(({ playerId, profileId, displayColor, displayName, isConnected, rankingEloScore }) => {
+                                let formattedName;
+                                if (gameOptions.rated) {
+                                    formattedName = t('displaynameRankingeloscore', '{{displayName}} ({{rankingEloScore}})', { displayName, rankingEloScore });
+                                } else {
+                                    formattedName = displayName;
+                                }
 
-                            return (
-                                <div key={playerId} className="mt-1 flex items-center gap-2.5 text-white">
-                                    <span
-                                        className="h-3.5 w-3.5 rounded-full border border-white/20 shrink-0"
-                                        style={{ backgroundColor: displayColor }}
-                                    />
-
-                                    {profileId ? (
-                                        <NavLink
-                                            to={`/profile/${profileId}`}
-                                            className="overflow-hidden overscroll-contain text-ellipsis min-w-0"
-                                            title={formattedName}
-                                        >
-                                            {formattedName}
-                                        </NavLink>
-                                    ) : (
-                                        <span title={formattedName} className="overflow-hidden overscroll-contain text-ellipsis min-w-0"                >
-                                            {formattedName}
-                                        </span>
-                                    )}
-
-                                    {!isConnected && (
+                                return (
+                                    <div key={playerId} className="mt-1 flex items-center gap-2.5 text-white">
                                         <span
-                                            title={t('displaynameIsOffline', '{{displayName}} is offline', { displayName })}
-                                            aria-label={t('displaynameIsOffline', '{{displayName}} is offline', { displayName })}
-                                            className="flex h-5 w-5 items-center justify-center rounded-full border border-amber-300/25 bg-amber-400/10 text-amber-100"
-                                        >
-                                            <OfflineIcon />
-                                        </span>
-                                    )}
+                                            className="h-3.5 w-3.5 rounded-full border border-white/20 shrink-0"
+                                            style={{ backgroundColor: displayColor }}
+                                        />
 
-                                    {playerId === localPlayerId && (
-                                        <span className="rounded-md border border-white/10 bg-white/6 px-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                                            {t('you', 'You')}
-                                        </span>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                        {profileId ? (
+                                            <NavLink
+                                                to={`/profile/${profileId}`}
+                                                className="overflow-hidden overscroll-contain text-ellipsis min-w-0"
+                                                title={formattedName}
+                                            >
+                                                {formattedName}
+                                            </NavLink>
+                                        ) : (
+                                            <span title={formattedName} className="overflow-hidden overscroll-contain text-ellipsis min-w-0"                >
+                                                {formattedName}
+                                            </span>
+                                        )}
+
+                                        {!isConnected && (
+                                            <span
+                                                title={t('displaynameIsOffline', '{{displayName}} is offline', { displayName })}
+                                                aria-label={t('displaynameIsOffline', '{{displayName}} is offline', { displayName })}
+                                                className="flex h-5 w-5 items-center justify-center rounded-full border border-amber-300/25 bg-amber-400/10 text-amber-100"
+                                            >
+                                                <OfflineIcon />
+                                            </span>
+                                        )}
+
+                                        {playerId === localPlayerId && (
+                                            <span className="rounded-md border border-white/10 bg-white/6 px-2 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                                                {t('you', 'You')}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                            </React.Fragment>
+                            )
+                        }
                     </HudInfoBlock>
 
                     <HudInfoBlock label="Ranking">
