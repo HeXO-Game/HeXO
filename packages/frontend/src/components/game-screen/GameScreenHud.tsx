@@ -31,7 +31,7 @@ type GameScreenHudProps = {
     sessionId: string
     localPlayerId: string | null
     players: HudPlayerInfo[]
-    hideEloInHud?: boolean
+    zenMode?: boolean
     showConnectionUnstableBadge?: boolean
     tournament: SessionTournamentInfo | null
 
@@ -98,7 +98,7 @@ function GameScreenHud({
 
     players,
     localPlayerId,
-    hideEloInHud = false,
+    zenMode = false,
     showConnectionUnstableBadge = false,
     tournament,
 
@@ -305,7 +305,7 @@ function GameScreenHud({
                     </HudInfoBlock>
 
                     <HudInfoBlock label="Players">
-                        {hideEloInHud ? (
+                        {zenMode ? (
                             <div className="text-white">
                                 {t('zenModeHidesNamesInTheHud', 'Zen mode hides player names in the HUD.')}
                             </div>
@@ -375,7 +375,7 @@ function GameScreenHud({
                                         {t('playersWillGainloseElo', 'Players will gain/lose ELO.')}
                                     </div>
                                 </React.Fragment>
-                            ) : hideEloInHud ? (
+                            ) : zenMode ? (
                                 <React.Fragment>
                                     <div className="text-white">
                                         {t('ratedMatch', 'Rated Match')}
