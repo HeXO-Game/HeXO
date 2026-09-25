@@ -106,6 +106,8 @@ export const zGameTimeControl = z.union([
 ]);
 export type GameTimeControl = z.infer<typeof zGameTimeControl>;
 
+export const GRACE_TIME_LENGTH = 10_000;
+
 export const zLobbyOptions = z.object({
     visibility: zLobbyVisibility,
     timeControl: zGameTimeControl,
@@ -225,6 +227,9 @@ export const zGameState = z.object({
     turnCount: z.number().int().nonnegative(),
     currentTurnExpiresInMs: z.number().int().nonnegative().nullable(),
     playerTimeRemainingMs: z.record(z.string(), z.number().int().nonnegative()),
+    hasUsedGracePeriod: z.record(z.string(), z.boolean().nullable()),
+    currentTurnUsesGraceTime: z.boolean().nullable(),
+    graceTimerStartedAt: z.number().nullable(),
 });
 export type GameState = z.infer<typeof zGameState>;
 export type Game = {
@@ -292,6 +297,9 @@ export function createEmptyGameState(): GameState {
         turnCount: 0,
         currentTurnExpiresInMs: null,
         playerTimeRemainingMs: {},
+        hasUsedGracePeriod: {},
+        currentTurnUsesGraceTime: null,
+        graceTimerStartedAt: null,
     };
 }
 

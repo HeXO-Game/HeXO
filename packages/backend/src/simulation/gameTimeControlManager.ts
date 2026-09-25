@@ -1,4 +1,5 @@
 import type { GameTimeControl } from '@ih3t/shared';
+import { GRACE_TIME_LENGTH } from '@ih3t/shared';
 import { injectable } from 'tsyringe';
 
 import type { ServerGameSession } from '../session/types';
@@ -48,6 +49,17 @@ export class GameTimeControlManager {
                 fallbackTimeMs,
             );
 
+            if (session.gameState.currentTurnUsesGraceTime &&
+                turnCompleted &&
+                session.gameState.graceTimerStartedAt !== null
+            ) {
+                const turnLength = timestamp - session.gameState.graceTimerStartedAt;
+                session.gameState.playerTimeRemainingMs[playerId] -= Math.max(GRACE_TIME_LENGTH - turnLength, 0);
+
+                session.gameState.currentTurnUsesGraceTime = false;
+                session.gameState.graceTimerStartedAt = null;
+            }
+            
             if (turnCompleted) {
                 session.gameState.playerTimeRemainingMs[playerId] += timeControl.incrementMs;
             }
@@ -157,6 +169,7 @@ export class GameTimeControlManager {
                     currentPlayerId,
                     timeControl.mainTimeMs,
                 );
+
                 session.currentTurnExpiresAt = timestamp + remainingTimeMs;
                 session.gameState.currentTurnExpiresInMs = remainingTimeMs;
                 break;
@@ -166,6 +179,20 @@ export class GameTimeControlManager {
                 session.currentTurnExpiresAt = timestamp + timeControl.turnTimeMs;
                 session.gameState.currentTurnExpiresInMs = timeControl.turnTimeMs;
                 break;
+        }
+
+        if (!session.gameState.hasUsedGracePeriod[currentPlayerId] &&
+            timeControl.mode !== `unlimited` && 
+            session.currentTurnExpiresAt !== null && 
+            session.gameState.currentTurnExpiresInMs !== null)
+        {
+            session.currentTurnExpiresAt += GRACE_TIME_LENGTH;
+            session.gameState.currentTurnExpiresInMs += GRACE_TIME_LENGTH;
+            session.gameState.playerTimeRemainingMs[currentPlayerId] += GRACE_TIME_LENGTH;
+
+            session.gameState.currentTurnUsesGraceTime = true;
+            session.gameState.hasUsedGracePeriod[currentPlayerId] = true;
+            session.gameState.graceTimerStartedAt = timestamp;
         }
     }
 

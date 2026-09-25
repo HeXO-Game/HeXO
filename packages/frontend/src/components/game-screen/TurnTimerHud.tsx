@@ -1,5 +1,6 @@
 import type { BoardTheme } from "@ih3t/board-renderer";
 import type { GameState, LobbyOptions, SessionPlayer } from '@ih3t/shared';
+import { GRACE_TIME_LENGTH } from "@ih3t/shared";
 import { useEffect, useRef, useState } from 'react';
 
 import { playCountdownWarningSound } from '../../soundEffects';
@@ -56,6 +57,16 @@ function TurnTimerHud({
                 return playerTimeRemainingMs[playerId] ?? effectiveTimeControl.mainTimeMs;
         }
     };
+    const getGraceTimer = (playerId: string) => {
+        if (gameState.currentTurnUsesGraceTime &&
+            playerId === currentTurnPlayerId &&
+            gameState.graceTimerStartedAt && 
+            (Date.now() - gameState.graceTimerStartedAt < GRACE_TIME_LENGTH)) {
+            return gameState.graceTimerStartedAt - Date.now() + GRACE_TIME_LENGTH;
+        }
+
+        return null;
+    }
 
     useEffect(() => {
         if (currentTurnExpiresInMs === null) {
@@ -122,6 +133,7 @@ function TurnTimerHud({
                                     key={player.id}
                                     label={getPlayerLabel(playerIds, player.id, playerNames)}
                                     timeMs={getDisplayedPlayerClockMs(player.id)}
+                                    graceTimer={getGraceTimer(player.id)}
                                     markerColor={getPlayerColor(gameState.playerTiles, player.id, theme)}
                                     isHighlighted={isActivePlayer}
                                     trailingBadge={isLocalPlayer && !isSpectator ? (
