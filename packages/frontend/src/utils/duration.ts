@@ -1,18 +1,18 @@
 import i18next from 'i18next'
-function getTotalSeconds(milliseconds: number, roundMode: `ceil` | `round` = `round`) {
-    const round = roundMode === `ceil` ? Math.ceil : Math.round;
-    return Math.max(0, round(milliseconds / 1000));
+function getTotalSeconds(milliseconds: number) {
+    return Math.max(0, Math.floor(milliseconds / 1000));
 }
 
-export function formatMinutesSeconds(milliseconds: number | null, nullLabel = `--:--`) {
+export function formatMinutesSeconds(milliseconds: number | null, nullLabel = `--:--`, showDecimalPlace: boolean = false) {
     if (milliseconds === null) {
         return nullLabel;
     }
 
-    const totalSeconds = getTotalSeconds(milliseconds, `ceil`);
+    const totalSeconds = getTotalSeconds(milliseconds);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, `0`)}`;
+    const decimalPlace = Math.max(0, Math.floor((milliseconds % 1000) / 100));
+    return `${minutes}:${seconds.toString().padStart(2, `0`)}` + (showDecimalPlace ? `.${decimalPlace}` : ``);
 }
 
 export function formatCompactDuration(milliseconds: number) {
@@ -67,7 +67,7 @@ export function formatLongDuration(milliseconds: number) {
 }
 
 export function formatCountdownDuration(milliseconds: number) {
-    const totalSeconds = getTotalSeconds(milliseconds, `ceil`);
+    const totalSeconds = getTotalSeconds(milliseconds);
     const hours = Math.floor(totalSeconds / 3_600);
     const minutes = Math.floor((totalSeconds % 3_600) / 60);
     const seconds = totalSeconds % 60;
@@ -84,7 +84,7 @@ export function formatRefreshCountdown(milliseconds: number) {
         return `Refreshing now`;
     }
 
-    const totalSeconds = getTotalSeconds(milliseconds, `ceil`);
+    const totalSeconds = getTotalSeconds(milliseconds);
     const hours = Math.floor(totalSeconds / 3_600);
     const minutes = Math.floor((totalSeconds % 3_600) / 60);
     const seconds = totalSeconds % 60;
