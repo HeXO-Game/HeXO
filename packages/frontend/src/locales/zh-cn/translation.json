@@ -666,6 +666,7 @@
   "rematchUnavailable": "无法再战",
   "remove": "移除",
   "removeAnExistingMark": "删除现有标记。",
+  "removeAnnotations": "移除標註",
   "replaylabelSessionidDefault_page_title": "{{replayLabel}} {{sessionId}} • {{DEFAULT_PAGE_TITLE}}",
   "replayMoveVisiblemovecountlength": "回放第 {{visibleMoveCount}} / {{length}} 步",
   "replayNotFoundDefault_page_title": "未找到重播 • {{DEFAULT_PAGE_TITLE}}",
