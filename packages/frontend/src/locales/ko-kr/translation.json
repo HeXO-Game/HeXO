@@ -666,6 +666,7 @@
   "rematchUnavailable": "재대결 불가",
   "remove": "삭제",
   "removeAnExistingMark": "기존 표시를 삭제합니다.",
+  "removeAnnotations": "주석 제거",
   "replaylabelSessionidDefault_page_title": "{{replayLabel}} {{sessionId}} • {{DEFAULT_PAGE_TITLE}}",
   "replayMoveVisiblemovecountlength": "리플레이 수 {{visibleMoveCount}}/{{length}}",
   "replayNotFoundDefault_page_title": "리플레이를 찾을 수 없음 • {{DEFAULT_PAGE_TITLE}}",

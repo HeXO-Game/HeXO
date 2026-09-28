@@ -53,6 +53,7 @@ type GameScreenHudProps = {
     leaveLabel?: string
     onLeave: () => void
     onResetView: () => void
+    onRemoveAnnotations: () => void
 };
 
 function MenuIcon() {
@@ -118,10 +119,11 @@ function GameScreenHud({
     leaveLabel = `Leave Game`,
     onLeave,
     onResetView,
+    onRemoveAnnotations,
 }: Readonly<GameScreenHudProps>) {
     const { t } = useTranslation()
     const isSpectator = !players.some(player => player.playerId === localPlayerId);
-    const canAbort = !isSpectator && occupiedCellCount <= ABORT_GAME_MAX_MOVES;
+    const canAbort = !isSpectator && occupiedCellCount <= ABORT_GAME_MAX_MOVES && tournament === null;
     /* Do not show the HUD by default on mobile devices */
     const [isHudOpen, setIsHudOpen] = useState(window.innerWidth >= 900);
     const opponent = players.find(player => player.playerId !== localPlayerId) ?? null;
@@ -423,7 +425,13 @@ function GameScreenHud({
                     )}
 
                     {drawActionArea}
-                    {drawActionArea && (<div />)}
+
+                    <Button
+                        onClick={onRemoveAnnotations}
+                        variant="card" size="sm" className="min-w-36"
+                    >
+                        {t('removeAnnotations', 'Remove Annotations')}
+                    </Button>
 
                     <Button
                         onClick={onResetView}
