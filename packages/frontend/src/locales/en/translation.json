@@ -666,6 +666,7 @@
   "rematchUnavailable": "Rematch Unavailable",
   "remove": "Remove",
   "removeAnExistingMark": "Remove an existing mark.",
+  "removeAnnotations": "Remove Annotations",
   "replaylabelSessionidDefault_page_title": "{{replayLabel}} {{sessionId}} • {{DEFAULT_PAGE_TITLE}}",
   "replayMoveVisiblemovecountlength": "Replay Move {{visibleMoveCount}}/{{length}}",
   "replayNotFoundDefault_page_title": "Replay Not Found • {{DEFAULT_PAGE_TITLE}}",

@@ -666,6 +666,7 @@
   "rematchUnavailable": "Rückkampf nicht verfügbar",
   "remove": "Entfernen",
   "removeAnExistingMark": "Entferne eine vorhandene Markierung.",
+  "removeAnnotations": "Markierungen entfernen",
   "replaylabelSessionidDefault_page_title": "{{replayLabel}} {{sessionId}} • {{DEFAULT_PAGE_TITLE}}",
   "replayMoveVisiblemovecountlength": "Wiedergabezug {{visibleMoveCount}}/{{length}}",
   "replayNotFoundDefault_page_title": "Wiederholung nicht gefunden • {{DEFAULT_PAGE_TITLE}}",

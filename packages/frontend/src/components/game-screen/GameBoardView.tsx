@@ -25,6 +25,7 @@ type GameBoardViewProps = {
     children?: (context: {
         renderableCellCount: number
         resetView: () => void
+        removeAnnotations: () => void
     }) => ReactNode
 };
 
@@ -143,6 +144,7 @@ function GameBoardView({
             {children?.({
                 renderableCellCount,
                 resetView: () => controller.resetView(),
+                removeAnnotations: () => controller.clearHighlights(),
             })}
         </div>
     );

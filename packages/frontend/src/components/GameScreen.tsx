@@ -123,7 +123,7 @@ function GameScreen({
             theme={theme}
             onPlaceCell={canPlaceCell ? onPlaceCell : undefined}
         >
-            {({ renderableCellCount, resetView }) => (
+            {({ renderableCellCount, resetView, removeAnnotations }) => (
                 <>
                     <div className="pointer-events-none absolute inset-0">
                         <div className="flex h-full flex-col justify-between gap-4">
@@ -190,6 +190,7 @@ function GameScreen({
                                 leaveLabel={leaveLabel}
                                 onLeave={onLeave}
                                 onResetView={resetView}
+                                onRemoveAnnotations={removeAnnotations}
                             />
                         )}
                     </div>

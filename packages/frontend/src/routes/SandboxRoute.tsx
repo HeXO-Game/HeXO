@@ -680,7 +680,10 @@ function SandboxRoute() {
                                             onResetBoard={() => resetSandbox()}
                                             onUndo={undoMove}
                                             onRedo={redoMove}
-                                            onResetView={() => boardController.resetView()}
+                                            onResetView={() => {
+                                                boardController.resetView();
+                                                boardController.clearHighlights();
+                                            }}
                                             canUndo={canUndo}
                                             canRedo={canRedo}
                                         />
