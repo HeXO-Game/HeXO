@@ -106,6 +106,8 @@ export const zGameTimeControl = z.union([
 ]);
 export type GameTimeControl = z.infer<typeof zGameTimeControl>;
 
+export const GRACE_TIME_LENGTH = 10_000;
+
 export const zLobbyOptions = z.object({
     visibility: zLobbyVisibility,
     timeControl: zGameTimeControl,
@@ -223,8 +225,11 @@ export const zGameState = z.object({
     currentTurnPlayerId: zIdentifier.nullable(),
     placementsRemaining: z.number().int().nonnegative(),
     turnCount: z.number().int().nonnegative(),
-    currentTurnExpiresInMs: z.number().int().nonnegative().nullable(),
+    currentTurnExpiresAt: z.number().int().nonnegative().nullable(),
     playerTimeRemainingMs: z.record(z.string(), z.number().int().nonnegative()),
+    hasUsedGracePeriod: z.record(z.string(), z.boolean().nullable()),
+    currentTurnUsesGraceTime: z.boolean().nullable(),
+    graceTimerStartedAt: z.number().nullable(),
 });
 export type GameState = z.infer<typeof zGameState>;
 export type Game = {
@@ -290,8 +295,11 @@ export function createEmptyGameState(): GameState {
         currentTurnPlayerId: null,
         placementsRemaining: 0,
         turnCount: 0,
-        currentTurnExpiresInMs: null,
+        currentTurnExpiresAt: null,
         playerTimeRemainingMs: {},
+        hasUsedGracePeriod: {},
+        currentTurnUsesGraceTime: null,
+        graceTimerStartedAt: null,
     };
 }
 
@@ -335,7 +343,6 @@ export function initializeGameState(
     gameState.winner = null;
     gameState.playerTiles = buildPlayerTileConfigMap(playerIds);
     gameState.turnCount = 0;
-    gameState.currentTurnExpiresInMs = null;
     gameState.playerTimeRemainingMs = {};
 
     if (!startingPlayerId || !playerIds.includes(startingPlayerId)) {
@@ -434,9 +441,6 @@ function setCurrentTurn(
 ): void {
     gameState.currentTurnPlayerId = playerId;
     gameState.placementsRemaining = playerId ? placementsRemaining : 0;
-    if (!playerId) {
-        gameState.currentTurnExpiresInMs = null;
-    }
 }
 
 export function findWinningLine(
