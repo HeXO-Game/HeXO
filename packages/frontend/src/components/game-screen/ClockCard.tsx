@@ -28,7 +28,7 @@ function ClockCard({
     const paddingClassName = hasPlayerMarker
         ? `px-2 py-1.5 sm:px-2.5 sm:py-2`
         : `px-2.5 py-1.5 sm:px-3 sm:py-2`;
-    const value = valueLabel ?? formatMinutesSeconds(timeMs);
+    const value = valueLabel ?? formatMinutesSeconds(timeMs, undefined, (timeMs !== null && (timeMs < 10_000)));
 
     // bg-slate-800/60  bg-emerald-400/12
     return (
