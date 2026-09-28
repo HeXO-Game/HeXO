@@ -26,12 +26,13 @@ function TurnTimerHud({
 }: Readonly<TurnTimerHudProps>) {
     const { t } = useTranslation()
     const [activeClockCountdownMs, setActiveClockCountdownMs] = useState<number | null>(null);
+    const [activeGraceTimerMs, setActiveGraceTimerMs]  = useState<number | null>(0);
     const lastCountdownWarningSecondRef = useRef<number | null>(null);
     const effectiveTimeControl = gameOptions.timeControl;
     const playerIds = players.map(player => player.id);
     const playerNames: Record<string, string> = Object.fromEntries(players.map(player => [player.id, player.displayName]));
     const currentTurnPlayerId = gameState.currentTurnPlayerId;
-    const currentTurnExpiresInMs = gameState.currentTurnExpiresInMs;
+    const currentTurnExpiresAt = gameState.currentTurnExpiresAt;
     const placementsRemaining = gameState.placementsRemaining;
     const playerTimeRemainingMs = gameState.playerTimeRemainingMs;
 
@@ -57,33 +58,31 @@ function TurnTimerHud({
                 return playerTimeRemainingMs[playerId] ?? effectiveTimeControl.mainTimeMs;
         }
     };
-    const getGraceTimer = (playerId: string) => {
-        if (gameState.currentTurnUsesGraceTime &&
-            playerId === currentTurnPlayerId &&
-            gameState.graceTimerStartedAt && 
-            (Date.now() - gameState.graceTimerStartedAt < GRACE_TIME_LENGTH)) {
-            return gameState.graceTimerStartedAt - Date.now() + GRACE_TIME_LENGTH;
-        }
-
-        return null;
-    }
 
     useEffect(() => {
-        if (currentTurnExpiresInMs === null) {
+        if (currentTurnExpiresAt === null) {
             setActiveClockCountdownMs(null);
             return;
         }
 
-        const countdownReceivedAt = Date.now();
         const updateCountdown = () => {
-            setActiveClockCountdownMs(Math.max(0, currentTurnExpiresInMs - (Date.now() - countdownReceivedAt)));
+            const now = Date.now();
+            setActiveClockCountdownMs(Math.max(0, currentTurnExpiresAt - now));
+            
+            if (gameState.currentTurnUsesGraceTime &&
+                gameState.graceTimerStartedAt &&
+                (now - gameState.graceTimerStartedAt < GRACE_TIME_LENGTH)
+            ) {
+                setActiveGraceTimerMs(gameState.graceTimerStartedAt - now + GRACE_TIME_LENGTH);
+            }
+            else if (gameState.currentTurnUsesGraceTime) setActiveGraceTimerMs(null);
         };
 
         updateCountdown();
         const interval = window.setInterval(updateCountdown, 250);
         return () => window.clearInterval(interval);
     }, [
-        currentTurnExpiresInMs, currentTurnPlayerId, placementsRemaining, gameState.turnCount,
+        currentTurnExpiresAt, currentTurnPlayerId, placementsRemaining, gameState.turnCount,
     ]);
 
     useEffect(() => {
@@ -133,7 +132,7 @@ function TurnTimerHud({
                                     key={player.id}
                                     label={getPlayerLabel(playerIds, player.id, playerNames)}
                                     timeMs={getDisplayedPlayerClockMs(player.id)}
-                                    graceTimer={getGraceTimer(player.id)}
+                                    graceTimer={isActivePlayer && gameState.currentTurnUsesGraceTime ? activeGraceTimerMs : null}
                                     markerColor={getPlayerColor(gameState.playerTiles, player.id, theme)}
                                     isHighlighted={isActivePlayer}
                                     trailingBadge={isLocalPlayer && !isSpectator ? (

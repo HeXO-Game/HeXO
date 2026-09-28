@@ -80,7 +80,6 @@ function buildReplayBoardState(game: FinishedGameRecord, visibleMoveCount: numbe
         if (replayGameState.winner) {
             replayGameState.currentTurnPlayerId = null;
             replayGameState.placementsRemaining = 0;
-            replayGameState.currentTurnExpiresInMs = null;
         }
     }
 

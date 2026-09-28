@@ -631,7 +631,7 @@ export class SessionManager {
 
         let moveResult;
         const timestamp = Date.now();
-        const turnExpiresAt = session.currentTurnExpiresAt;
+        const turnExpiresAt = session.gameState.currentTurnExpiresAt;
         try {
             this.timeControl.ensureTurnHasTimeRemaining(session, timestamp);
             moveResult = this.simulation.applyMove(session.gameState, {
@@ -1202,7 +1202,7 @@ export class SessionManager {
         session.finishedAt = finishedAt;
 
         this.timeControl.freezeActiveTurnState(session, finishedAt);
-        session.currentTurnExpiresAt = null;
+        session.gameState.currentTurnExpiresAt = null;
         session.gameState = this.getClientGameState(session);
         session.finishReason = reason;
         session.abortedByPlayerId = abortedByPlayerId;
@@ -1497,8 +1497,6 @@ export class SessionManager {
 
     private getClientGameState(session: ServerGameSession): GameState {
         const gameState = this.simulation.getPublicGameState(session.gameState);
-        gameState.currentTurnExpiresInMs =
-            this.timeControl.getCurrentTurnExpiresInMs(session);
         return gameState;
     }
 

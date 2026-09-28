@@ -37,7 +37,7 @@ function ClockCard({
         : `-my-1.5 sm:-my-2`;
 
     const value = valueLabel ?? 
-        ((graceTimer && timeMs) ? formatMinutesSeconds(timeMs - graceTimer - 1_000) : formatMinutesSeconds(timeMs));
+        ((graceTimer && timeMs) ? formatMinutesSeconds(timeMs - graceTimer) : formatMinutesSeconds(timeMs));
 
     // bg-slate-800/60  bg-emerald-400/12
     return (
@@ -72,10 +72,13 @@ function ClockCard({
                     </div>
 
                     {graceTimer ? (
-                        <div className="flex flex-col -my-1.5">
+                        <div className={cn(
+                            "flex flex-col",
+                            graceTimerMargin
+                            )}>
                             <span
                                 className ={`text-slate-400 text-[0.4rem] sm:text-[0.5rem] m-0`}
-                            >{value}</span>
+                            >{timeMs ? formatMinutesSeconds(timeMs - graceTimer) : null}</span>
                             <span
                                 className ={`shrink-0 text-[0.6rem] font-black tabular-nums leading-none sm:text-xs ${isHighlighted || isTimeEmphasized ? `text-emerald-100` : `text-white`}`}
                             >{formatMinutesSeconds(graceTimer)}</span>
