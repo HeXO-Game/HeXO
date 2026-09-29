@@ -544,6 +544,10 @@ export class SessionManager {
                 );
             }
 
+            if (session.gameState.cells.length <= ABORT_GAME_MAX_MOVES) {
+                throw new SessionError(`A draw can first be requested after ${ABORT_GAME_MAX_MOVES + 1} moves.`);
+            }
+
             if (
                 session.gameState.turnCount <
                 session.drawRequestAvailableAfterTurn
