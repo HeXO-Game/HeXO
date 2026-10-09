@@ -63,6 +63,7 @@ export class AuthService {
             },
             providers: [
                 Discord({
+                    issuer: "https://discord.com",
                     clientId: serverConfig.discordClientId,
                     clientSecret: serverConfig.discordClientSecret,
                     profile(profile: DiscordProfile) {
