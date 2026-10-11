@@ -119,7 +119,7 @@ function MultiviewTimerStrip({
     players: SessionPlayer[]
 }>) {
     const { t } = useTranslation()
-    const currentTurnExpiresInMs = gameState?.currentTurnExpiresInMs ?? null;
+    const currentTurnExpiresInMs = gameState?.currentTurnExpiresAt ? gameState?.currentTurnExpiresAt - Date.now() : null;
     const shouldTick = status === `live` && currentTurnExpiresInMs !== null;
     const [nowMs, setNowMs] = useState(() => Date.now());
     const [countdownAnchor, setCountdownAnchor] = useState(() => ({
