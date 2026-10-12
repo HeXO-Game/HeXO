@@ -9,10 +9,11 @@ export function formatMinutesSeconds(milliseconds: number | null, nullLabel = `-
     }
 
     const totalSeconds = getTotalSeconds(milliseconds);
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds - 3600 * hours) / 60);
     const seconds = totalSeconds % 60;
     const decimalPlace = Math.max(0, Math.floor((milliseconds % 1000) / 100));
-    return `${minutes}:${seconds.toString().padStart(2, `0`)}` + (showDecimalPlace ? `.${decimalPlace}` : ``);
+    return (hours ? `${hours}:${minutes.toString().padStart(2, `0`)}` : `${minutes}`) + `:${seconds.toString().padStart(2, `0`)}` + (showDecimalPlace ? `.${decimalPlace}` : ``);
 }
 
 export function formatCompactDuration(milliseconds: number) {
