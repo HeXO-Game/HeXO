@@ -79,7 +79,20 @@ export type PlayerTileConfig = z.infer<typeof zPlayerTileConfig>;
 
 export function buildPlayerTileConfigMap(
     playerIds: readonly string[],
+    firstPlayerId: string | null,
 ): Record<string, PlayerTileConfig> {
+    if (firstPlayerId) {
+        return Object.fromEntries(
+        playerIds.map(playerId => [
+            playerId,
+            {
+                colorIndex: zPlayerColorIndex.parse(
+                    playerId === firstPlayerId ? 0 : 1
+                ),
+            },
+        ]),
+    );
+    }
     return Object.fromEntries(
         playerIds.map((playerId, playerIndex) => [
             playerId,
@@ -333,7 +346,7 @@ export function initializeGameState(
 ): void {
     gameState.cells = [];
     gameState.winner = null;
-    gameState.playerTiles = buildPlayerTileConfigMap(playerIds);
+    gameState.playerTiles = buildPlayerTileConfigMap(playerIds, startingPlayerId);
     gameState.turnCount = 0;
     gameState.currentTurnExpiresInMs = null;
     gameState.playerTimeRemainingMs = {};

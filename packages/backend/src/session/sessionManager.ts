@@ -1880,6 +1880,7 @@ export class SessionManager {
     ): Record<string, PlayerTileConfig> {
         return buildPlayerTileConfigMap(
             session.players.map((player) => player.id),
+            session.gameOptions.firstPlayer,
         );
     }
 
