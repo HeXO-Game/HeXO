@@ -7,8 +7,8 @@ import {
 
 export const PLACE_CELL_HEX_RADIUS = 8;
 const WINNING_LINE_LENGTH = 6;
-export const DRAW_REQUEST_MIN_TURNS = 50;
-export const DRAW_REQUEST_RETRY_TURNS = 15;
+export const DRAW_REQUEST_MIN_TURNS = 0;
+export const DRAW_REQUEST_RETRY_TURNS = 7;
 
 export const zTimestamp = z.number().int();
 export const zCoordinate = z.number().int();
