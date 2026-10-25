@@ -979,7 +979,7 @@ export class TournamentService {
 
             tournament.updatedAt = Date.now();
             tournament.activity.unshift(createTournamentActivity(user, `participant-withdrew`, `${user.username} withdrew from the tournament.`));
-            await this.reconcileTournamentRecord(tournament);
+            await this.reconcileAndSaveTournamentRecord(tournament);
 
             // Clean up any matches created by reconciliation that still reference this player.
             if (tournament.status === `live`) {
@@ -1120,7 +1120,7 @@ export class TournamentService {
 
             tournament.updatedAt = Date.now();
             tournament.activity.unshift(createTournamentActivity(user, `participant-disqualified`, `${participant.displayName} was disqualified from the tournament.`));
-            await this.reconcileTournamentRecord(tournament);
+            await this.reconcileAndSaveTournamentRecord(tournament);
 
             // After final reconcile, bracket progression may have placed the DQ'd
             // player into new matches (e.g. losers bracket slots that were TBD).
@@ -1190,7 +1190,7 @@ export class TournamentService {
 
             tournament.updatedAt = Date.now();
             tournament.activity.unshift(createTournamentActivity(user, `participant-swapped`, `${replacementProfile.username} replaced ${currentParticipant.displayName}.`));
-            await this.reconcileTournamentRecord(tournament);
+            await this.reconcileAndSaveTournamentRecord(tournament);
             this.emitTournamentNotification(replacementProfile.id, {
                 tournamentId: tournament.id,
                 kind: `participant-replaced`,
@@ -1242,7 +1242,7 @@ export class TournamentService {
 
             this.completeMatchSet(tournament, match, winnerProfileId, `walkover`);
             tournament.activity.unshift(createTournamentActivity(user, `match-walkover`, `Awarded a walkover in round ${match.round}, match ${match.order}.`));
-            await this.reconcileTournamentRecord(tournament);
+            await this.reconcileAndSaveTournamentRecord(tournament);
             return tournament;
         });
 
@@ -1272,7 +1272,7 @@ export class TournamentService {
             }
             tournament.updatedAt = Date.now();
             tournament.activity.unshift(createTournamentActivity(user, `match-reopened`, `Reopened round ${match.round}, match ${match.order}.`));
-            await this.reconcileTournamentRecord(tournament);
+            await this.reconcileAndSaveTournamentRecord(tournament);
             return tournament;
         });
 
@@ -1594,6 +1594,12 @@ export class TournamentService {
             await this.tournamentRepository.saveTournament(tournament);
         }
 
+        return changed;
+    }
+
+    private async reconcileAndSaveTournamentRecord(tournament: TournamentRecord): Promise<boolean> {
+        const changed = await this.applyTournamentReconciliation(tournament);
+        await this.tournamentRepository.saveTournament(tournament);
         return changed;
     }
 
@@ -2184,7 +2190,7 @@ export class TournamentService {
                 }
             }
             if (changed) {
-                await this.reconcileTournamentRecord(tournament);
+                await this.reconcileAndSaveTournamentRecord(tournament);
             }
         }
     }
