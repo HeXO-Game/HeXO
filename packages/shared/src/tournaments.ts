@@ -236,6 +236,8 @@ export const zTournamentMatch = z.object({
     advanceWinnerTo: zTournamentMatchAdvanceTarget.nullable(),
     advanceLoserTo: zTournamentMatchAdvanceTarget.nullable(),
     waitingForPlayers: z.boolean().optional(),
+    /** Players currently connected to the match lobby while it waits for the other player. */
+    presentProfileIds: z.array(zIdentifier).optional(),
 });
 export type TournamentMatch = z.infer<typeof zTournamentMatch>;
 

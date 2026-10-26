@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 
 import { useLiveGameStore } from '../liveGameStore';
-import { claimMatchWin, requestMatchExtension } from '../query/tournamentClient';
+import { claimMatchWin } from '../query/tournamentClient';
 import { formatTimeControl } from '../utils/gameTimeControl';
 import ScreenFooter from './ScreenFooter';
 import type { TFunction } from 'i18next'
@@ -76,8 +76,6 @@ function TournamentTimerSection({
     const joinRemaining = useCountdown(joinDeadline);
     const claimRemaining = useCountdown(claimDeadline);
     const [isClaimPending, setIsClaimPending] = useState(false);
-    const [isExtensionPending, setIsExtensionPending] = useState(false);
-    const extensionMinutes = Math.round(tournament.matchExtensionMs / 60_000);
 
     const isTimedOut = hasTimeout && joinRemaining !== null && joinRemaining <= 0;
     const hasActiveClaim = claimWinState !== null;
@@ -96,19 +94,6 @@ function TournamentTimerSection({
             toast.error(message, { toastId: `claim-win-error` });
         } finally {
             setIsClaimPending(false);
-        }
-    };
-
-    const handleRequestExtension = async () => {
-        try {
-            setIsExtensionPending(true);
-            await requestMatchExtension(tournament.tournamentId, tournament.matchId);
-            toast.success(t('extensionRequestedWaitingForOrganizerApproval', 'Extension requested. Waiting for organizer approval.'), { toastId: `extension-requested` });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : t('failedToRequestExtension', 'Failed to request extension.');
-            toast.error(message, { toastId: `extension-error` });
-        } finally {
-            setIsExtensionPending(false);
         }
     };
 
@@ -167,15 +152,6 @@ function TournamentTimerSection({
                 >
                     {isClaimPending ? `Claiming...` : `Claim Win`}
                 </Button>
-
-                <Button
-                    type="button"
-                    onClick={() => void handleRequestExtension()}
-                    disabled={isExtensionPending}
-                    variant="outline" size="lg" className="w-full"
-                >
-                    {isExtensionPending ? `Requesting...` : t('requestExtensionExtensionminutesMin', 'Request Extension (+{{extensionMinutes}} min)', { extensionMinutes })}
-                </Button>
             </div>
         );
     }
@@ -190,17 +166,15 @@ function TournamentTimerSection({
                     {joinRemaining !== null ? formatCountdown(joinRemaining) : `--:--`}
                 </div>
             </div>
-
-            <Button
-                type="button"
-                onClick={() => void handleRequestExtension()}
-                disabled={isExtensionPending}
-                variant="outline" size="lg" className="w-full"
-            >
-                {isExtensionPending ? `Requesting...` : `Request Extension`}
-            </Button>
         </div>
     );
+}
+
+/** Series score with the local player's wins first; seats swap between games of a series. */
+function getScoreFromLocalSide(tournament: SessionTournamentInfo, localProfileId: string | null): { leftWins: number; rightWins: number } {
+    return localProfileId !== null && localProfileId === tournament.rightProfileId
+        ? { leftWins: tournament.rightWins, rightWins: tournament.leftWins }
+        : { leftWins: tournament.leftWins, rightWins: tournament.rightWins };
 }
 
 function getMatchOutcomeText(t: TFunction, outcome: TournamentMatchOutcome, localProfileId: string | null, opponentName: string): { title: string; message: string } {
@@ -296,7 +270,7 @@ function WaitingScreen({
                                         {formatTimeControl(gameOptions.timeControl)}
                                     </div>
                                     <div className="mt-1 whitespace-nowrap text-sm tabular-nums text-slate-400">
-                                        {tournament.bracket.replace(/-/g, ` `)}{t('rroundBobestofGameCurrentgamenumberScoreLeftwinsrightwins', 'R{{round}} · BO{{bestOf}} · Game {{currentGameNumber}} · Score {{leftWins}}‑{{rightWins}}', { round: tournament.round, bestOf: tournament.bestOf, currentGameNumber: tournament.currentGameNumber, leftWins: tournament.leftWins, rightWins: tournament.rightWins })}</div>
+                                        {tournament.bracket.replace(/-/g, ` `)}{t('rroundBobestofGameCurrentgamenumberScoreLeftwinsrightwins', 'R{{round}} · BO{{bestOf}} · Game {{currentGameNumber}} · Score {{leftWins}}‑{{rightWins}}', { round: tournament.round, bestOf: tournament.bestOf, currentGameNumber: tournament.currentGameNumber, ...getScoreFromLocalSide(tournament, localProfileId) })}</div>
                                 </div>
                             </>
                         ) : (

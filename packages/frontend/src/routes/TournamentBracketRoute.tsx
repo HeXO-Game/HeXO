@@ -21,7 +21,7 @@ const STATE_COLORS: Record<string, { dot: string; border: string }> = {
 function MatchNode({ match, allMatches, onSpectate }: { match: TournamentMatch; allMatches: TournamentMatch[]; onSpectate: (sid: string) => void }) {
     const { t } = useTranslation()
     const { dot, border } = STATE_COLORS[match.state] ?? STATE_COLORS.pending!;
-    const isLive = match.state === `in-progress` && match.sessionId;
+    const isLive = match.state === `in-progress` && match.sessionId && !match.waitingForPlayers;
     const handleSpectate = () => {
         if (isLive) {
             onSpectate(match.sessionId!);
@@ -412,7 +412,7 @@ function TournamentBracketRoute() {
                             <div className="ml-auto flex items-center gap-2 text-[10px] text-slate-500">
                                 <span>{getTournamentFormatLabel(tournament.format)}</span>
                                 <span>·</span>
-                                <span>{t('checkedincountmaxplayersPlayers', '{{checkedInCount}}/{{maxPlayers}} players', { checkedInCount: tournament.checkedInCount, maxPlayers: tournament.maxPlayers })}</span>
+                                <span>{t('checkedincountmaxplayersPlayers', '{{checkedInCount}}/{{maxPlayers}} players', { checkedInCount: tournament.status === `registration-open` ? tournament.registeredCount : tournament.checkedInCount, maxPlayers: tournament.maxPlayers })}</span>
                                 <span>·</span>
                                 <span className={tournament.status === `live` ? `text-emerald-400` : ``}>{tournament.status}</span>
                             </div>
@@ -462,7 +462,13 @@ function TournamentBracketRoute() {
                 <div className="min-h-0 flex-1 overflow-x-auto px-4 py-6 sm:px-6">
                     <div className="mx-auto max-w-[2000px]">
                         {!tournament ? (
-                            <div className="py-20 text-center text-sm text-slate-600">{t('loadingBracket', 'Loading bracket...')}</div>
+                            <div className="py-20 text-center text-sm text-slate-600">
+                                {tQ.isError
+                                    ? t('tournamentLoadFailed', 'The tournament could not be loaded. Try refreshing.')
+                                    : tQ.isSuccess
+                                        ? t('tournamentMissingOrHidden', 'This tournament does not exist or is not visible to you.')
+                                        : t('loadingBracket', 'Loading bracket...')}
+                            </div>
                         ) : tournament.matches.length === 0 ? (
                             <div className="py-20 text-center text-sm text-slate-600">
                                 {t('bracketWillAppearWhenTheTournamentGoesLive', 'Bracket will appear when the tournament goes live.')}

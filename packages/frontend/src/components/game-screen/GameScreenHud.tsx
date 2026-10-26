@@ -127,6 +127,7 @@ function GameScreenHud({
     /* Do not show the HUD by default on mobile devices */
     const [isHudOpen, setIsHudOpen] = useState(window.innerWidth >= 900);
     const opponent = players.find(player => player.playerId !== localPlayerId) ?? null;
+    const localProfileId = players.find(player => player.playerId === localPlayerId)?.profileId ?? null;
     const requestedByLocalPlayer = Boolean(localPlayerId) && drawRequestByPlayerId === localPlayerId;
     const requestedByOpponent = Boolean(opponent) && drawRequestByPlayerId === opponent?.playerId;
     const turnsUntilDrawRequest = Math.max(0, drawRequestAvailableAfterTurn - turnCount);
@@ -269,8 +270,10 @@ function GameScreenHud({
                                 round: tournament.round,
                                 bestOf: tournament.bestOf,
                                 currentGameNumber: tournament.currentGameNumber,
-                                leftWins: tournament.leftWins,
-                                rightWins: tournament.rightWins,
+                                // Seats swap between games of a series, so show the local player's wins first.
+                                ...(localProfileId !== null && localProfileId === tournament.rightProfileId
+                                    ? { leftWins: tournament.rightWins, rightWins: tournament.leftWins }
+                                    : { leftWins: tournament.leftWins, rightWins: tournament.rightWins }),
                             })}
                         </div>
                     </div>

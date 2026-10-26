@@ -640,6 +640,7 @@ function toDetail(
     autoSubscribedOnView = false,
     isMatchWaitingForPlayers?: (match: TournamentMatch) => boolean,
     getMatchClaimWinExpiresAt?: (match: TournamentMatch) => number | null,
+    getMatchPresentProfileIds?: (match: TournamentMatch) => string[],
 ): TournamentDetail {
     return {
         ...toSummary(tournament),
@@ -648,6 +649,7 @@ function toDetail(
             ...cloneMatch(match),
             claimWinExpiresAt: getMatchClaimWinExpiresAt?.(match) ?? null,
             waitingForPlayers: isMatchWaitingForPlayers?.(match) ?? false,
+            presentProfileIds: getMatchPresentProfileIds?.(match) ?? [],
         })),
         standings: getTournamentStandings(tournament),
         activity: tournament.activity.map(cloneActivity),
@@ -709,7 +711,18 @@ export class TournamentService {
             autoSubscribedOnView,
             (match) => this.isMatchWaitingForPlayers(match),
             (match) => this.getActiveClaimWinForMatch(match)?.expiresAt ?? null,
+            (match) => this.getMatchPresentProfileIds(match),
         );
+    }
+
+    private getMatchPresentProfileIds(match: TournamentMatch): string[] {
+        if (!this.isMatchWaitingForPlayers(match)) {
+            return [];
+        }
+
+        return this.sessionManager.getSessionInfo(match.sessionId!)?.players
+            .filter((player) => player.connection.status === `connected` && player.profileId !== null)
+            .map((player) => player.profileId!) ?? [];
     }
 
     async listTournaments(currentUser: AccountUserProfile | null, pastPage = 1): Promise<TournamentListingResponse> {
