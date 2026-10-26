@@ -489,6 +489,18 @@ export class SessionManager {
             ) {
                 throw new SessionError(`Only active players can abort`);
             }
+            if (session.tournament) {
+                /* Aborting would only restart the same tournament pairing, so it forfeits this game instead. */
+                const winningPlayerId =
+                    session.players.find((player) => player.id !== participantId)
+                        ?.id ?? null;
+                await this.finishSessionLocked(
+                    session,
+                    `surrender`,
+                    winningPlayerId,
+                );
+                return;
+            }
             if (session.gameState.cells.length > ABORT_GAME_MAX_MOVES) {
                 throw new SessionError(
                     `The game can no longer be aborted after the first move of turn three`,

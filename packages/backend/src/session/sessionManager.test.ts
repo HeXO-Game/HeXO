@@ -85,3 +85,33 @@ test(`finishing a session waits for its durable game result`, async () => {
     assert.equal(gameHistoryRepository.finalized, true);
     assert.equal(finishedSession.state.status, `finished`);
 });
+
+test(`aborting a tournament game forfeits it instead of restarting the pairing`, async () => {
+    const sessionManager = createSessionManager({ finishGame: async () => {} } as never);
+    const sessionId = `session-tournament-abort` as SessionId;
+    const session = createGameSession(sessionId, {
+        visibility: `private`,
+        rated: false,
+        timeControl: { mode: `unlimited` },
+        firstPlayer: `host`,
+    }, {
+        tournament: { tournamentId: `tournament-1`, matchId: `match-swiss-1-1` } as never,
+    });
+    session.players = [
+        { id: `aborting-player`, profileId: `profile-a`, connection: { status: `connected`, socketId: `socket-a` } },
+        { id: `opponent`, profileId: `profile-b`, connection: { status: `connected`, socketId: `socket-b` } },
+    ] as never;
+    session.state = `in-game`;
+    session.startedAt = Date.now() - 1_000;
+    session.gameId = `game-tournament-abort`;
+
+    (sessionManager as unknown as {
+        sessions: Map<string, ServerGameSession>;
+    }).sessions.set(sessionId, session);
+
+    await sessionManager.abortSession(session, `aborting-player`);
+
+    assert.equal(session.state, `finished`);
+    assert.equal(session.finishReason, `surrender`);
+    assert.equal(session.winningPlayerId, `opponent`);
+});
