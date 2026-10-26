@@ -77,7 +77,6 @@ export type ServerGameSession = {
     startedAt: number | null;
     gameId: string;
     gameState: GameState;
-    currentTurnExpiresAt: number | null;
     finishedAt: number | null;
     finishReason: SessionFinishReason | null;
     abortedByPlayerId: string | null;
@@ -250,7 +249,6 @@ export function createGameSession(
         tournament: options.tournament ? { ...options.tournament } : null,
         gameId: ``,
         gameState: createEmptyGameState(),
-        currentTurnExpiresAt: null,
 
         chatNames: {},
         chatMessages: [],

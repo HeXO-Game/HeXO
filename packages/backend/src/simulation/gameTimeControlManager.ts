@@ -1,4 +1,5 @@
 import type { GameTimeControl } from '@ih3t/shared';
+import { GRACE_TIME_LENGTH } from '@ih3t/shared';
 import { injectable } from 'tsyringe';
 
 import type { ServerGameSession } from '../session/types';
@@ -30,7 +31,7 @@ export class GameTimeControlManager {
     }
 
     ensureTurnHasTimeRemaining(session: ServerGameSession, timestamp: number): void {
-        const expiresAt = session.currentTurnExpiresAt;
+        const expiresAt = session.gameState.currentTurnExpiresAt;
         if (expiresAt !== null && timestamp > expiresAt) {
             throw new GameTimeControlError(`Your time has expired`);
         }
@@ -48,9 +49,21 @@ export class GameTimeControlManager {
                 fallbackTimeMs,
             );
 
+            if (session.gameState.currentTurnUsesGraceTime &&
+                turnCompleted &&
+                session.gameState.graceTimerStartedAt !== null
+            ) {
+                const turnLength = timestamp - session.gameState.graceTimerStartedAt;
+                session.gameState.playerTimeRemainingMs[playerId] -= Math.max(GRACE_TIME_LENGTH - turnLength, 0);
+            }
+            
             if (turnCompleted) {
                 session.gameState.playerTimeRemainingMs[playerId] += timeControl.incrementMs;
             }
+        }
+        if (session.gameState.currentTurnUsesGraceTime && turnCompleted) {
+            session.gameState.currentTurnUsesGraceTime = false;
+            session.gameState.graceTimerStartedAt = null;
         }
 
         if (turnCompleted && session.gameState.currentTurnPlayerId !== playerId) {
@@ -71,7 +84,7 @@ export class GameTimeControlManager {
 
         const fallbackTimeMs = this.getPlayerRemainingTime(session, playerId, timeControl.mainTimeMs);
         session.gameState.playerTimeRemainingMs[playerId] = this.getRemainingTimeFromDeadline(
-            session.currentTurnExpiresAt,
+            session.gameState.currentTurnExpiresAt,
             timestamp,
             fallbackTimeMs,
         );
@@ -84,12 +97,12 @@ export class GameTimeControlManager {
             session.state !== `in-game`
             || session.gameState.winner !== null
             || !session.gameState.currentTurnPlayerId
-            || session.currentTurnExpiresAt === null
+            || session.gameState.currentTurnExpiresAt === null
         ) {
             return;
         }
 
-        const delay = Math.max(0, session.currentTurnExpiresAt - Date.now());
+        const delay = Math.max(0, session.gameState.currentTurnExpiresAt - Date.now());
         const timeout = setTimeout(() => {
             onTurnExpired(session.id);
         }, delay);
@@ -112,20 +125,20 @@ export class GameTimeControlManager {
             this.clearSession(sessionId);
         }
     }
-
+/*
     getCurrentTurnExpiresInMs(session: ServerGameSession, timestamp = Date.now()): number | null {
         if (
             session.state !== `in-game`
             || session.gameState.winner !== null
             || !session.gameState.currentTurnPlayerId
-            || session.currentTurnExpiresAt === null
+            || session.gameState.currentTurnExpiresAt === null
         ) {
             return null;
         }
 
-        return Math.max(0, session.currentTurnExpiresAt - timestamp);
+        return Math.max(0, session.gameState.currentTurnExpiresAt - timestamp);
     }
-
+*/
     private initializePlayerClocks(session: ServerGameSession): void {
         const timeControl = this.getTimeControl(session);
         if (timeControl.mode !== `match`) {
@@ -139,16 +152,14 @@ export class GameTimeControlManager {
     private syncActiveTurnClock(session: ServerGameSession, timestamp: number): void {
         const currentPlayerId = session.gameState.currentTurnPlayerId;
         if (!currentPlayerId) {
-            session.currentTurnExpiresAt = null;
-            session.gameState.currentTurnExpiresInMs = null;
+            session.gameState.currentTurnExpiresAt = null;
             return;
         }
 
         const timeControl = this.getTimeControl(session);
         switch (timeControl.mode) {
             case `unlimited`:
-                session.currentTurnExpiresAt = null;
-                session.gameState.currentTurnExpiresInMs = null;
+                session.gameState.currentTurnExpiresAt = null;
                 break;
 
             case `match`: {
@@ -157,15 +168,26 @@ export class GameTimeControlManager {
                     currentPlayerId,
                     timeControl.mainTimeMs,
                 );
-                session.currentTurnExpiresAt = timestamp + remainingTimeMs;
-                session.gameState.currentTurnExpiresInMs = remainingTimeMs;
+
+                session.gameState.currentTurnExpiresAt = timestamp + remainingTimeMs;
                 break;
             }
 
             case `turn`:
-                session.currentTurnExpiresAt = timestamp + timeControl.turnTimeMs;
-                session.gameState.currentTurnExpiresInMs = timeControl.turnTimeMs;
+                session.gameState.currentTurnExpiresAt = timestamp + timeControl.turnTimeMs;
                 break;
+        }
+
+        if (!session.gameState.hasUsedGracePeriod[currentPlayerId] &&
+            timeControl.mode !== `unlimited` && 
+            session.gameState.currentTurnExpiresAt !== null)
+        {
+            session.gameState.currentTurnExpiresAt += GRACE_TIME_LENGTH;
+            session.gameState.playerTimeRemainingMs[currentPlayerId] += GRACE_TIME_LENGTH;
+
+            session.gameState.currentTurnUsesGraceTime = true;
+            session.gameState.hasUsedGracePeriod[currentPlayerId] = true;
+            session.gameState.graceTimerStartedAt = timestamp;
         }
     }
 
