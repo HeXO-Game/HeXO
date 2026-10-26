@@ -15,12 +15,28 @@
 /** Upper bound on search steps per lookahead depth, which keeps pairing fast for any field size. */
 const kSearchBudget = 200_000;
 
+/**
+ * Larger fields cannot run out of new opponents within the swiss round limit (15), so checking
+ * that the following round stays pairable is enough and keeps pairing cheap for big events.
+ */
+const kFullLookaheadMaxPlayers = 64;
+
+/** Remembering infeasible states only pays off for small fields, where the search can be exhaustive. */
+const kMemoMaxPlayers = 24;
+
 export type SwissRoundPairing = {
     byeProfileId: string | null;
     pairs: [string, string][];
 };
 
+/**
+ * Search state over player indices, where index 0 is the best-ranked player.
+ * `played[a * playerCount + b]` is 1 when players `a` and `b` already met (or are paired in the
+ * pairing being built).
+ */
 type Search = {
+    readonly playerCount: number;
+    readonly played: Uint8Array;
     budget: number;
     readonly infeasible: Set<string>;
 };
@@ -55,49 +71,89 @@ export function selectSwissRoundPairing(options: {
     byeRecipients: ReadonlySet<string>;
     roundsAfterThis: number;
 }): SwissRoundPairing | null {
-    const { rankedProfileIds, playedPairings, byeRecipients } = options;
-    const maxFutureRounds = Math.max(0, getMaxRematchFreeSwissRounds(rankedProfileIds.length) - 1);
+    const { rankedProfileIds, playedPairings } = options;
+    const playerCount = rankedProfileIds.length;
+    const played = new Uint8Array(playerCount * playerCount);
+    for (let left = 0; left < playerCount; left += 1) {
+        for (let right = left + 1; right < playerCount; right += 1) {
+            if (playedPairings.has(getPairingKey(rankedProfileIds[left]!, rankedProfileIds[right]!))) {
+                played[left * playerCount + right] = 1;
+                played[right * playerCount + left] = 1;
+            }
+        }
+    }
+
+    const byeRecipients = new Uint8Array(playerCount);
+    rankedProfileIds.forEach((profileId, index) => {
+        byeRecipients[index] = options.byeRecipients.has(profileId) ? 1 : 0;
+    });
+
+    const maxFutureRounds = Math.max(0, getMaxRematchFreeSwissRounds(playerCount) - 1);
+    const lookaheadLimit = playerCount > kFullLookaheadMaxPlayers ? 1 : maxFutureRounds;
 
     // Guarantee as many future rounds as possible: try the full lookahead first and shorten it
     // only if no pairing allows that many rematch-free rounds (or proving it gets too expensive).
-    for (let depth = Math.min(options.roundsAfterThis, maxFutureRounds); depth >= 0; depth -= 1) {
-        const search: Search = { budget: kSearchBudget, infeasible: new Set() };
-        const pairing = findRoundPairing(rankedProfileIds, playedPairings, byeRecipients, depth, search);
+    for (let depth = Math.min(options.roundsAfterThis, maxFutureRounds, lookaheadLimit); depth >= 0; depth -= 1) {
+        const search: Search = { playerCount, played: played.slice(), budget: kSearchBudget, infeasible: new Set() };
+        const pairing = findRoundPairing(search, byeRecipients, depth);
         if (pairing) {
-            return pairing;
+            return {
+                byeProfileId: pairing.bye === null ? null : rankedProfileIds[pairing.bye]!,
+                pairs: pairing.pairs.map(([left, right]) => [rankedProfileIds[left]!, rankedProfileIds[right]!]),
+            };
         }
     }
 
     return null;
 }
 
-function getByeCandidates(rankedProfileIds: string[], byeRecipients: ReadonlySet<string>): (string | null)[] {
-    if (rankedProfileIds.length % 2 === 0) {
+function getAllPlayers(search: Search): number[] {
+    return Array.from({ length: search.playerCount }, (_, index) => index);
+}
+
+/** Bye candidates for a pool sorted best-ranked first: lowest-ranked without a bye first. */
+function getByeCandidates(pool: number[], byeRecipients: Uint8Array): (number | null)[] {
+    if (pool.length % 2 === 0) {
         return [null];
     }
 
-    const lowestRankedFirst = [...rankedProfileIds].reverse();
-    const withoutBye = lowestRankedFirst.filter((profileId) => !byeRecipients.has(profileId));
+    const lowestRankedFirst = [...pool].reverse();
+    const withoutBye = lowestRankedFirst.filter((player) => byeRecipients[player] === 0);
     return withoutBye.length > 0 ? withoutBye : lowestRankedFirst;
 }
 
-function findRoundPairing(
-    rankedProfileIds: string[],
-    playedPairings: ReadonlySet<string>,
-    byeRecipients: ReadonlySet<string>,
-    lookaheadRounds: number,
-    search: Search,
-): SwissRoundPairing | null {
-    for (const byeProfileId of getByeCandidates(rankedProfileIds, byeRecipients)) {
-        const pool = byeProfileId === null
-            ? rankedProfileIds
-            : rankedProfileIds.filter((profileId) => profileId !== byeProfileId);
-        const played = new Set(playedPairings);
-        const nextByeRecipients = byeProfileId === null ? byeRecipients : new Set([...byeRecipients, byeProfileId]);
+function withBye(byeRecipients: Uint8Array, player: number | null): Uint8Array {
+    if (player === null) {
+        return byeRecipients;
+    }
 
-        let selected: [string, string][] | null = null;
-        enumeratePreferredPairings(pool, played, [], search, (pairs) => {
-            if (lookaheadRounds > 0 && !canScheduleRounds(rankedProfileIds, played, nextByeRecipients, lookaheadRounds, search)) {
+    const next = byeRecipients.slice();
+    next[player] = 1;
+    return next;
+}
+
+function setPlayed(search: Search, left: number, right: number, value: 0 | 1) {
+    search.played[left * search.playerCount + right] = value;
+    search.played[right * search.playerCount + left] = value;
+}
+
+function hasPlayed(search: Search, left: number, right: number): boolean {
+    return search.played[left * search.playerCount + right] === 1;
+}
+
+function findRoundPairing(
+    search: Search,
+    byeRecipients: Uint8Array,
+    lookaheadRounds: number,
+): { bye: number | null; pairs: [number, number][] } | null {
+    const allPlayers = getAllPlayers(search);
+    for (const bye of getByeCandidates(allPlayers, byeRecipients)) {
+        const pool = bye === null ? allPlayers : allPlayers.filter((player) => player !== bye);
+        const nextByeRecipients = withBye(byeRecipients, bye);
+
+        let selected: [number, number][] | null = null;
+        enumeratePreferredPairings(search, pool, [], (pairs) => {
+            if (lookaheadRounds > 0 && !canScheduleRounds(search, allPlayers, nextByeRecipients, lookaheadRounds)) {
                 return false;
             }
 
@@ -106,7 +162,7 @@ function findRoundPairing(
         });
 
         if (selected) {
-            return { byeProfileId, pairs: selected };
+            return { bye, pairs: selected };
         }
 
         if (search.budget < 0) {
@@ -119,15 +175,14 @@ function findRoundPairing(
 
 /**
  * Visits rematch-free pairings of `pool` in preference order: the first remaining player is
- * paired with the nearest-ranked opponent they have not met. `played` contains the pairs of the
- * pairing being built while `onComplete` runs. Stops as soon as `onComplete` returns true.
+ * paired with the nearest-ranked opponent they have not met. The pairs of the pairing being
+ * built are marked as played while `onComplete` runs. Stops as soon as `onComplete` returns true.
  */
 function enumeratePreferredPairings(
-    pool: string[],
-    played: Set<string>,
-    pairs: [string, string][],
     search: Search,
-    onComplete: (pairs: [string, string][]) => boolean,
+    pool: number[],
+    pairs: [number, number][],
+    onComplete: (pairs: [number, number][]) => boolean,
 ): boolean {
     if (pool.length === 0) {
         return onComplete(pairs);
@@ -140,16 +195,15 @@ function enumeratePreferredPairings(
         }
 
         const opponent = rest[index]!;
-        const key = getPairingKey(first!, opponent);
-        if (played.has(key)) {
+        if (hasPlayed(search, first!, opponent)) {
             continue;
         }
 
-        played.add(key);
+        setPlayed(search, first!, opponent, 1);
         pairs.push([first!, opponent]);
-        const done = enumeratePreferredPairings(rest.filter((_, candidateIndex) => candidateIndex !== index), played, pairs, search, onComplete);
+        const done = enumeratePreferredPairings(search, rest.filter((_, candidateIndex) => candidateIndex !== index), pairs, onComplete);
         pairs.pop();
-        played.delete(key);
+        setPlayed(search, first!, opponent, 0);
         if (done) {
             return true;
         }
@@ -160,26 +214,25 @@ function enumeratePreferredPairings(
 
 /** Whether `rounds` more rounds can be paired without any rematch and without anyone getting a second bye needlessly. */
 function canScheduleRounds(
-    profileIds: string[],
-    played: Set<string>,
-    byeRecipients: ReadonlySet<string>,
-    rounds: number,
     search: Search,
+    players: number[],
+    byeRecipients: Uint8Array,
+    rounds: number,
 ): boolean {
     if (rounds === 0) {
         return true;
     }
 
-    const stateKey = getStateKey(profileIds, played, byeRecipients, rounds);
-    if (search.infeasible.has(stateKey)) {
+    const stateKey = search.playerCount <= kMemoMaxPlayers ? `${rounds}|${byeRecipients.join(``)}|${search.played.join(``)}` : null;
+    if (stateKey !== null && search.infeasible.has(stateKey)) {
         return false;
     }
 
-    for (const byeProfileId of getByeCandidates(profileIds, byeRecipients)) {
-        const pool = byeProfileId === null ? profileIds : profileIds.filter((profileId) => profileId !== byeProfileId);
-        const nextByeRecipients = byeProfileId === null ? byeRecipients : new Set([...byeRecipients, byeProfileId]);
-        const found = findAnyMatching(pool, played, search, () =>
-            canScheduleRounds(profileIds, played, nextByeRecipients, rounds - 1, search));
+    for (const bye of getByeCandidates(players, byeRecipients)) {
+        const pool = bye === null ? players : players.filter((player) => player !== bye);
+        const nextByeRecipients = withBye(byeRecipients, bye);
+        const found = findAnyMatching(search, pool, () =>
+            canScheduleRounds(search, players, nextByeRecipients, rounds - 1));
         if (found) {
             return true;
         }
@@ -189,15 +242,16 @@ function canScheduleRounds(
         }
     }
 
-    search.infeasible.add(stateKey);
+    if (stateKey !== null) {
+        search.infeasible.add(stateKey);
+    }
     return false;
 }
 
 /** Depth-first search over perfect matchings, always pairing the most constrained player next. */
 function findAnyMatching(
-    pool: string[],
-    played: Set<string>,
     search: Search,
+    pool: number[],
     onComplete: () => boolean,
 ): boolean {
     if (pool.length === 0) {
@@ -206,17 +260,17 @@ function findAnyMatching(
 
     let mostConstrained = pool[0]!;
     let fewestOptions = Number.POSITIVE_INFINITY;
-    for (const profileId of pool) {
+    for (const player of pool) {
         let options = 0;
         for (const other of pool) {
-            if (other !== profileId && !played.has(getPairingKey(profileId, other))) {
+            if (other !== player && !hasPlayed(search, player, other)) {
                 options += 1;
             }
         }
 
         if (options < fewestOptions) {
             fewestOptions = options;
-            mostConstrained = profileId;
+            mostConstrained = player;
         }
     }
 
@@ -224,36 +278,23 @@ function findAnyMatching(
         return false;
     }
 
-    const rest = pool.filter((profileId) => profileId !== mostConstrained);
+    const rest = pool.filter((player) => player !== mostConstrained);
     for (const opponent of rest) {
         if (--search.budget < 0) {
             return false;
         }
 
-        const key = getPairingKey(mostConstrained, opponent);
-        if (played.has(key)) {
+        if (hasPlayed(search, mostConstrained, opponent)) {
             continue;
         }
 
-        played.add(key);
-        const done = findAnyMatching(rest.filter((profileId) => profileId !== opponent), played, search, onComplete);
-        played.delete(key);
+        setPlayed(search, mostConstrained, opponent, 1);
+        const done = findAnyMatching(search, rest.filter((player) => player !== opponent), onComplete);
+        setPlayed(search, mostConstrained, opponent, 0);
         if (done) {
             return true;
         }
     }
 
     return false;
-}
-
-function getStateKey(profileIds: string[], played: Set<string>, byeRecipients: ReadonlySet<string>, rounds: number): string {
-    const active = new Set(profileIds);
-    const relevantPairs = [...played]
-        .filter((key) => {
-            const [left, right] = key.split(`:`);
-            return active.has(left!) && active.has(right!);
-        })
-        .sort();
-    const relevantByes = [...byeRecipients].filter((profileId) => active.has(profileId)).sort();
-    return `${rounds}|${relevantByes.join(`,`)}|${relevantPairs.join(`,`)}`;
 }
