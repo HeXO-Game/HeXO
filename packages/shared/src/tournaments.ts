@@ -69,6 +69,22 @@ export type TournamentSeedingMode = z.infer<typeof zTournamentSeedingMode>;
 export const zTournamentSwissTiebreaks = z.enum([`classic`, `fair`]);
 export type TournamentSwissTiebreaks = z.infer<typeof zTournamentSwissTiebreaks>;
 
+/**
+ * `manual`: after the join timeout the waiting player claims the win, or an organizer decides.
+ * `automatic`: the waiting player is awarded the match after a short countdown; if neither player
+ * joined, both forfeit.
+ */
+export const zTournamentNoShowHandling = z.enum([`manual`, `automatic`]);
+export type TournamentNoShowHandling = z.infer<typeof zTournamentNoShowHandling>;
+
+export const zTournamentExtensionApproval = z.enum([`organizer`, `automatic`]);
+export type TournamentExtensionApproval = z.infer<typeof zTournamentExtensionApproval>;
+
+/** Players are withdrawn after forfeiting this many matches; 0 disables it. */
+export const zTournamentNoShowDropAfter = z.number().int()
+    .min(0)
+    .max(3);
+
 export const zTournamentVisibility = z.enum([`public`, `private`]);
 export type TournamentVisibility = z.infer<typeof zTournamentVisibility>;
 
@@ -361,6 +377,9 @@ export const zTournamentSummary = z.object({
         .nonnegative(),
     seedingMode: zTournamentSeedingMode,
     swissTiebreaks: zTournamentSwissTiebreaks,
+    noShowHandling: zTournamentNoShowHandling,
+    noShowDropAfter: zTournamentNoShowDropAfter,
+    extensionApproval: zTournamentExtensionApproval,
 });
 export type TournamentSummary = z.infer<typeof zTournamentSummary>;
 
@@ -497,6 +516,9 @@ export const zCreateTournamentRequest = z.object({
     blacklist: z.array(zIdentifier).optional(),
     seedingMode: zTournamentSeedingMode.optional(),
     swissTiebreaks: zTournamentSwissTiebreaks.optional(),
+    noShowHandling: zTournamentNoShowHandling.optional(),
+    noShowDropAfter: zTournamentNoShowDropAfter.optional(),
+    extensionApproval: zTournamentExtensionApproval.optional(),
 });
 export type CreateTournamentRequest = z.infer<typeof zCreateTournamentRequest>;
 
@@ -550,6 +572,9 @@ export const zUpdateTournamentRequest = z.object({
     blacklist: z.array(zIdentifier).nullable().optional(),
     seedingMode: zTournamentSeedingMode.optional(),
     swissTiebreaks: zTournamentSwissTiebreaks.optional(),
+    noShowHandling: zTournamentNoShowHandling.optional(),
+    noShowDropAfter: zTournamentNoShowDropAfter.optional(),
+    extensionApproval: zTournamentExtensionApproval.optional(),
 });
 export type UpdateTournamentRequest = z.infer<typeof zUpdateTournamentRequest>;
 

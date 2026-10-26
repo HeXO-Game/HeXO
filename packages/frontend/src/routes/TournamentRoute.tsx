@@ -1264,6 +1264,7 @@ function TournamentRoute() {
 
                             {tournament.seedingMode === `rating` && <Chip>{t('ratingSeeds', 'Rating seeds')}</Chip>}
                             {tournament.format === `swiss` && tournament.swissTiebreaks === `fair` && <Chip>{t('fairTiebreaks', 'Fair tiebreaks')}</Chip>}
+                            {tournament.matchJoinTimeoutMinutes > 0 && tournament.noShowHandling === `automatic` && <Chip>{t('autoNoShows', 'Auto no-shows')}</Chip>}
 
                             <div className="ml-auto flex items-center gap-2 text-[12px] tabular-nums">
                                 <span className="font-bold text-white">

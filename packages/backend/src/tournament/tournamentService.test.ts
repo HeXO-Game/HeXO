@@ -122,6 +122,9 @@ function createTournament(overrides: Partial<TournamentRecord> = {}): Tournament
         blacklist: overrides.blacklist ? structuredClone(overrides.blacklist) : [],
         seedingMode: overrides.seedingMode ?? `registration`,
         swissTiebreaks: overrides.swissTiebreaks ?? `classic`,
+        noShowHandling: overrides.noShowHandling ?? `manual`,
+        noShowDropAfter: overrides.noShowDropAfter ?? 0,
+        extensionApproval: overrides.extensionApproval ?? `organizer`,
         finalStandings: overrides.finalStandings ? structuredClone(overrides.finalStandings) : null,
     };
 }
@@ -2034,8 +2037,9 @@ test(`requestExtension is scoped to the current best-of game`, async () => {
     sessionManager.sessions.set(`session-extension-scope`, {
         id: `session-extension-scope`,
         players: [
-            { id: `session-extension-scope-player-1`, profileId: `player-1`, connection: { status: `connected` } },
-            { id: `session-extension-scope-player-2`, profileId: `player-2`, connection: { status: `disconnected` } },
+            // The requester (player-1) is the one who has not joined yet.
+            { id: `session-extension-scope-player-1`, profileId: `player-1`, connection: { status: `disconnected` } },
+            { id: `session-extension-scope-player-2`, profileId: `player-2`, connection: { status: `connected` } },
         ],
         state: { status: `lobby` },
         tournament: {
@@ -3104,4 +3108,95 @@ test(`fair tiebreaks use head-to-head before seed`, () => {
     // player-3 and player-4 are tied on points, Buchholz and Sonneborn-Berger; player-4 won their game.
     assert.deepEqual(rank(`classic`).slice(2, 4), [`player-3`, `player-4`]);
     assert.deepEqual(rank(`fair`).slice(2, 4), [`player-4`, `player-3`]);
+});
+
+/** Marks who is in a match lobby and moves the match start back so its join timer has run out. */
+function simulateTimedOutLobby(context: StartedTournament, matchId: string, connectedProfileIds: string[]) {
+    const stored = context.repository.getSync(context.tournamentId);
+    const match = stored.matches.find((entry) => entry.id === matchId)!;
+    match.startedAt = Date.now() - (stored.matchJoinTimeoutMinutes + 1) * 60_000;
+    context.repository.saveSync(stored);
+
+    const session = context.sessionManager.sessions.get(match.sessionId!)!;
+    for (const player of session.players) {
+        player.connection = { status: connectedProfileIds.includes(player.profileId ?? ``) ? `connected` : `disconnected` };
+    }
+}
+
+test(`automatic no-show handling starts the win claim for the waiting player`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, overrides: { noShowHandling: `automatic` } });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+
+    await context.service.reconcileAllTournaments();
+
+    assert.equal(context.service.getActiveClaimWin(`match-winners-1-1`)?.claimantProfileId, `player-1`);
+    await (context.service as unknown as {
+        resolveClaimWin: (tournamentId: string, matchId: string) => Promise<void>;
+    }).resolveClaimWin(context.tournamentId, `match-winners-1-1`);
+
+    const match = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)!;
+    assert.equal(match.state, `completed`);
+    assert.equal(match.resultType, `walkover`);
+    assert.equal(match.winnerProfileId, `player-1`);
+});
+
+test(`automatic no-show handling forfeits a match nobody joined after a grace period`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3, overrides: { noShowHandling: `automatic` } });
+    simulateTimedOutLobby(context, `match-swiss-1-1`, []);
+
+    await context.service.reconcileAllTournaments();
+    assert.equal(context.repository.getSync(context.tournamentId).matches[0]!.state, `in-progress`);
+
+    const firstSeen = (context.service as unknown as { emptyMatchFirstSeenAt: Map<string, number> }).emptyMatchFirstSeenAt;
+    for (const [key, timestamp] of firstSeen) {
+        firstSeen.set(key, timestamp - 31_000);
+    }
+    await context.service.reconcileAllTournaments();
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.matches.find((entry) => entry.id === `match-swiss-1-1`)?.resultType, `double-forfeit`);
+    assert.ok(tournament.activity.some((entry) => entry.type === `match-double-forfeit`));
+});
+
+test(`manual no-show handling leaves timed-out matches to players and organizers`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+
+    await context.service.reconcileAllTournaments();
+
+    assert.equal(context.service.getActiveClaimWin(`match-winners-1-1`), null);
+    assert.equal(context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)?.state, `in-progress`);
+});
+
+test(`players are withdrawn after forfeiting the configured number of matches`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3, overrides: { noShowDropAfter: 1 } });
+    await context.service.awardWalkover(context.tournamentId, `match-swiss-1-2`, `player-3`, kOrganizer);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const participant = tournament.participants.find((entry) => entry.profileId === `player-4`)!;
+    assert.equal(participant.status, `dropped`);
+    assert.equal(participant.dropReason, `no-shows`);
+    assert.equal(tournament.participants.find((entry) => entry.profileId === `player-3`)?.status, `checked-in`);
+});
+
+test(`automatic extension approval moves the join deadline right away`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, overrides: { extensionApproval: `automatic` } });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+    const before = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)!.startedAt!;
+
+    await context.service.requestExtension(context.tournamentId, `match-winners-1-1`, createPlayerAccount(4));
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.extensionRequests[0]?.status, `approved`);
+    assert.ok(tournament.matches.find((entry) => entry.id === `match-winners-1-1`)!.startedAt! > before);
+});
+
+test(`the player already waiting in the lobby cannot request an extension`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+
+    await assert.rejects(
+        context.service.requestExtension(context.tournamentId, `match-winners-1-1`, createPlayerAccount(1)),
+        /already in the match/,
+    );
 });

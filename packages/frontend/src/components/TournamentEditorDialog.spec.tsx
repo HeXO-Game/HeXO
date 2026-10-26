@@ -324,3 +324,35 @@ test(`submits the rating seeding and fair tiebreak options`, async ({ mount, pag
     await expect.poll(() => submitted?.seedingMode ?? null).toBe(`rating`);
     await expect.poll(() => submitted?.swissTiebreaks ?? null).toBe(`fair`);
 });
+
+test(`submits the no-show automation options`, async ({ mount, page }) => {
+    let submitted: CreateTournamentRequest | null = null;
+
+    await mount(
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
+            formKey="create"
+            title="Create Tournament"
+            description=""
+            defaultRequest={{
+                ...baseRequest,
+                matchJoinTimeoutMinutes: 5,
+                matchExtensionMinutes: 5,
+            }}
+            submitLabel="Create"
+            submitting={false}
+            onSubmit={(request) => {
+                submitted = request;
+            }}
+        />,
+    );
+
+    await page.getByRole(`button`, { name: `Automatic`, exact: true }).first().click();
+    await page.getByRole(`button`, { name: `Automatic`, exact: true }).last().click();
+    await page.getByRole(`combobox`).last().selectOption(`2`);
+    await page.getByRole(`button`, { name: `Create` }).click();
+
+    await expect.poll(() => submitted?.noShowHandling ?? null).toBe(`automatic`);
+    await expect.poll(() => submitted?.extensionApproval ?? null).toBe(`automatic`);
+    await expect.poll(() => submitted?.noShowDropAfter ?? null).toBe(2);
+});

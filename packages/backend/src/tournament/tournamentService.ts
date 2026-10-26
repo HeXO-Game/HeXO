@@ -619,6 +619,9 @@ function toSummary(tournament: TournamentRecord): TournamentSummary {
         waitlistedCount: tournament.participants.filter((p) => p.status === `waitlisted`).length,
         seedingMode: tournament.seedingMode,
         swissTiebreaks: tournament.swissTiebreaks,
+        noShowHandling: tournament.noShowHandling,
+        noShowDropAfter: tournament.noShowDropAfter,
+        extensionApproval: tournament.extensionApproval,
     };
 }
 
@@ -664,6 +667,8 @@ export class TournamentService {
     private readonly tournamentLocks = new Map<string, Mutex>();
     private readonly activeClaimWins = new Map<string, ActiveClaimWin>();
     private readonly missingSessionFirstSeenAt = new Map<string, number>();
+    /** When a timed-out match lobby was first seen with neither player in it, keyed by session and game. */
+    private readonly emptyMatchFirstSeenAt = new Map<string, number>();
     private eventHandlers: TournamentServiceEventHandlers = {};
     private readonly logger: Logger;
 
@@ -893,6 +898,18 @@ export class TournamentService {
 
             if (update.swissTiebreaks !== undefined) {
                 tournament.swissTiebreaks = update.swissTiebreaks;
+            }
+
+            if (update.noShowHandling !== undefined) {
+                tournament.noShowHandling = update.noShowHandling;
+            }
+
+            if (update.noShowDropAfter !== undefined) {
+                tournament.noShowDropAfter = update.noShowDropAfter;
+            }
+
+            if (update.extensionApproval !== undefined) {
+                tournament.extensionApproval = update.extensionApproval;
             }
 
             if (update.waitlistCheckInMinutes !== undefined) {
@@ -1711,6 +1728,9 @@ export class TournamentService {
             blacklist: [],
             seedingMode: request.seedingMode ?? `registration`,
             swissTiebreaks: request.swissTiebreaks ?? `classic`,
+            noShowHandling: request.noShowHandling ?? `manual`,
+            noShowDropAfter: request.noShowDropAfter ?? 0,
+            extensionApproval: request.extensionApproval ?? `organizer`,
             finalStandings: null,
             activity: [
                 createTournamentActivity(
@@ -1986,7 +2006,13 @@ export class TournamentService {
 
         if (tournament.status === `live`) {
             changed = await this.reconcileLiveTournamentRecord(tournament) || changed;
-            changed = this.checkMatchTimeouts(tournament) || changed;
+            const timeoutsChanged = this.checkMatchTimeouts(tournament);
+            const dropsChanged = this.applyNoShowDrops(tournament);
+            if ((timeoutsChanged || dropsChanged) && tournament.status === `live`) {
+                // A no-show may have decided a match; let the bracket or the next swiss round follow right away.
+                await this.reconcileLiveTournamentRecord(tournament);
+            }
+            changed = timeoutsChanged || dropsChanged || changed;
         }
 
         changed = this.refreshParticipantStatuses(tournament) || changed;
@@ -3222,6 +3248,14 @@ export class TournamentService {
                 continue;
             }
 
+            if (tournament.noShowHandling === `automatic` && !hasPendingExtensionForMatchGame(tournament, match.id, match.currentGameNumber)) {
+                const outcome = this.resolveNoShowAutomatically(tournament, match, session, now);
+                changed = outcome !== null || changed;
+                if (outcome === `forfeited`) {
+                    continue;
+                }
+            }
+
             // Already sent a warning for this match since the current timeout window started?
             // Use the latest approved extension's resolvedAt as the window floor so that
             // a pre-extension warning doesn't suppress a re-notification after extension expires.
@@ -3270,6 +3304,108 @@ export class TournamentService {
                 `timeout-warning`,
                 timeoutWarningMessage,
             ));
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    /**
+     * Automatic no-show handling once the join timer ran out: a waiting player gets the usual win
+     * claim countdown without having to click; if nobody joined at all, both forfeit after the
+     * same grace period.
+     */
+    private resolveNoShowAutomatically(tournament: TournamentRecord, match: TournamentMatch, session: SessionInfo, now: number): `claim-started` | `forfeited` | null {
+        const noShowKey = `${match.sessionId}:${match.currentGameNumber}`;
+        const connectedProfileIds = session.players
+            .filter((player) => player.connection.status === `connected`)
+            .map((player) => player.profileId)
+            .filter((profileId): profileId is string => profileId !== null && matchContainsProfileId(match, profileId));
+
+        if (connectedProfileIds.length === 1) {
+            this.emptyMatchFirstSeenAt.delete(noShowKey);
+            if (this.getActiveClaimWinForMatch(match)) {
+                return null;
+            }
+
+            this.startClaimWin(tournament, match, connectedProfileIds[0]!, null);
+            return `claim-started`;
+        }
+
+        const firstSeenAt = this.emptyMatchFirstSeenAt.get(noShowKey);
+        if (firstSeenAt === undefined) {
+            this.emptyMatchFirstSeenAt.set(noShowKey, now);
+            return null;
+        }
+
+        if (now - firstSeenAt < kClaimWinCountdownMs) {
+            return null;
+        }
+
+        this.emptyMatchFirstSeenAt.delete(noShowKey);
+        this.completeMatchSet(tournament, match, null, `double-forfeit`);
+        tournament.activity.unshift(createTournamentActivity(
+            null,
+            `match-double-forfeit`,
+            `Neither player joined ${describeTournamentMatch(match)} in time, so both forfeit.`,
+        ));
+        for (const slot of match.slots) {
+            if (slot.profileId) {
+                this.emitTournamentNotification(slot.profileId, {
+                    tournamentId: tournament.id,
+                    kind: `claim-win-awarded`,
+                    message: `You forfeited your match in ${tournament.name} because neither player joined in time.`,
+                } satisfies TournamentNotificationEvent);
+            }
+        }
+
+        return `forfeited`;
+    }
+
+    /** Withdraws players who have forfeited as many matches as the tournament allows. */
+    private applyNoShowDrops(tournament: TournamentRecord): boolean {
+        if (tournament.noShowDropAfter <= 0 || tournament.status !== `live`) {
+            return false;
+        }
+
+        let changed = false;
+        for (const participant of tournament.participants) {
+            if (participant.status !== `checked-in`) {
+                continue;
+            }
+
+            const forfeits = tournament.matches.filter((match) => match.state === `completed` && (
+                (match.resultType === `walkover` && match.loserProfileId === participant.profileId)
+                || (match.resultType === `double-forfeit` && matchContainsProfileId(match, participant.profileId))
+            )).length;
+            if (forfeits < tournament.noShowDropAfter) {
+                continue;
+            }
+
+            participant.status = `dropped`;
+            participant.removedAt = Date.now();
+            participant.dropReason = `no-shows`;
+            for (const match of tournament.matches) {
+                if (match.state === `completed` || !matchContainsProfileId(match, participant.profileId)) {
+                    continue;
+                }
+
+                const opponent = match.slots.find((slot) => slot.profileId && slot.profileId !== participant.profileId && !slot.isBye);
+                if (opponent?.profileId && match.state !== `pending`) {
+                    this.completeMatchSet(tournament, match, opponent.profileId, `walkover`);
+                }
+            }
+
+            tournament.activity.unshift(createTournamentActivity(
+                null,
+                `participant-dropped-no-shows`,
+                `${participant.displayName} was withdrawn after forfeiting ${forfeits} match${forfeits === 1 ? `` : `es`}.`,
+            ));
+            this.emitTournamentNotification(participant.profileId, {
+                tournamentId: tournament.id,
+                kind: `participant-replaced`,
+                message: `You were withdrawn from ${tournament.name} after forfeiting ${forfeits} match${forfeits === 1 ? `` : `es`}.`,
+            } satisfies TournamentNotificationEvent);
             changed = true;
         }
 
@@ -3446,57 +3582,78 @@ export class TournamentService {
                 throw new SessionError(`A win claim is already active for this match.`);
             }
 
-            const expiresAt = now + kClaimWinCountdownMs;
-            const claimState: MatchClaimWinState = {
-                matchId,
-                gameNumber: match.currentGameNumber,
-                claimantProfileId: user.id,
-                startedAt: now,
-                expiresInMs: kClaimWinCountdownMs,
-            };
-
-            const timer = setTimeout(() => {
-                void this.resolveClaimWin(tournamentId, matchId);
-            }, kClaimWinCountdownMs);
-
-            this.activeClaimWins.set(matchId, {
-                tournamentId,
-                matchId,
-                sessionId: match.sessionId,
-                gameNumber: match.currentGameNumber,
-                claimantProfileId: user.id,
-                startedAt: now,
-                expiresAt,
-                timer,
-            });
-
-            // Broadcast to session
-            this.emitSessionClaimWin({
-                sessionId: match.sessionId,
-                state: claimState,
-            } satisfies SessionClaimWinEvent);
-
-            // Notify absent opponent
-            const opponentSlot = match.slots.find((s) => s.profileId && s.profileId !== user.id && !s.isBye);
-            if (opponentSlot?.profileId) {
-                this.emitTournamentNotification(opponentSlot.profileId, {
-                    tournamentId: tournament.id,
-                    kind: `claim-win-started`,
-                    message: `Your opponent is claiming a win in ${tournament.name}. Join within 30 seconds or forfeit the match.`,
-                } satisfies TournamentNotificationEvent);
-            }
-
-            tournament.activity.unshift(createTournamentActivity(
-                user,
-                `claim-win-started`,
-                `${user.username} initiated a win claim for match ${match.order} in round ${match.round}.`,
-            ));
+            const claimState = this.startClaimWin(tournament, match, user.id, user);
             tournament.updatedAt = Date.now();
             await this.tournamentRepository.saveTournament(tournament);
             this.broadcastTournamentUpdate(tournament);
 
             return claimState;
         });
+    }
+
+    /**
+     * Starts the countdown after which the match is awarded to `claimantProfileId` unless the opponent
+     * joins. `actor` is null when the tournament starts the claim on its own (automatic no-show handling).
+     */
+    private startClaimWin(
+        tournament: TournamentRecord,
+        match: TournamentMatch,
+        claimantProfileId: string,
+        actor: AccountUserProfile | null,
+    ): MatchClaimWinState {
+        const now = Date.now();
+        const sessionId = match.sessionId!;
+        const claimState: MatchClaimWinState = {
+            matchId: match.id,
+            gameNumber: match.currentGameNumber,
+            claimantProfileId,
+            startedAt: now,
+            expiresInMs: kClaimWinCountdownMs,
+        };
+
+        const tournamentId = tournament.id;
+        const matchId = match.id;
+        const timer = setTimeout(() => {
+            void this.resolveClaimWin(tournamentId, matchId);
+        }, kClaimWinCountdownMs);
+
+        this.activeClaimWins.set(matchId, {
+            tournamentId,
+            matchId,
+            sessionId,
+            gameNumber: match.currentGameNumber,
+            claimantProfileId,
+            startedAt: now,
+            expiresAt: now + kClaimWinCountdownMs,
+            timer,
+        });
+
+        // Broadcast to session
+        this.emitSessionClaimWin({
+            sessionId,
+            state: claimState,
+        } satisfies SessionClaimWinEvent);
+
+        // Notify absent opponent
+        const opponentSlot = match.slots.find((s) => s.profileId && s.profileId !== claimantProfileId && !s.isBye);
+        if (opponentSlot?.profileId) {
+            this.emitTournamentNotification(opponentSlot.profileId, {
+                tournamentId: tournament.id,
+                kind: `claim-win-started`,
+                message: `Your opponent is claiming a win in ${tournament.name}. Join within 30 seconds or forfeit the match.`,
+            } satisfies TournamentNotificationEvent);
+        }
+
+        const claimantName = getParticipantSnapshot(tournament, claimantProfileId)?.displayName ?? `A player`;
+        tournament.activity.unshift(createTournamentActivity(
+            actor,
+            `claim-win-started`,
+            actor
+                ? `${actor.username} initiated a win claim for match ${match.order} in round ${match.round}.`
+                : `${describeTournamentMatch(match)}: the opponent of ${claimantName} did not join in time. The win is awarded in 30 seconds unless they join.`,
+        ));
+
+        return claimState;
     }
 
     private cancelClaimWin(matchId: string, sessionId?: string) {
@@ -3637,6 +3794,26 @@ export class TournamentService {
         });
     }
 
+    /** Approves an extension by moving the join deadline back, on top of the current deadline. */
+    private approveExtension(
+        tournament: TournamentRecord,
+        match: TournamentMatch,
+        extension: TournamentExtensionRequest,
+        resolvedByProfileId: string | null,
+        now: number,
+    ) {
+        extension.status = `approved`;
+        extension.resolvedByProfileId = resolvedByProfileId;
+        extension.resolvedAt = now;
+
+        const timeoutMs = tournament.matchJoinTimeoutMinutes * 60_000;
+        const extensionMs = getMatchExtensionMinutes(tournament) * 60_000;
+        const oldDeadline = (match.startedAt ?? now) + timeoutMs;
+        // New startedAt so that new deadline = max(now, oldDeadline) + extensionMs
+        match.startedAt = Math.max(now, oldDeadline) + extensionMs - timeoutMs;
+        this.syncSessionTournamentInfo(tournament, match);
+    }
+
     async requestExtension(tournamentId: string, matchId: string, user: AccountUserProfile): Promise<TournamentDetail> {
         const tournament = await this.withTournamentLock(tournamentId, async () => {
             const tournament = await this.requireTournament(tournamentId);
@@ -3658,6 +3835,13 @@ export class TournamentService {
 
             if (hasPendingExtensionForMatchGame(tournament, matchId, match.currentGameNumber)) {
                 throw new SessionError(`An extension request is already pending for this match.`);
+            }
+
+            // Extensions give a late player more time to join; the player who is already waiting does not need one.
+            const isWaitingInLobby = this.sessionManager.getSessionInfo(match.sessionId)?.players
+                .some((player) => player.profileId === user.id && player.connection.status === `connected`) ?? false;
+            if (isWaitingInLobby) {
+                throw new SessionError(`You are already in the match. Extensions are for players who need more time to join.`);
             }
 
             // Enforce 1 extension per player per game in a best-of series.
@@ -3691,6 +3875,23 @@ export class TournamentService {
                 `extension-requested`,
                 `${user.username} requested a time extension for match ${match.order} in round ${match.round}.`,
             ));
+
+            if (tournament.extensionApproval === `automatic`) {
+                this.approveExtension(tournament, match, extensionRequest, null, Date.now());
+                tournament.activity.unshift(createTournamentActivity(
+                    null,
+                    `extension-resolved`,
+                    `Automatically approved time extension for ${user.username} (+${getMatchExtensionMinutes(tournament)} min).`,
+                ));
+                this.emitTournamentNotification(user.id, {
+                    tournamentId: tournament.id,
+                    kind: `extension-resolved`,
+                    message: `Your extension request in ${tournament.name} was approved (+${getMatchExtensionMinutes(tournament)} min).`,
+                } satisfies TournamentNotificationEvent);
+                await this.tournamentRepository.saveTournament(tournament);
+                return tournament;
+            }
+
             this.syncSessionTournamentInfo(tournament, match);
 
             // Notify all organizers (creator + per-tournament organizers)
@@ -3786,21 +3987,15 @@ export class TournamentService {
                 };
             }
 
-            refreshedExtension.status = approve ? `approved` : `denied`;
-            refreshedExtension.resolvedByProfileId = user.id;
-            refreshedExtension.resolvedAt = now;
-
-            const timeoutMs = tournament.matchJoinTimeoutMinutes * 60_000;
             const extensionMinutes = getMatchExtensionMinutes(tournament);
-
             if (approve) {
-                // Add time on top of the current deadline, don't restart
-                const extensionMs = getMatchExtensionMinutes(tournament) * 60_000;
-                const oldDeadline = match.startedAt + timeoutMs;
-                // New startedAt so that new deadline = max(now, oldDeadline) + extensionMs
-                match.startedAt = Math.max(now, oldDeadline) + extensionMs - timeoutMs;
+                this.approveExtension(tournament, match, refreshedExtension, user.id, now);
+            } else {
+                refreshedExtension.status = `denied`;
+                refreshedExtension.resolvedByProfileId = user.id;
+                refreshedExtension.resolvedAt = now;
+                this.syncSessionTournamentInfo(tournament, match);
             }
-            this.syncSessionTournamentInfo(tournament, match);
 
             tournament.updatedAt = now;
             tournament.activity.unshift(createTournamentActivity(

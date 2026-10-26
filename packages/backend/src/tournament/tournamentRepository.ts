@@ -1,10 +1,13 @@
 import {
     zGameTimeControl,
     zTournamentActivityEntry,
+    zTournamentExtensionApproval,
     zTournamentExtensionRequest,
     zTournamentFormat,
     zTournamentKind,
     zTournamentMatch,
+    zTournamentNoShowDropAfter,
+    zTournamentNoShowHandling,
     zTournamentParticipant,
     zTournamentSeedingMode,
     zTournamentSeriesSettings,
@@ -88,6 +91,9 @@ const zStoredTournament = z.object({
     blacklist: z.array(z.object({ profileId: z.string(), displayName: z.string() })).default([]),
     seedingMode: zTournamentSeedingMode.default(`registration`),
     swissTiebreaks: zTournamentSwissTiebreaks.default(`classic`),
+    noShowHandling: zTournamentNoShowHandling.default(`manual`),
+    noShowDropAfter: zTournamentNoShowDropAfter.default(0),
+    extensionApproval: zTournamentExtensionApproval.default(`organizer`),
     /** Standings captured when the tournament completed, so later rule changes never rewrite past results. */
     finalStandings: z.array(zTournamentStanding).nullable().default(null),
 });
