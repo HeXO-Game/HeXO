@@ -120,6 +120,8 @@ export const zTournamentMatchResultType = z.enum([
     `played`,
     `bye`,
     `walkover`,
+    /** Neither player showed up (or both were forfeited by an organizer); nobody wins. */
+    `double-forfeit`,
 ]);
 export type TournamentMatchResultType = z.infer<typeof zTournamentMatchResultType>;
 
@@ -550,7 +552,8 @@ export const zTournamentParticipantSwapRequest = z.object({
 export type TournamentParticipantSwapRequest = z.infer<typeof zTournamentParticipantSwapRequest>;
 
 export const zTournamentMatchResolutionRequest = z.object({
-    winnerProfileId: zIdentifier,
+    /** `null` forfeits the match for both players. */
+    winnerProfileId: zIdentifier.nullable(),
 });
 export type TournamentMatchResolutionRequest = z.infer<typeof zTournamentMatchResolutionRequest>;
 

@@ -15,6 +15,7 @@ import {
     addTournamentParticipant,
     bulkAddToAccessList,
     awardTournamentWalkover,
+    correctTournamentMatchResult,
     cancelTournament,
     checkInTournament,
 
@@ -865,13 +866,36 @@ function useCountdown(deadlineMs: number | null) {
 
 /* ── Match card ─────────────────────────────────────── */
 
-function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentStatus, timeoutAt, extensionMinutes, pendingExtension, claimWinExpiresAt, onOpen, onWalkover, onReopen, onRequestExtension, onResolveExtension }: {
+function MatchResultChip({ resultType }: { resultType: TournamentMatch[`resultType`] }) {
+    const { t } = useTranslation()
+    switch (resultType) {
+        case `walkover`:
+            return <Chip color="amber">{t('matchResultAwarded', 'awarded')}</Chip>;
+        case `double-forfeit`:
+            return <Chip color="rose">{t('matchResultDoubleForfeit', 'both forfeited')}</Chip>;
+        case `bye`:
+            return <Chip>{t('matchResultBye', 'bye')}</Chip>;
+        default:
+            return null;
+    }
+}
+
+function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentStatus, timeoutAt, extensionMinutes, pendingExtension, claimWinExpiresAt, onOpen, onWalkover, onCorrectResult, onReopen, onRequestExtension, onResolveExtension }: {
     match: TournamentMatch; allMatches: TournamentMatch[]; canManage: boolean; viewerProfileId: string | null; tournamentStatus: TournamentDetail[`status`]
     timeoutAt: number | null; extensionMinutes: number; pendingExtension: TournamentExtensionRequest | null; claimWinExpiresAt: number | null
-    onOpen: (sid: string) => void; onWalkover: (mid: string, pid: string) => void; onReopen: (mid: string) => void
+    onOpen: (sid: string) => void; onWalkover: (mid: string, pid: string | null) => void; onCorrectResult: (mid: string, pid: string | null) => void
+    onReopen: (mid: string) => void
     onRequestExtension: (mid: string) => void; onResolveExtension: (eid: string, approve: boolean) => void
 }) {
     const { t } = useTranslation()
+    const [isEditingResult, setIsEditingResult] = useState(false);
+    const playerSlots = match.slots.filter((s): s is typeof s & { profileId: string } => Boolean(s.profileId) && !s.isBye);
+    const canAwardMatch = canManage && tournamentStatus === `live` && (match.state === `ready` || match.state === `in-progress`);
+    const canCorrectResult = canManage
+        && (tournamentStatus === `live` || tournamentStatus === `completed`)
+        && match.state === `completed`
+        && match.resultType !== `bye`
+        && playerSlots.length === 2;
     const countdown = useCountdown(timeoutAt);
     const claimCountdown = useCountdown(claimWinExpiresAt);
     const timedOut = countdown?.expired ?? false;
@@ -919,6 +943,8 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 </Chip>
 
                 <Chip>{t('boBestof', 'BO{{bestOf}}', { bestOf: match.bestOf })}</Chip>
+
+                {match.state === `completed` && <MatchResultChip resultType={match.resultType} />}
 
                 {canJoin && (
                     <Button
@@ -1070,19 +1096,56 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 </div>
             )}
 
-            {canManage && match.state !== `completed` && (
+            {canAwardMatch && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                    {match.slots.filter((s): s is typeof s & { profileId: string } => Boolean(s.profileId) && !s.isBye).map((s) => (
+                    {playerSlots.map((s) => (
                         <Confirm
                             key={s.profileId} label={t('awardDisplayname', 'Award {{displayName}}', { displayName: s.displayName })} onConfirm={() => onWalkover(match.id, s.profileId)}
                             variant="info"
                         />
                     ))}
 
+                    {playerSlots.length === 2 && (
+                        <Confirm
+                            label={t('forfeitBothPlayers', 'Both forfeit')} onConfirm={() => onWalkover(match.id, null)}
+                            variant="destructive-soft"
+                        />
+                    )}
+
                     <Confirm
                         label="Reopen" onConfirm={() => onReopen(match.id)}
                         variant="ghost"
                     />
+                </div>
+            )}
+
+            {canCorrectResult && !isEditingResult && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                    <Button onClick={() => setIsEditingResult(true)} variant="ghost" size="xxs">
+                        {t('editResult', 'Edit result')}
+                    </Button>
+                </div>
+            )}
+
+            {canCorrectResult && isEditingResult && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                    {playerSlots.map((s) => (
+                        <Confirm
+                            key={s.profileId} label={t('displaynameWins', '{{displayName}} wins', { displayName: s.displayName })}
+                            onConfirm={() => { setIsEditingResult(false); onCorrectResult(match.id, s.profileId); }}
+                            variant="info"
+                        />
+                    ))}
+
+                    <Confirm
+                        label={t('forfeitBothPlayers', 'Both forfeit')}
+                        onConfirm={() => { setIsEditingResult(false); onCorrectResult(match.id, null); }}
+                        variant="destructive-soft"
+                    />
+
+                    <Button onClick={() => setIsEditingResult(false)} variant="ghost" size="xxs">
+                        {t('cancel', 'Cancel')}
+                    </Button>
                 </div>
             )}
         </div>
@@ -1432,7 +1495,8 @@ function TournamentRoute() {
                                                             pendingExtension={tournament.extensionRequests.find((r) => r.matchId === m.id && (r.gameNumber ?? 1) === m.currentGameNumber && r.status === `pending`) ?? null}
                                                             claimWinExpiresAt={m.claimWinExpiresAt ?? null}
                                                             onOpen={(sid) => void nav(`/session/${sid}`)}
-                                                            onWalkover={(mid, pid) => void run(() => awardTournamentWalkover(tournament.id, mid, pid), `Walkover.`)}
+                                                            onWalkover={(mid, pid) => void run(() => awardTournamentWalkover(tournament.id, mid, pid), pid ? `Walkover.` : t('bothPlayersForfeited', 'Both players forfeited.'))}
+                                                            onCorrectResult={(mid, pid) => void run(() => correctTournamentMatchResult(tournament.id, mid, pid), t('resultUpdated', 'Result updated.'))}
                                                             onReopen={(mid) => void run(() => reopenTournamentMatch(tournament.id, mid), `Reopened.`)}
                                                             onRequestExtension={(mid) => void run(() => requestMatchExtension(tournament.id, mid), `Extension requested.`)}
                                                             onResolveExtension={(eid, approve) => void run(() => resolveExtension(tournament.id, eid, approve), approve ? t('extensionApproved', 'Extension approved.') : `Extension denied.`)}

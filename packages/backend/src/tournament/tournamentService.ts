@@ -376,6 +376,12 @@ function describeTournamentMatch(match: TournamentMatch): string {
     }
 }
 
+function describeTournamentWinner(tournament: TournamentRecord, winnerProfileId: string | null): string {
+    return winnerProfileId
+        ? `${getParticipantSnapshot(tournament, winnerProfileId)?.displayName ?? `A player`} won the tournament.`
+        : `The final was forfeited by both players, so the tournament ended without a champion.`;
+}
+
 function isPreStartLeaver(p: TournamentParticipant, tournament: TournamentRecord): boolean {
     if (p.removedAt === null) return false;
     if (tournament.startedAt === null) return true;
@@ -1296,7 +1302,8 @@ export class TournamentService {
         return this.toDetail(tournament, user);
     }
 
-    async awardWalkover(tournamentId: string, matchId: string, winnerProfileId: string, user: AccountUserProfile): Promise<TournamentDetail> {
+    /** Decides an unresolved match without playing it. A `null` winner forfeits it for both players. */
+    async awardWalkover(tournamentId: string, matchId: string, winnerProfileId: string | null, user: AccountUserProfile): Promise<TournamentDetail> {
         const tournament = await this.withTournamentLock(tournamentId, async () => {
             const tournament = await this.requireTournament(tournamentId);
             this.assertCanManageTournament(user, tournament);
@@ -1308,14 +1315,149 @@ export class TournamentService {
                 throw new SessionError(`Only unresolved matches can be awarded.`);
             }
 
-            this.completeMatchSet(tournament, match, winnerProfileId, `walkover`);
-            tournament.activity.unshift(createTournamentActivity(user, `match-walkover`, `Awarded a walkover in round ${match.round}, match ${match.order}.`));
+            this.completeMatchSet(tournament, match, winnerProfileId, winnerProfileId === null ? `double-forfeit` : `walkover`);
+            tournament.activity.unshift(createTournamentActivity(
+                user,
+                `match-walkover`,
+                winnerProfileId === null
+                    ? `Forfeited ${describeTournamentMatch(match)} for both players.`
+                    : `Awarded a walkover in round ${match.round}, match ${match.order}.`,
+            ));
             await this.reconcileAndSaveTournamentRecord(tournament);
             return tournament;
         });
 
         this.broadcastTournamentUpdate(tournament);
         return this.toDetail(tournament, user);
+    }
+
+    /**
+     * Changes the result of a completed match. In brackets this is only possible while no later
+     * match that depends on the result has been played; those matches are reset and refilled.
+     * Swiss results can always be corrected; rounds that were already paired stay as they are.
+     */
+    async correctMatchResult(tournamentId: string, matchId: string, winnerProfileId: string | null, user: AccountUserProfile): Promise<TournamentDetail> {
+        const tournament = await this.withTournamentLock(tournamentId, async () => {
+            const tournament = await this.requireTournament(tournamentId);
+            this.assertCanManageTournament(user, tournament);
+            if (tournament.status !== `live` && tournament.status !== `completed`) {
+                throw new SessionError(`Results can only be corrected in live or completed tournaments.`);
+            }
+
+            const match = getMatchById(tournament, matchId);
+            if (match.state !== `completed`) {
+                throw new SessionError(`Only completed matches can be corrected. Award unresolved matches instead.`);
+            }
+            if (match.resultType === `bye`) {
+                throw new SessionError(`Byes cannot be changed.`);
+            }
+            if (winnerProfileId !== null && !match.slots.some((slot) => slot.profileId === winnerProfileId && !slot.isBye)) {
+                throw new SessionError(`Tournament match winner did not belong to the recorded player slots.`);
+            }
+
+            const dependentMatches = tournament.format === `swiss` ? [] : this.collectDependentMatches(tournament, match);
+            const decidedDependent = dependentMatches.find((dependent) => this.isMatchDecidedOrPlaying(dependent));
+            if (decidedDependent) {
+                throw new SessionError(`${describeTournamentMatch(decidedDependent)} depends on this result and has already been played.`);
+            }
+
+            for (const dependent of dependentMatches) {
+                this.resetMatch(tournament, dependent);
+            }
+            tournament.matches = tournament.matches.filter((entry) => !(entry.bracket === `grand-final-reset` && entry.state === `pending` && dependentMatches.includes(entry)));
+
+            // Players removed because they both missed this match come back if the organizer decides otherwise.
+            if (match.resultType === `double-forfeit` && tournament.format !== `swiss`) {
+                for (const slot of match.slots) {
+                    const participant = getParticipantSnapshot(tournament, slot.profileId);
+                    if (participant?.status === `dropped` && participant.dropReason === `no-shows`) {
+                        participant.status = `checked-in`;
+                        participant.removedAt = null;
+                        participant.dropReason = null;
+                    }
+                }
+            }
+
+            this.completeMatchSet(tournament, match, winnerProfileId, winnerProfileId === null ? `double-forfeit` : `walkover`);
+            if (tournament.status === `completed`) {
+                tournament.status = `live`;
+                tournament.completedAt = null;
+                tournament.finalStandings = null;
+            }
+
+            const winnerName = winnerProfileId ? getParticipantSnapshot(tournament, winnerProfileId)?.displayName ?? `A player` : null;
+            tournament.updatedAt = Date.now();
+            tournament.activity.unshift(createTournamentActivity(
+                user,
+                `match-result-corrected`,
+                winnerName
+                    ? `Changed the result of ${describeTournamentMatch(match)}: ${winnerName} wins.`
+                    : `Changed the result of ${describeTournamentMatch(match)}: forfeited by both players.`,
+            ));
+            await this.reconcileAndSaveTournamentRecord(tournament);
+            return tournament;
+        });
+
+        this.broadcastTournamentUpdate(tournament);
+        return this.toDetail(tournament, user);
+    }
+
+    /** Every bracket match whose players depend, directly or indirectly, on the result of `match`. */
+    private collectDependentMatches(tournament: TournamentRecord, match: TournamentMatch): TournamentMatch[] {
+        const dependents: TournamentMatch[] = [];
+        const queue = [match];
+        const visited = new Set([match.id]);
+        while (queue.length > 0) {
+            const source = queue.shift()!;
+            for (const candidate of tournament.matches) {
+                if (visited.has(candidate.id)) {
+                    continue;
+                }
+
+                const isFed = candidate.slots.some((slot) => slot.source && slot.source.type !== `seed` && slot.source.matchId === source.id)
+                    || (candidate.bracket === `grand-final-reset` && source.bracket === `grand-final`);
+                if (isFed) {
+                    visited.add(candidate.id);
+                    dependents.push(candidate);
+                    queue.push(candidate);
+                }
+            }
+        }
+
+        return dependents;
+    }
+
+    private isMatchDecidedOrPlaying(match: TournamentMatch): boolean {
+        if (match.gameIds.length > 0) {
+            return true;
+        }
+
+        if (match.state === `completed`) {
+            return match.resultType !== `bye`;
+        }
+
+        return match.sessionId !== null
+            && this.sessionManager.getSessionInfo(match.sessionId)?.state.status === `in-game`;
+    }
+
+    /** Puts an unplayed match back into its initial pending state so it is refilled from its sources. */
+    private resetMatch(tournament: TournamentRecord, match: TournamentMatch) {
+        this.cancelClaimWin(match.id);
+        if (match.sessionId) {
+            this.closeMatchSession(match.sessionId, { kind: `restarted` });
+        }
+
+        match.state = `pending`;
+        match.sessionId = null;
+        match.startedAt = null;
+        match.resolvedAt = null;
+        match.winnerProfileId = null;
+        match.loserProfileId = null;
+        match.resultType = null;
+        match.leftWins = 0;
+        match.rightWins = 0;
+        match.currentGameNumber = 1;
+        this.hydrateMatchSlotsFromSources(tournament, match);
     }
 
     async reopenMatch(tournamentId: string, matchId: string, user: AccountUserProfile): Promise<TournamentDetail> {
@@ -1934,7 +2076,7 @@ export class TournamentService {
         const maxRound = Math.max(0, ...winnersMatches.map((m) => m.round));
         const finalMatch = winnersMatches.find((m) => m.round === maxRound);
 
-        if (!finalMatch || finalMatch.state !== `completed` || !finalMatch.winnerProfileId) {
+        if (!finalMatch || finalMatch.state !== `completed` || (!finalMatch.winnerProfileId && finalMatch.resultType !== `double-forfeit`)) {
             return false;
         }
 
@@ -1953,7 +2095,7 @@ export class TournamentService {
         tournament.activity.unshift(createTournamentActivity(
             null,
             `tournament-completed`,
-            `${getParticipantSnapshot(tournament, finalMatch.winnerProfileId)?.displayName ?? `A player`} won the tournament.`,
+            describeTournamentWinner(tournament, finalMatch.winnerProfileId),
         ));
         return true;
     }
@@ -2313,6 +2455,36 @@ export class TournamentService {
     }
 
     /**
+     * Neither player gets the win. In brackets both players are out of the tournament, so they are
+     * dropped and the match feeds byes onwards; in swiss both simply take a loss.
+     */
+    private completeDoubleForfeit(tournament: TournamentRecord, match: TournamentMatch) {
+        const sessionId = match.sessionId;
+        match.winnerProfileId = null;
+        match.loserProfileId = null;
+        match.resultType = `double-forfeit`;
+        match.state = `completed`;
+        match.resolvedAt = Date.now();
+        match.sessionId = null;
+        if (sessionId) {
+            this.closeMatchSession(sessionId, { kind: `resolved`, resultType: `double-forfeit`, winnerProfileId: null });
+        }
+
+        if (tournament.format === `swiss`) {
+            return;
+        }
+
+        for (const slot of match.slots) {
+            const participant = getParticipantSnapshot(tournament, slot.profileId);
+            if (participant && isActiveParticipant(participant)) {
+                participant.status = `dropped`;
+                participant.removedAt = Date.now();
+                participant.dropReason = `no-shows`;
+            }
+        }
+    }
+
+    /**
      * Resolves a match that can never be played because both of its sources produced a bye,
      * e.g. a losers-bracket match fed by two first-round byes. The empty result propagates
      * as a bye to whichever matches it feeds.
@@ -2329,9 +2501,14 @@ export class TournamentService {
     private completeMatchSet(
         tournament: TournamentRecord,
         match: TournamentMatch,
-        winnerProfileId: string,
+        winnerProfileId: string | null,
         resultType: TournamentMatch[`resultType`],
     ) {
+        if (winnerProfileId === null) {
+            this.completeDoubleForfeit(tournament, match);
+            return;
+        }
+
         const winnerSlot = match.slots.find((slot) => slot.profileId === winnerProfileId && !slot.isBye) ?? null;
         if (!winnerSlot) {
             throw new SessionError(`Tournament match winner did not belong to the recorded player slots.`);
@@ -2396,7 +2573,7 @@ export class TournamentService {
         }
 
         const grandFinalReset = tournament.matches.find((match) => match.bracket === `grand-final-reset`) ?? null;
-        if (grandFinalReset?.state === `completed` && grandFinalReset.winnerProfileId) {
+        if (grandFinalReset?.state === `completed`) {
             tournament.status = `completed`;
             tournament.completedAt = Date.now();
             tournament.updatedAt = Date.now();
@@ -2404,13 +2581,13 @@ export class TournamentService {
             tournament.activity.unshift(createTournamentActivity(
                 null,
                 `tournament-completed`,
-                `${getParticipantSnapshot(tournament, grandFinalReset.winnerProfileId)?.displayName ?? `A player`} won the tournament.`,
+                describeTournamentWinner(tournament, grandFinalReset.winnerProfileId),
             ));
             return true;
         }
 
         const grandFinal = tournament.matches.find((match) => match.bracket === `grand-final`) ?? null;
-        if (grandFinal?.state !== `completed` || !grandFinal.winnerProfileId) {
+        if (grandFinal?.state !== `completed` || (!grandFinal.winnerProfileId && grandFinal.resultType !== `double-forfeit`)) {
             return false;
         }
 
@@ -2426,7 +2603,7 @@ export class TournamentService {
         tournament.activity.unshift(createTournamentActivity(
             null,
             `tournament-completed`,
-            `${getParticipantSnapshot(tournament, grandFinal.winnerProfileId)?.displayName ?? `A player`} won the tournament.`,
+            describeTournamentWinner(tournament, grandFinal.winnerProfileId),
         ));
         return true;
     }

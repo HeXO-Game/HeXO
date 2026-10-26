@@ -689,6 +689,26 @@ export class ApiRouter {
             }
         });
 
+        router.post(`/tournaments/:tournamentId/matches/:matchId/result`, express.json(), async (req, res) => {
+            const user = await this.authService.getUserFromRequest(req);
+            if (!user) {
+                res.status(401).json({ error: `Sign in with Discord to resolve tournament matches.` });
+                return;
+            }
+
+            try {
+                const request = zTournamentMatchResolutionRequest.parse(req.body ?? {});
+                res.json(await this.tournamentService.correctMatchResult(req.params.tournamentId, req.params.matchId, request.winnerProfileId, user));
+            } catch (error: unknown) {
+                if (error instanceof SessionError) {
+                    res.status(409).json({ error: error.message });
+                    return;
+                }
+
+                throw error;
+            }
+        });
+
         router.post(`/tournaments/:tournamentId/matches/:matchId/reopen`, async (req, res) => {
             const user = await this.authService.getUserFromRequest(req);
             if (!user) {

@@ -123,8 +123,20 @@ export async function reorderTournamentSeeds(tournamentId: string, orderedProfil
     });
 }
 
-export async function awardTournamentWalkover(tournamentId: string, matchId: string, winnerProfileId: string) {
+/** Decides an unresolved match without playing it. `null` forfeits it for both players. */
+export async function awardTournamentWalkover(tournamentId: string, matchId: string, winnerProfileId: string | null) {
     return await writeTournamentMutation(`/api/tournaments/${encodeURIComponent(tournamentId)}/matches/${encodeURIComponent(matchId)}/walkover`, {
+        method: `POST`,
+        headers: {
+            'Content-Type': `application/json`,
+        },
+        body: JSON.stringify({ winnerProfileId } satisfies TournamentMatchResolutionRequest),
+    });
+}
+
+/** Changes the result of a completed match. `null` forfeits it for both players. */
+export async function correctTournamentMatchResult(tournamentId: string, matchId: string, winnerProfileId: string | null) {
+    return await writeTournamentMutation(`/api/tournaments/${encodeURIComponent(tournamentId)}/matches/${encodeURIComponent(matchId)}/result`, {
         method: `POST`,
         headers: {
             'Content-Type': `application/json`,

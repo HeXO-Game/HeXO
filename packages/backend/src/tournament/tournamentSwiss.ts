@@ -228,6 +228,14 @@ export function calculateSwissStandings(
         }
 
         const slotProfileIds = match.slots.map((slot) => slot.profileId).filter((profileId): profileId is string => Boolean(profileId));
+        if (match.resultType === `double-forfeit`) {
+            // Nobody played, so both players take a loss and neither counts as the other's opponent.
+            for (const profileId of slotProfileIds) {
+                getStats(profileId).losses += 1;
+            }
+            continue;
+        }
+
         if (slotProfileIds.length === 2) {
             const [leftProfileId, rightProfileId] = slotProfileIds;
             getStats(leftProfileId).opponents.push(rightProfileId);

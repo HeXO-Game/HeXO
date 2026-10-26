@@ -2930,3 +2930,81 @@ test(`the final standings migration preserves the ranking rules past events were
     const detail = await service.getTournamentDetail(tournament.id, null);
     assert.deepEqual(detail!.standings, finalStandings);
 });
+
+test(`organizers can correct a bracket result until a match that depends on it is played`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+    const finalSessionId = context.repository.getSync(context.tournamentId).matches.find((match) => match.id === `match-winners-2-1`)!.sessionId!;
+
+    await context.service.correctMatchResult(context.tournamentId, `match-winners-1-1`, `player-4`, kOrganizer);
+
+    let tournament = context.repository.getSync(context.tournamentId);
+    const final = tournament.matches.find((match) => match.id === `match-winners-2-1`)!;
+    assert.deepEqual(final.slots.map((slot) => slot.profileId), [`player-4`, `player-2`]);
+    assert.notEqual(final.sessionId, finalSessionId);
+    assert.deepEqual(context.sessionManager.sessions.get(finalSessionId)?.tournament?.matchOutcome, { kind: `restarted` });
+    assert.equal(tournament.matches.find((match) => match.id === `match-winners-1-1`)?.resultType, `walkover`);
+
+    await finishMatchGame(context, `match-winners-2-1`, `player-2`);
+    await assert.rejects(
+        context.service.correctMatchResult(context.tournamentId, `match-winners-1-2`, `player-3`, kOrganizer),
+        /already been played/,
+    );
+
+    // The final itself can still be corrected after the tournament completed.
+    tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.status, `completed`);
+    await context.service.correctMatchResult(context.tournamentId, `match-winners-2-1`, `player-4`, kOrganizer);
+    tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.status, `completed`);
+    assert.equal(tournament.finalStandings?.[0]?.profileId, `player-4`);
+});
+
+test(`a double forfeit eliminates both bracket players and gives their next opponent a bye`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await context.service.awardWalkover(context.tournamentId, `match-winners-1-1`, null, kOrganizer);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const forfeited = tournament.matches.find((match) => match.id === `match-winners-1-1`)!;
+    assert.equal(forfeited.resultType, `double-forfeit`);
+    assert.equal(forfeited.winnerProfileId, null);
+    for (const profileId of [`player-1`, `player-4`]) {
+        const participant = tournament.participants.find((entry) => entry.profileId === profileId)!;
+        assert.equal(participant.status, `dropped`);
+        assert.equal(participant.dropReason, `no-shows`);
+    }
+    assert.equal(tournament.status, `completed`);
+    assert.equal(tournament.matches.find((match) => match.id === `match-winners-2-1`)?.winnerProfileId, `player-2`);
+});
+
+test(`a swiss double forfeit gives both players a loss`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3 });
+    await context.service.awardWalkover(context.tournamentId, `match-swiss-1-1`, null, kOrganizer);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    for (const profileId of [`player-1`, `player-2`]) {
+        const standing = detail!.standings.find((entry) => entry.profileId === profileId)!;
+        assert.equal(standing.losses, 1);
+        assert.equal(standing.matchPoints, 0);
+        assert.equal(standing.buchholz, 0);
+        assert.equal(standing.isDropped, false);
+    }
+});
+
+test(`swiss results can be corrected after the next round was paired`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3 });
+    await finishMatchGame(context, `match-swiss-1-1`, `player-1`);
+    await finishMatchGame(context, `match-swiss-1-2`, `player-3`);
+    const roundTwo = context.repository.getSync(context.tournamentId).matches.filter((match) => match.round === 2).map((match) => match.id);
+    assert.equal(roundTwo.length, 2);
+
+    await context.service.correctMatchResult(context.tournamentId, `match-swiss-1-1`, `player-2`, kOrganizer);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.deepEqual(tournament.matches.filter((match) => match.round === 2).map((match) => match.id), roundTwo);
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    assert.equal(detail!.standings.find((entry) => entry.profileId === `player-2`)?.wins, 1);
+    assert.equal(detail!.standings.find((entry) => entry.profileId === `player-1`)?.wins, 0);
+});
