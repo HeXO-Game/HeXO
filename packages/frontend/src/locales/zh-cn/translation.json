@@ -486,6 +486,7 @@
   "matchPathWonByForfeit": "对方弃权获胜",
   "matchResultAwarded": "判定",
   "matchResultBye": "轮空",
+  "matchResultCorrected": "已更正",
   "matchResultDoubleForfeit": "双方弃权",
   "matchScoreBestOf": "BO{{bestOf}}，比分 {{leftWins}}–{{rightWins}}",
   "matchSettings": "比赛设置",

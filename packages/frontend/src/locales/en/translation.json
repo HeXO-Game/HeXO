@@ -486,6 +486,7 @@
   "matchPathWonByForfeit": "Won by forfeit",
   "matchResultAwarded": "awarded",
   "matchResultBye": "bye",
+  "matchResultCorrected": "corrected",
   "matchResultDoubleForfeit": "both forfeited",
   "matchScoreBestOf": "{{leftWins}}–{{rightWins}} in BO{{bestOf}}",
   "matchSettings": "Match Settings",

@@ -486,6 +486,7 @@
   "matchPathWonByForfeit": "기권승",
   "matchResultAwarded": "부전승",
   "matchResultBye": "부전승(바이)",
+  "matchResultCorrected": "정정됨",
   "matchResultDoubleForfeit": "양측 기권",
   "matchScoreBestOf": "BO{{bestOf}} · {{leftWins}}–{{rightWins}}",
   "matchSettings": "경기 설정",

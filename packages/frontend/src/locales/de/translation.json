@@ -486,6 +486,7 @@
   "matchPathWonByForfeit": "Kampflos gewonnen",
   "matchResultAwarded": "zugesprochen",
   "matchResultBye": "Freilos",
+  "matchResultCorrected": "korrigiert",
   "matchResultDoubleForfeit": "beide aufgegeben",
   "matchScoreBestOf": "{{leftWins}}–{{rightWins}} in BO{{bestOf}}",
   "matchSettings": "Match-Einstellungen",

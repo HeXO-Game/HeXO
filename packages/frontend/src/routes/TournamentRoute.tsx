@@ -1034,6 +1034,8 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
 
                 {match.state === `completed` && <MatchResultChip resultType={match.resultType} />}
 
+                {match.state === `completed` && match.resultCorrected && <Chip color="sky">{t('matchResultCorrected', 'corrected')}</Chip>}
+
                 {canJoin && (
                     <Button
                         onClick={() => onOpen(match.sessionId!)}

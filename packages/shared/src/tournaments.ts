@@ -240,6 +240,8 @@ export const zTournamentMatch = z.object({
     waitingForPlayers: z.boolean().optional(),
     /** Players currently connected to the match lobby while it waits for the other player. */
     presentProfileIds: z.array(zIdentifier).optional(),
+    /** The result was changed by an organizer after the match was completed. */
+    resultCorrected: z.boolean().optional(),
 });
 export type TournamentMatch = z.infer<typeof zTournamentMatch>;
 
