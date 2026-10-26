@@ -175,3 +175,36 @@ test(`a tournament lobby whose match was decided does not start a game when both
 
     assert.equal(session.state, `lobby`);
 });
+
+test(`a tournament match decided while its game record is being created does not start the game`, async () => {
+    let markCreateStarted: () => void = () => {};
+    let releaseCreate: () => void = () => {};
+    const createStarted = new Promise<void>((resolve) => {
+        markCreateStarted = resolve;
+    });
+    const createReleased = new Promise<void>((resolve) => {
+        releaseCreate = resolve;
+    });
+    const sessionManager = createSessionManager({
+        finishGame: async () => {},
+        createGame: async () => {
+            markCreateStarted();
+            await createReleased;
+            return `game-decided-during-start`;
+        },
+    } as never);
+    const sessionId = `session-decided-during-start` as SessionId;
+    const session = createTournamentSession(sessionManager, sessionId, {});
+    session.players = [
+        { id: `player-a`, profileId: `profile-a`, connection: { status: `connected`, socketId: `socket-a` } },
+        { id: `player-b`, profileId: `profile-b`, connection: { status: `connected`, socketId: `socket-b` } },
+    ] as never;
+
+    const tick = (sessionManager as unknown as { tickSession: (session: ServerGameSession) => Promise<void> }).tickSession(session);
+    await createStarted;
+    sessionManager.closeTournamentMatchSession(sessionId, { kind: `resolved`, resultType: `walkover`, winnerProfileId: `profile-a` });
+    releaseCreate();
+    await tick;
+
+    assert.equal(session.state, `lobby`);
+});

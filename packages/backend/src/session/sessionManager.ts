@@ -1127,7 +1127,8 @@ export class SessionManager {
                 if (
                     this.sessions.get(session.id) !== session ||
                     session.state !== `lobby` ||
-                    session.players.length < MAX_PLAYERS_PER_SESSION
+                    session.players.length < MAX_PLAYERS_PER_SESSION ||
+                    session.tournament?.matchOutcome
                 ) {
                     return;
                 }
