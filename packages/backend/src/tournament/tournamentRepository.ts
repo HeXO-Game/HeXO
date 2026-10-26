@@ -1,13 +1,19 @@
 import {
     zGameTimeControl,
     zTournamentActivityEntry,
+    zTournamentExtensionApproval,
     zTournamentExtensionRequest,
     zTournamentFormat,
     zTournamentKind,
     zTournamentMatch,
+    zTournamentNoShowDropAfter,
+    zTournamentNoShowHandling,
     zTournamentParticipant,
+    zTournamentSeedingMode,
     zTournamentSeriesSettings,
+    zTournamentStanding,
     zTournamentStatus,
+    zTournamentSwissTiebreaks,
     zTournamentVisibility,
 } from '@ih3t/shared';
 import type { Collection, Document } from 'mongodb';
@@ -83,6 +89,13 @@ const zStoredTournament = z.object({
     organizers: z.array(z.string()).default([]),
     whitelist: z.array(z.object({ profileId: z.string(), displayName: z.string() })).default([]),
     blacklist: z.array(z.object({ profileId: z.string(), displayName: z.string() })).default([]),
+    seedingMode: zTournamentSeedingMode.default(`registration`),
+    swissTiebreaks: zTournamentSwissTiebreaks.default(`classic`),
+    noShowHandling: zTournamentNoShowHandling.default(`manual`),
+    noShowDropAfter: zTournamentNoShowDropAfter.default(0),
+    extensionApproval: zTournamentExtensionApproval.default(`organizer`),
+    /** Standings captured when the tournament completed, so later rule changes never rewrite past results. */
+    finalStandings: z.array(zTournamentStanding).nullable().default(null),
 });
 export type TournamentRecord = z.infer<typeof zStoredTournament>;
 type TournamentDocument = TournamentRecord & Document;

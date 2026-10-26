@@ -1,5 +1,5 @@
 import { Button, buttonVariants } from '@/components/ui/button';
-import type { SessionPlayer, SessionStateFinished } from '@ih3t/shared';
+import type { SessionPlayer, SessionStateFinished, TournamentMatchOutcome } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router';
 
@@ -15,6 +15,8 @@ type GameOverlayFinishedPlayerProps = {
     players: SessionPlayer[],
     localPlayerId: string,
     isTournament?: boolean,
+    /** Set when an organizer decided the tournament match while this game was still running. */
+    tournamentMatchOutcome?: TournamentMatchOutcome | null,
 
     onReturnToLobby: () => void
     onRequestRematch?: () => void
@@ -121,15 +123,47 @@ function GameOverlayFinishedPlayer({
     players,
     localPlayerId,
     isTournament,
+    tournamentMatchOutcome,
 
     onReturnToLobby,
     onRequestRematch,
 }: Readonly<GameOverlayFinishedPlayerProps>) {
     const { t } = useTranslation()
-    const isAborted = state.finishReason === `aborted`;
-    const isDraw = state.finishReason === `draw-agreement`;
-    const isWin = state.winningPlayerId === localPlayerId;
     const currentPlayer = players.find(player => player.id === localPlayerId) ?? null;
+    // An organizer decided, restarted or cancelled the tournament match while this game was running.
+    const awardedOutcome = tournamentMatchOutcome?.kind === `resolved` ? tournamentMatchOutcome : null;
+    const closedOutcomeKind = tournamentMatchOutcome?.kind === `restarted` || tournamentMatchOutcome?.kind === `cancelled`
+        ? tournamentMatchOutcome.kind
+        : null;
+    const isDoubleForfeit = awardedOutcome !== null && awardedOutcome.winnerProfileId === null;
+    const isAborted = state.finishReason === `aborted`;
+    const isDraw = state.finishReason === `draw-agreement` && awardedOutcome === null && closedOutcomeKind === null;
+    const isNeutral = isDraw || isAborted || closedOutcomeKind !== null;
+    const isWin = awardedOutcome
+        ? awardedOutcome.winnerProfileId !== null && awardedOutcome.winnerProfileId === currentPlayer?.profileId
+        : closedOutcomeKind === null && state.winningPlayerId === localPlayerId;
+
+    const getResultTitle = () => {
+        if (closedOutcomeKind === `restarted`) return t('tournamentMatchRestarted', 'Match restarted');
+        if (closedOutcomeKind === `cancelled`) return t('tournamentCancelled', 'Tournament cancelled');
+        if (isDoubleForfeit) return t('bothPlayersForfeitedTitle', 'Both players forfeited');
+        if (isAborted) return t('gameAborted', 'Game aborted');
+        if (isDraw) return `Match Drawn`;
+        return isWin ? t('youveWon', 'You\'ve Won') : t('youLost', 'You Lost');
+    };
+
+    const getResultMessage = () => {
+        if (closedOutcomeKind === `restarted`) return t('tournamentMatchRestartedMessage', 'This match was reset by an organizer. Check the tournament page for your next match.');
+        if (closedOutcomeKind === `cancelled`) return t('tournamentCancelledMessage', 'This tournament was cancelled, so the match will not be played.');
+        if (awardedOutcome) return t('tournamentMatchDecidedByOrganizer', 'An organizer decided this match while the game was running, so this game does not count.');
+        if (isAborted && state.abortedByPlayerId) {
+            return state.abortedByPlayerId === localPlayerId
+                ? t('youAbortedGame', 'You aborted the game. No ELO adjustments were made.')
+                : t('opponentAbortedGame', 'The other player aborted the game. No ELO adjustments were made.');
+        }
+
+        return getPlayerResultMessage(isDraw ? `draw` : isWin ? `win` : `lose`, state.finishReason);
+    };
 
     const eloAdjustment = currentPlayer?.ratingAdjustment
         ? isDraw ? 0 : isWin ? currentPlayer.ratingAdjustment.eloGain : currentPlayer.ratingAdjustment.eloLoss : 0;
@@ -151,7 +185,7 @@ function GameOverlayFinishedPlayer({
             status: t('thisResultFeedsBackIntoTheTournamentBracketInsteadOfOfferingARematch', 'This result feeds back into the tournament bracket instead of offering a rematch.'),
             label: t('rematchUnavailable', 'Rematch Unavailable'),
         };
-    const theme = isDraw || isAborted ? {
+    const theme = isNeutral ? {
         shell: `bg-[radial-gradient(circle_at_top,_rgba(125,211,252,0.2),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(253,224,71,0.14),_transparent_28%),rgba(2,6,23,0.72)]`,
         card: `border-sky-200/20 bg-slate-950/80 shadow-[0_28px_120px_rgba(8,47,73,0.52)]`,
         badge: `border-sky-200/30 text-sky-100`,
@@ -185,15 +219,11 @@ function GameOverlayFinishedPlayer({
 
                         <div className="relative">
                             <h1 className="max-w-2xl text-4xl font-black uppercase tracking-[0.08em] text-white sm:text-5xl lg:text-6xl">
-                                {isAborted ? t('gameAborted', 'Game aborted') : isDraw ? `Match Drawn` : isWin ? t('youveWon', 'You\'ve Won') : t('youLost', 'You Lost')}
+                                {getResultTitle()}
                             </h1>
 
                             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-                                {isAborted && state.abortedByPlayerId
-                                    ? state.abortedByPlayerId === localPlayerId
-                                        ? t('youAbortedGame', 'You aborted the game. No ELO adjustments were made.')
-                                        : t('opponentAbortedGame', 'The other player aborted the game. No ELO adjustments were made.')
-                                    : getPlayerResultMessage(isDraw ? `draw` : isWin ? `win` : `lose`, state.finishReason)}
+                                {getResultMessage()}
                             </p>
 
                             {eloSummary && (
@@ -236,7 +266,7 @@ function GameOverlayFinishedPlayer({
                         <div className="mt-6 flex flex-col gap-3">
                             {onRequestRematch && (
                                 <Button
-                                    variant={isDraw ? `default` : isWin ? `success` : `destructive`}
+                                    variant={isNeutral ? `default` : isWin ? `success` : `destructive`}
                                     size="xl"
                                     onClick={onRequestRematch}
                                     disabled={!rematch.enabled}
@@ -248,7 +278,7 @@ function GameOverlayFinishedPlayer({
 
                             <NavLink
                                 to={buildFinishedGamePath(state.gameId)}
-                                className={`${buttonVariants({ variant: isDraw ? `info` : isWin ? `success-soft` : `destructive-soft`, size: `xl` })} w-full`}
+                                className={`${buttonVariants({ variant: isNeutral ? `info` : isWin ? `success-soft` : `destructive-soft`, size: `xl` })} w-full`}
                                 target="_blank"
                             >
                                 {t('reviewGame', 'Review Game')}

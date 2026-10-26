@@ -37,6 +37,9 @@ function createTournament(overrides: Partial<SessionTournamentInfo> = {}): Sessi
     matchExtensionMs: 5 * 60 * 1000,
     pendingExtension: false,
     matchJoinTimeoutInMs: 0,
+    matchJoinDeadlineAt: null,
+    matchOutcome: null,
+    autoClaimWin: false,
     leftDisplayName: 'Alpha',
     rightDisplayName: 'Bravo',
     leftProfileId: 'profile-alpha',
@@ -62,4 +65,27 @@ test('shows a pending extension state instead of tournament timeout actions', as
   await expect(component.getByText('Extension Pending')).toBeVisible()
   await expect(component.getByRole('button', { name: /Claim Win/i })).toHaveCount(0)
   await expect(component.getByRole('button', { name: /Request Extension/i })).toHaveCount(0)
+})
+
+test('shows how the match was decided instead of the join timer', async ({ mount }) => {
+  const component = await mount(
+    <WaitingScreen
+      sessionId="session-1"
+      playerCount={1}
+      localPlayerName="Alpha"
+      localProfileId="profile-alpha"
+      gameOptions={gameOptions}
+      tournament={createTournament({
+        matchJoinTimeoutInMs: null,
+        matchOutcome: { kind: 'resolved', resultType: 'walkover', winnerProfileId: 'profile-alpha' },
+      })}
+      onInviteFriend={() => { }}
+      onCancel={() => { }}
+    />,
+  )
+
+  await expect(component.getByText('You advance')).toBeVisible()
+  await expect(component.getByRole('button', { name: 'Return To Tournament' })).toBeVisible()
+  await expect(component.getByRole('button', { name: 'Claim Win' })).toHaveCount(0)
+  await expect(component.getByRole('button', { name: 'Invite Friend' })).toHaveCount(0)
 })

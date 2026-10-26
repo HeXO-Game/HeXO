@@ -3,9 +3,13 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import type {
     CreateTournamentRequest,
     TournamentDetail,
+    TournamentExtensionApproval,
     TournamentFormat,
     TournamentGameTimeControl,
+    TournamentNoShowHandling,
+    TournamentSeedingMode,
     TournamentSeriesBestOf,
+    TournamentSwissTiebreaks,
 } from '@ih3t/shared';
 import { TOURNAMENT_BRACKET_SIZES, TOURNAMENT_SERIES_BEST_OF_VALUES } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
@@ -47,6 +51,11 @@ type TournamentFormState = {
     roundDelayMinutes: string
     waitlistEnabled: boolean
     waitlistCheckInMinutes: string
+    seedingMode: TournamentSeedingMode
+    swissTiebreaks: TournamentSwissTiebreaks
+    noShowHandling: TournamentNoShowHandling
+    noShowDropAfter: string
+    extensionApproval: TournamentExtensionApproval
 };
 
 /* ── tiny reusable pieces ───────────────────────────── */
@@ -139,6 +148,11 @@ export function buildCreateTournamentRequestFromDetail(tournament: TournamentDet
         roundDelayMinutes: tournament.roundDelayMinutes,
         waitlistEnabled: tournament.waitlistEnabled,
         waitlistCheckInMinutes: tournament.waitlistCheckInMinutes,
+        seedingMode: tournament.seedingMode,
+        swissTiebreaks: tournament.swissTiebreaks,
+        noShowHandling: tournament.noShowHandling,
+        noShowDropAfter: tournament.noShowDropAfter,
+        extensionApproval: tournament.extensionApproval,
     };
 }
 
@@ -202,6 +216,11 @@ function init(r: CreateTournamentRequest): TournamentFormState {
         roundDelayMinutes: String(r.roundDelayMinutes ?? 0),
         waitlistEnabled: r.waitlistEnabled ?? false,
         waitlistCheckInMinutes: String(r.waitlistCheckInMinutes ?? 5),
+        seedingMode: r.seedingMode ?? `registration`,
+        swissTiebreaks: r.swissTiebreaks ?? `classic`,
+        noShowHandling: r.noShowHandling ?? `manual`,
+        noShowDropAfter: String(r.noShowDropAfter ?? 0),
+        extensionApproval: r.extensionApproval ?? `organizer`,
     };
 }
 
@@ -304,6 +323,11 @@ function TournamentEditorDialog({
             roundDelayMinutes: Math.max(0, Math.min(60, Number.parseInt(f.roundDelayMinutes, 10) || 0)),
             waitlistEnabled: f.waitlistEnabled,
             waitlistCheckInMinutes: f.waitlistEnabled ? Math.max(1, Math.min(30, Number.parseInt(f.waitlistCheckInMinutes, 10) || 5)) : undefined,
+            seedingMode: f.seedingMode,
+            swissTiebreaks: f.swissTiebreaks,
+            noShowHandling: f.noShowHandling,
+            noShowDropAfter: Math.max(0, Math.min(3, Number.parseInt(f.noShowDropAfter, 10) || 0)),
+            extensionApproval: f.extensionApproval,
         });
     };
 
@@ -362,6 +386,12 @@ function TournamentEditorDialog({
                             </>
                         )}
                     </div>
+
+                    {f.format === `swiss` && (
+                        <p className="-mt-1.5 mb-3 text-[10px] leading-4 text-slate-500">
+                            {t('swissRoundsCapHint', 'Players never meet twice. If fewer players check in than the rounds need, the round count is reduced when the tournament starts (at most one less than the number of players, or equal to it for an odd number).')}
+                        </p>
+                    )}
 
                     {/* Schedule — two inline fields */}
                     <div className="mb-3 grid grid-cols-2 gap-3">
@@ -483,6 +513,66 @@ function TournamentEditorDialog({
                                 <span className="text-[10px] text-slate-500">min</span>
                             </Row>
                         )}
+                    </div>
+
+                    {/* Rules */}
+                    <div className="mb-4 space-y-2 rounded-lg border border-white/6 bg-slate-950/30 px-3 py-2.5">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <Row label={t('seeding', 'Seeding')} inline>
+                                <Pill value={f.seedingMode}
+                                    options={[{ value: `registration`, label: t('seedingRegistration', 'Registration order') }, { value: `rating`, label: t('seedingRating', 'Rating') }]}
+                                    onChange={(v) => set(`seedingMode`, v)} />
+                            </Row>
+
+                            {f.format === `swiss` && (
+                                <Row label={t('tiebreaks', 'Tiebreaks')} inline>
+                                    <Pill value={f.swissTiebreaks}
+                                        options={[{ value: `classic`, label: t('tiebreaksClassic', 'Classic') }, { value: `fair`, label: t('tiebreaksFair', 'Fair') }]}
+                                        onChange={(v) => set(`swissTiebreaks`, v)} />
+                                </Row>
+                            )}
+                        </div>
+
+                        {Number(f.matchJoinTimeoutMinutes) > 0 && (
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                                <Row label={t('noShows', 'No-shows')} inline>
+                                    <Pill value={f.noShowHandling}
+                                        options={[{ value: `manual`, label: t('noShowsManual', 'Manual') }, { value: `automatic`, label: t('noShowsAutomatic', 'Automatic') }]}
+                                        onChange={(v) => set(`noShowHandling`, v)} />
+                                </Row>
+
+                                {Number(f.matchExtensionMinutes) > 0 && (
+                                    <Row label={t('extensions', 'Extensions')} inline>
+                                        <Pill value={f.extensionApproval}
+                                            options={[{ value: `organizer`, label: t('extensionsOrganizer', 'Organizer approves') }, { value: `automatic`, label: t('extensionsAutomatic', 'Automatic') }]}
+                                            onChange={(v) => set(`extensionApproval`, v)} />
+                                    </Row>
+                                )}
+                            </div>
+                        )}
+
+                        <Row label={t('withdrawAfterForfeits', 'Withdraw after forfeits')} inline>
+                            <Select value={f.noShowDropAfter} onChange={(e) => set(`noShowDropAfter`, e.target.value)}>
+                                <option value="0">{t('off', 'Off')}</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </Select>
+                        </Row>
+
+                        <p className="text-[10px] leading-4 text-slate-500">
+                            {f.seedingMode === `rating`
+                                ? t('seedingRatingHint', 'Players are seeded by their rating when the tournament starts.')
+                                : t('seedingRegistrationHint', 'Players are seeded in registration order unless you reorder them.')}
+                            {f.format === `swiss` && ` `}
+                            {f.format === `swiss` && (f.swissTiebreaks === `fair`
+                                ? t('tiebreaksFairHint', 'Byes and forfeits count as a game against an opponent with the player\'s own score, and head-to-head results break ties before seed.')
+                                : t('tiebreaksClassicHint', 'Ties are broken by Buchholz, then Sonneborn-Berger, then seed.'))}
+                            {Number(f.matchJoinTimeoutMinutes) > 0 && ` `}
+                            {Number(f.matchJoinTimeoutMinutes) > 0 && (f.noShowHandling === `automatic`
+                                ? t('noShowsAutomaticHint', 'When the join timer runs out, a waiting player is awarded the match after 30 seconds; if nobody joined, both forfeit. Organizers can still change the result.')
+                                : t('noShowsManualHint', 'When the join timer runs out, the waiting player claims the win or an organizer decides the match.'))}
+                        </p>
                     </div>
 
                     {/* Estimated duration */}

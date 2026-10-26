@@ -85,3 +85,126 @@ test(`finishing a session waits for its durable game result`, async () => {
     assert.equal(gameHistoryRepository.finalized, true);
     assert.equal(finishedSession.state.status, `finished`);
 });
+
+test(`aborting a tournament game forfeits it instead of restarting the pairing`, async () => {
+    const sessionManager = createSessionManager({ finishGame: async () => {} } as never);
+    const sessionId = `session-tournament-abort` as SessionId;
+    const session = createGameSession(sessionId, {
+        visibility: `private`,
+        rated: false,
+        timeControl: { mode: `unlimited` },
+        firstPlayer: `host`,
+    }, {
+        tournament: { tournamentId: `tournament-1`, matchId: `match-swiss-1-1` } as never,
+    });
+    session.players = [
+        { id: `aborting-player`, profileId: `profile-a`, connection: { status: `connected`, socketId: `socket-a` } },
+        { id: `opponent`, profileId: `profile-b`, connection: { status: `connected`, socketId: `socket-b` } },
+    ] as never;
+    session.state = `in-game`;
+    session.startedAt = Date.now() - 1_000;
+    session.gameId = `game-tournament-abort`;
+
+    (sessionManager as unknown as {
+        sessions: Map<string, ServerGameSession>;
+    }).sessions.set(sessionId, session);
+
+    await sessionManager.abortSession(session, `aborting-player`);
+
+    assert.equal(session.state, `finished`);
+    assert.equal(session.finishReason, `surrender`);
+    assert.equal(session.winningPlayerId, `opponent`);
+});
+
+function createTournamentSession(sessionManager: SessionManager, sessionId: SessionId, tournament: Record<string, unknown>): ServerGameSession {
+    const session = createGameSession(sessionId, {
+        visibility: `private`,
+        rated: false,
+        timeControl: { mode: `unlimited` },
+        firstPlayer: `host`,
+    }, {
+        tournament: { tournamentId: `tournament-1`, matchId: `match-1`, matchJoinDeadlineAt: null, matchOutcome: null, ...tournament } as never,
+    });
+    (sessionManager as unknown as {
+        sessions: Map<string, ServerGameSession>;
+    }).sessions.set(sessionId, session);
+    return session;
+}
+
+test(`tournament join countdown is measured when the session is sent, not when it was created`, () => {
+    const sessionManager = createSessionManager({ finishGame: async () => {} } as never);
+    const sessionId = `session-late-join` as SessionId;
+    createTournamentSession(sessionManager, sessionId, {
+        // Snapshot taken when the lobby was created: the full five minutes.
+        matchJoinTimeoutInMs: 300_000,
+        matchJoinDeadlineAt: Date.now() + 120_000,
+    });
+
+    const remaining = sessionManager.getSessionInfo(sessionId)?.tournament?.matchJoinTimeoutInMs ?? 0;
+    assert.ok(remaining <= 120_000 && remaining > 115_000, `expected about two minutes left, got ${remaining}`);
+});
+
+test(`closing a tournament match ends a game that is still being played`, async () => {
+    const sessionManager = createSessionManager({ finishGame: async () => {} } as never);
+    const sessionId = `session-closed-match` as SessionId;
+    const session = createTournamentSession(sessionManager, sessionId, {});
+    session.state = `in-game`;
+    session.startedAt = Date.now() - 1_000;
+    session.gameId = `game-closed-match`;
+
+    sessionManager.closeTournamentMatchSession(sessionId, { kind: `resolved`, resultType: `walkover`, winnerProfileId: `profile-a` });
+    await session.lock.runExclusive(async () => {});
+
+    assert.deepEqual(session.tournament?.matchOutcome, { kind: `resolved`, resultType: `walkover`, winnerProfileId: `profile-a` });
+    assert.equal(session.state, `finished`);
+    assert.equal(session.finishReason, `terminated`);
+});
+
+test(`a tournament lobby whose match was decided does not start a game when both players arrive`, async () => {
+    const sessionManager = createSessionManager({ finishGame: async () => {} } as never);
+    const sessionId = `session-decided-match` as SessionId;
+    const session = createTournamentSession(sessionManager, sessionId, {
+        matchOutcome: { kind: `resolved`, resultType: `walkover`, winnerProfileId: `profile-a` },
+    });
+    session.players = [
+        { id: `winner`, profileId: `profile-a`, connection: { status: `connected`, socketId: `socket-a` } },
+        { id: `late-opponent`, profileId: `profile-b`, connection: { status: `connected`, socketId: `socket-b` } },
+    ] as never;
+
+    await (sessionManager as unknown as { tickSession: (session: ServerGameSession) => Promise<void> }).tickSession(session);
+
+    assert.equal(session.state, `lobby`);
+});
+
+test(`a tournament match decided while its game record is being created does not start the game`, async () => {
+    let markCreateStarted: () => void = () => {};
+    let releaseCreate: () => void = () => {};
+    const createStarted = new Promise<void>((resolve) => {
+        markCreateStarted = resolve;
+    });
+    const createReleased = new Promise<void>((resolve) => {
+        releaseCreate = resolve;
+    });
+    const sessionManager = createSessionManager({
+        finishGame: async () => {},
+        createGame: async () => {
+            markCreateStarted();
+            await createReleased;
+            return `game-decided-during-start`;
+        },
+    } as never);
+    const sessionId = `session-decided-during-start` as SessionId;
+    const session = createTournamentSession(sessionManager, sessionId, {});
+    session.players = [
+        { id: `player-a`, profileId: `profile-a`, connection: { status: `connected`, socketId: `socket-a` } },
+        { id: `player-b`, profileId: `profile-b`, connection: { status: `connected`, socketId: `socket-b` } },
+    ] as never;
+
+    const tick = (sessionManager as unknown as { tickSession: (session: ServerGameSession) => Promise<void> }).tickSession(session);
+    await createStarted;
+    sessionManager.closeTournamentMatchSession(sessionId, { kind: `resolved`, resultType: `walkover`, winnerProfileId: `profile-a` });
+    releaseCreate();
+    await tick;
+
+    assert.equal(session.state, `lobby`);
+});

@@ -504,6 +504,7 @@ function SessionRoute() {
                     players={session.players}
                     localPlayerId={session.localParticipantId}
                     isTournament={Boolean(session.tournament)}
+                    tournamentMatchOutcome={session.tournament?.matchOutcome ?? null}
 
                     onReturnToLobby={leaveSessionAndNavigate}
                     onRequestRematch={session.tournament ? undefined : requestRematch}

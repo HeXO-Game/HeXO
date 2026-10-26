@@ -8,11 +8,15 @@ import type {
     TournamentMatchSlot,
     TournamentParticipant,
 } from '@ih3t/shared';
+import pino from 'pino';
 
 import type { AccountUserProfile } from '../auth/authRepository';
+import { tournamentFinalStandingsMigration } from '../persistence/migrations/013-tournament-final-standings';
 import { SessionError } from '../session/sessionManager';
+import { buildDoubleEliminationMatches } from './tournamentBracket';
 import type { TournamentRecord } from './tournamentRepository';
 import { TournamentService } from './tournamentService';
+import { buildSwissRoundMatches, calculateSwissStandings } from './tournamentSwiss';
 
 function createParticipant(overrides: Partial<TournamentParticipant> & Pick<TournamentParticipant, `profileId` | `displayName`>): TournamentParticipant {
     return {
@@ -29,6 +33,7 @@ function createParticipant(overrides: Partial<TournamentParticipant> & Pick<Tour
         eliminatedAt: overrides.eliminatedAt ?? null,
         replacedByProfileId: overrides.replacedByProfileId ?? null,
         replacesProfileId: overrides.replacesProfileId ?? null,
+        dropReason: overrides.dropReason ?? null,
     };
 }
 
@@ -115,6 +120,12 @@ function createTournament(overrides: Partial<TournamentRecord> = {}): Tournament
         organizers: overrides.organizers ? [...overrides.organizers] : [],
         whitelist: overrides.whitelist ? structuredClone(overrides.whitelist) : [],
         blacklist: overrides.blacklist ? structuredClone(overrides.blacklist) : [],
+        seedingMode: overrides.seedingMode ?? `registration`,
+        swissTiebreaks: overrides.swissTiebreaks ?? `classic`,
+        noShowHandling: overrides.noShowHandling ?? `manual`,
+        noShowDropAfter: overrides.noShowDropAfter ?? 0,
+        extensionApproval: overrides.extensionApproval ?? `organizer`,
+        finalStandings: overrides.finalStandings ? structuredClone(overrides.finalStandings) : null,
     };
 }
 
@@ -279,6 +290,7 @@ type FakeSession = {
         status: `lobby` | `in-game` | `finished`;
         gameId?: string;
         winningPlayerId?: string | null;
+        finishReason?: string;
     };
     tournament: Record<string, unknown> | null;
 };
@@ -317,10 +329,10 @@ class FakeSessionManager {
         }
     }
 
-    clearSessionTournamentInfo(sessionId: string) {
+    closeTournamentMatchSession(sessionId: string, outcome: Record<string, unknown>) {
         const session = this.sessions.get(sessionId);
-        if (session) {
-            session.tournament = null;
+        if (session?.tournament) {
+            session.tournament.matchOutcome = outcome;
         }
     }
 }
@@ -375,6 +387,17 @@ class FakeAuthRepository {
     }
 }
 
+class FakeEloRepository {
+    readonly ratings = new Map<string, number>();
+
+    async getPlayerRatings(profileIds: string[]): Promise<Map<string, { eloScore: number; gameCount: number }>> {
+        return new Map(profileIds.flatMap((profileId) => {
+            const eloScore = this.ratings.get(profileId);
+            return eloScore === undefined ? [] : [[profileId, { eloScore, gameCount: 10 }] as const];
+        }));
+    }
+}
+
 class FakeTournamentEventSink {
     readonly tournamentNotifications: Array<{ profileId: string; kind: string }> = [];
     readonly sessionClaimWins: Array<{ sessionId: string; state: unknown | null }> = [];
@@ -418,6 +441,8 @@ function createService(initialTournament: TournamentRecord) {
         authRepository as never,
         sessionManager as never,
         new FakeGameHistoryRepository() as never,
+        pino({ level: `silent` }),
+        new FakeEloRepository() as never,
     );
     service.setEventHandlers(eventSink);
 
@@ -436,6 +461,7 @@ function createServiceWithOverrides(options: {
     eventSink?: FakeTournamentEventSink;
     authRepository?: FakeAuthRepository;
     gameHistoryRepository?: FakeGameHistoryRepository;
+    eloRepository?: FakeEloRepository;
 }) {
     const repository = options.repository;
     const sessionManager = options.sessionManager ?? new FakeSessionManager();
@@ -446,6 +472,8 @@ function createServiceWithOverrides(options: {
         authRepository as never,
         sessionManager as never,
         (options.gameHistoryRepository ?? new FakeGameHistoryRepository()) as never,
+        pino({ level: `silent` }),
+        (options.eloRepository ?? new FakeEloRepository()) as never,
     );
     service.setEventHandlers(eventSink);
 
@@ -521,7 +549,7 @@ test(`awardWalkover rejects winners that are not assigned to the match`, async (
     assert.equal(stored.matches[0]?.state, `ready`);
 });
 
-test(`awardWalkover clears the old session tournament context`, async () => {
+test(`awardWalkover tells the old lobby how the match was decided`, async () => {
     const organizer = createAccountUser({ id: `organizer-1`, username: `Organizer` });
     const tournament = createTournament({
         status: `live`,
@@ -576,7 +604,12 @@ test(`awardWalkover clears the old session tournament context`, async () => {
 
     await service.awardWalkover(tournament.id, `match-winners-1-1`, `player-1`, organizer);
 
-    assert.equal(sessionManager.sessions.get(`session-award-walkover`)?.tournament, null);
+    // The lobby keeps its tournament context and tells the players how the match was decided.
+    assert.deepEqual(sessionManager.sessions.get(`session-award-walkover`)?.tournament?.matchOutcome, {
+        kind: `resolved`,
+        resultType: `walkover`,
+        winnerProfileId: `player-1`,
+    });
 });
 
 test(`reopenMatch rejects pending matches that do not have an active session to reopen`, async () => {
@@ -1263,7 +1296,7 @@ test(`cancelled tournaments reject organizer match actions`, async () => {
     );
 });
 
-test(`cancelTournament clears session tournament context and pending extensions`, async () => {
+test(`cancelTournament closes match lobbies and pending extensions`, async () => {
     const organizer = createAccountUser({ id: `organizer-1`, username: `Organizer` });
     const now = Date.now();
     const tournament = createTournament({
@@ -1335,7 +1368,7 @@ test(`cancelTournament clears session tournament context and pending extensions`
     const extension = stored.extensionRequests.find((entry) => entry.id === `extension-cancelled`);
     assert.equal(stored.status, `cancelled`);
     assert.equal(extension?.status, `denied`);
-    assert.equal(sessionManager.sessions.get(`session-cancelled-context`)?.tournament, null);
+    assert.deepEqual(sessionManager.sessions.get(`session-cancelled-context`)?.tournament?.matchOutcome, { kind: `cancelled` });
 });
 
 test(`cancelled tournaments appear in the past tournament listing`, async () => {
@@ -2004,8 +2037,9 @@ test(`requestExtension is scoped to the current best-of game`, async () => {
     sessionManager.sessions.set(`session-extension-scope`, {
         id: `session-extension-scope`,
         players: [
-            { id: `session-extension-scope-player-1`, profileId: `player-1`, connection: { status: `connected` } },
-            { id: `session-extension-scope-player-2`, profileId: `player-2`, connection: { status: `disconnected` } },
+            // The requester (player-1) is the one who has not joined yet.
+            { id: `session-extension-scope-player-1`, profileId: `player-1`, connection: { status: `disconnected` } },
+            { id: `session-extension-scope-player-2`, profileId: `player-2`, connection: { status: `connected` } },
         ],
         state: { status: `lobby` },
         tournament: {
@@ -2283,7 +2317,11 @@ test(`resolveClaimWin clears the session claim state after awarding the walkover
         sessionId: `session-claim`,
         state: null,
     });
-    assert.equal(sessionManager.sessions.get(`session-claim`)?.tournament, null);
+    assert.deepEqual(sessionManager.sessions.get(`session-claim`)?.tournament?.matchOutcome, {
+        kind: `resolved`,
+        resultType: `walkover`,
+        winnerProfileId: user.id,
+    });
 });
 
 test(`getTournamentDetail does not overwrite a newer live tournament update`, async () => {
@@ -2391,4 +2429,899 @@ test(`unsubscribeFromTournament does not overwrite newer live tournament updates
     assert.deepEqual(stored.organizers, []);
     assert.equal(match?.state, `completed`);
     assert.equal(match?.winnerProfileId, `player-1`);
+});
+
+function createCheckedInParticipants(count: number): TournamentParticipant[] {
+    return Array.from({ length: count }, (_, index) => createParticipant({
+        profileId: `player-${index + 1}`,
+        displayName: `Player ${index + 1}`,
+        checkedInAt: index + 1,
+        status: `checked-in`,
+        checkInState: `checked-in`,
+        seed: index + 1,
+    }));
+}
+
+function createPlayerSlot(profileId: string, seed: number | null = null): TournamentMatchSlot {
+    return createSlot({ profileId, displayName: profileId, seed });
+}
+
+test(`games that finish without a winner are replayed instead of wedging the match`, async () => {
+    const tournament = createTournament({
+        status: `live`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        participants: createCheckedInParticipants(2),
+        matches: [
+            createMatch({
+                id: `match-swiss-1-1`,
+                bracket: `swiss`,
+                round: 1,
+                order: 1,
+                state: `in-progress`,
+                sessionId: `terminated-session`,
+                startedAt: Date.now(),
+                slots: [createPlayerSlot(`player-1`, 1), createPlayerSlot(`player-2`, 2)],
+            }),
+        ],
+    });
+    const repository = new FakeTournamentRepository(tournament);
+    const sessionManager = new FakeSessionManager();
+    sessionManager.sessions.set(`terminated-session`, {
+        id: `terminated-session`,
+        players: [
+            { id: `left`, profileId: `player-1`, connection: { status: `disconnected` } },
+            { id: `right`, profileId: `player-2`, connection: { status: `disconnected` } },
+        ],
+        state: { status: `finished`, gameId: `game-1`, winningPlayerId: null, finishReason: `terminated` },
+        tournament: {},
+    });
+    const { service } = createServiceWithOverrides({ repository, sessionManager });
+
+    await service.reconcileAllTournaments();
+
+    const stored = repository.getSync(tournament.id);
+    assert.equal(stored.matches[0]!.state, `ready`);
+    assert.equal(stored.matches[0]!.sessionId, null);
+    assert.deepEqual(stored.matches[0]!.gameIds, []);
+    assert.ok(stored.activity.some((entry) => entry.type === `game-replayed`));
+
+    await service.reconcileAllTournaments();
+
+    const replayed = repository.getSync(tournament.id).matches[0]!;
+    assert.equal(replayed.state, `in-progress`);
+    assert.ok(replayed.sessionId);
+    assert.notEqual(replayed.sessionId, `terminated-session`);
+
+    const detail = await service.getTournamentDetail(tournament.id, null);
+    assert.equal(detail?.status, `live`);
+});
+
+class ThrowingSessionManager extends FakeSessionManager {
+    override getSessionInfo(sessionId: string): FakeSession | null {
+        if (sessionId === `broken-session`) {
+            throw new Error(`boom`);
+        }
+
+        return super.getSessionInfo(sessionId);
+    }
+}
+
+test(`reconcileAllTournaments keeps going when one tournament fails`, async () => {
+    const broken = createTournament({
+        id: `tournament-broken`,
+        status: `live`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        participants: createCheckedInParticipants(2),
+        matches: [
+            createMatch({
+                id: `match-swiss-1-1`,
+                bracket: `swiss`,
+                round: 1,
+                order: 1,
+                state: `in-progress`,
+                sessionId: `broken-session`,
+                startedAt: Date.now(),
+                slots: [createPlayerSlot(`player-1`, 1), createPlayerSlot(`player-2`, 2)],
+            }),
+        ],
+    });
+    const healthy = createTournament({
+        id: `tournament-healthy`,
+        status: `live`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        participants: createCheckedInParticipants(2),
+        matches: [
+            createMatch({
+                id: `match-swiss-1-1`,
+                bracket: `swiss`,
+                round: 1,
+                order: 1,
+                state: `pending`,
+                slots: [createPlayerSlot(`player-1`, 1), createPlayerSlot(`player-2`, 2)],
+            }),
+        ],
+    });
+    const repository = new FakeTournamentRepository(broken);
+    repository.saveSync(healthy);
+    const { service } = createServiceWithOverrides({ repository, sessionManager: new ThrowingSessionManager() });
+
+    await service.reconcileAllTournaments();
+
+    assert.equal(repository.getSync(healthy.id).matches[0]!.state, `in-progress`);
+});
+
+const kOrganizer = createAccountUser({ id: `organizer-1`, username: `Organizer` });
+
+function createPlayerAccount(index: number): AccountUserProfile {
+    return createAccountUser({ id: `player-${index}`, username: `Player ${index}` });
+}
+
+async function startTournamentWithPlayers(options: {
+    format: TournamentRecord[`format`];
+    playerCount: number;
+    thirdPlaceMatchEnabled?: boolean;
+    grandFinalResetEnabled?: boolean;
+    swissRoundCount?: number | null;
+    overrides?: Partial<TournamentRecord>;
+    eloRepository?: FakeEloRepository;
+}) {
+    const tournament = createTournament({
+        ...options.overrides,
+        status: `check-in-open`,
+        format: options.format,
+        maxPlayers: 32,
+        swissRoundCount: options.swissRoundCount ?? null,
+        thirdPlaceMatchEnabled: options.thirdPlaceMatchEnabled ?? false,
+        seriesSettings: {
+            earlyRoundsBestOf: 1,
+            finalsBestOf: 1,
+            grandFinalBestOf: 1,
+            grandFinalResetEnabled: options.grandFinalResetEnabled ?? false,
+        },
+        participants: createCheckedInParticipants(options.playerCount),
+    });
+    const repository = new FakeTournamentRepository(tournament);
+    const context = createServiceWithOverrides({ repository, eloRepository: options.eloRepository });
+    await context.service.startTournament(tournament.id, kOrganizer);
+    return { ...context, tournamentId: tournament.id };
+}
+
+type StartedTournament = Awaited<ReturnType<typeof startTournamentWithPlayers>>;
+
+async function finishMatchGame(context: StartedTournament, matchId: string, winnerProfileId: string) {
+    const match = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === matchId);
+    assert.ok(match?.sessionId, `Match ${matchId} has no active session.`);
+    const session = context.sessionManager.sessions.get(match.sessionId);
+    assert.ok(session, `Session for ${matchId} not found.`);
+    const winner = session.players.find((player) => player.profileId === winnerProfileId);
+    assert.ok(winner, `${winnerProfileId} is not playing ${matchId}.`);
+    session.state = {
+        status: `finished`,
+        gameId: `game-${matchId}-${match.currentGameNumber}`,
+        winningPlayerId: winner.id,
+        finishReason: `six-in-a-row`,
+    };
+    await context.service.reconcileAllTournaments();
+}
+
+/** Plays every open match until none are left, letting the better (lower) seed win. */
+async function playOutWithFavoritesWinning(context: StartedTournament) {
+    for (let guard = 0; guard < 200; guard += 1) {
+        const tournament = context.repository.getSync(context.tournamentId);
+        const openMatch = tournament.matches.find((match) => match.state === `in-progress` && match.sessionId);
+        if (!openMatch) {
+            return tournament;
+        }
+
+        const [left, right] = openMatch.slots;
+        const winner = (left.seed ?? Number.MAX_SAFE_INTEGER) <= (right.seed ?? Number.MAX_SAFE_INTEGER) ? left : right;
+        await finishMatchGame(context, openMatch.id, winner.profileId!);
+    }
+
+    assert.fail(`Tournament did not finish within 200 matches.`);
+}
+
+test(`double elimination completes when two first-round byes feed the same losers match`, async () => {
+    for (const playerCount of [5, 9, 10, 11, 17]) {
+        const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount });
+        const tournament = await playOutWithFavoritesWinning(context);
+
+        assert.equal(tournament.status, `completed`, `${playerCount} players`);
+        assert.ok(tournament.matches.every((match) => match.state === `completed`), `${playerCount} players`);
+        assert.equal(tournament.matches.find((match) => match.bracket === `grand-final`)?.winnerProfileId, `player-1`);
+    }
+});
+
+test(`an empty third-place match resolves instead of blocking completion`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, thirdPlaceMatchEnabled: true });
+    await context.service.removeParticipant(context.tournamentId, kOrganizer, `player-4`);
+    await context.service.removeParticipant(context.tournamentId, kOrganizer, `player-3`);
+    await finishMatchGame(context, `match-winners-2-1`, `player-2`);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const thirdPlace = tournament.matches.find((match) => match.bracket === `third-place`)!;
+    assert.equal(tournament.status, `completed`);
+    assert.equal(thirdPlace.state, `completed`);
+    assert.equal(thirdPlace.winnerProfileId, null);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    const rankOf = (profileId: string) => detail!.standings.find((standing) => standing.profileId === profileId)?.rank;
+    assert.equal(rankOf(`player-2`), 1);
+    assert.equal(rankOf(`player-1`), 2);
+    assert.equal(rankOf(`player-3`), rankOf(`player-4`));
+});
+
+test(`double elimination with a reset completes when the winners-bracket champion leaves`, async () => {
+    const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount: 4, grandFinalResetEnabled: true });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+    await finishMatchGame(context, `match-winners-2-1`, `player-1`);
+    await context.service.withdrawCurrentUser(context.tournamentId, createPlayerAccount(1));
+    await finishMatchGame(context, `match-losers-1-1`, `player-3`);
+    await finishMatchGame(context, `match-losers-2-1`, `player-2`);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.status, `completed`);
+    assert.equal(tournament.matches.find((match) => match.bracket === `grand-final`)?.winnerProfileId, `player-2`);
+    assert.equal(tournament.matches.some((match) => match.bracket === `grand-final-reset`), false);
+});
+
+test(`a disqualified player is never advanced into later matches`, async () => {
+    const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount: 8 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    context.eventSink.tournamentNotifications.length = 0;
+    await context.service.removeParticipant(context.tournamentId, kOrganizer, `player-5`);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const activeMatchesWithDroppedPlayer = tournament.matches.filter((match) =>
+        match.state !== `completed` && match.slots.some((slot) => slot.profileId === `player-5`));
+    assert.deepEqual(activeMatchesWithDroppedPlayer, []);
+    assert.equal(context.eventSink.tournamentNotifications.some((notification) => notification.profileId === `player-5`), false);
+    assert.equal(tournament.participants.find((participant) => participant.profileId === `player-5`)?.status, `dropped`);
+});
+
+test(`dropping a player in double elimination leaves completed matches untouched`, async () => {
+    const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+    await finishMatchGame(context, `match-winners-2-1`, `player-1`);
+    await context.service.removeParticipant(context.tournamentId, kOrganizer, `player-2`);
+
+    const winnersFinal = context.repository.getSync(context.tournamentId).matches.find((match) => match.id === `match-winners-2-1`)!;
+    assert.deepEqual(winnersFinal.slots.map((slot) => slot.profileId), [`player-1`, `player-2`]);
+    assert.equal(winnersFinal.loserProfileId, `player-2`);
+});
+
+test(`players cannot withdraw once their bracket run is over`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+
+    await assert.rejects(
+        context.service.withdrawCurrentUser(context.tournamentId, createPlayerAccount(4)),
+        /already over/,
+    );
+});
+
+test(`a player who withdraws while waiting for their next match ranks by the round they reached`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await context.service.withdrawCurrentUser(context.tournamentId, createPlayerAccount(1));
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    assert.equal(detail?.status, `completed`);
+    const rankOf = (profileId: string) => detail!.standings.find((standing) => standing.profileId === profileId)?.rank;
+    assert.equal(rankOf(`player-2`), 1);
+    assert.equal(rankOf(`player-1`), 2);
+    assert.equal(rankOf(`player-3`), 3);
+    assert.equal(rankOf(`player-4`), 3);
+});
+
+test(`double elimination drops winners-bracket losers in alternating order`, () => {
+    const players = Array.from({ length: 8 }, (_, index) => ({
+        profileId: `player-${index + 1}`,
+        displayName: `Player ${index + 1}`,
+        image: null,
+        seed: index + 1,
+    }));
+    const matches = buildDoubleEliminationMatches(players, 8, {
+        earlyRoundsBestOf: 1,
+        finalsBestOf: 1,
+        grandFinalBestOf: 1,
+        grandFinalResetEnabled: false,
+    });
+    const matchById = new Map(matches.map((match) => [match.id, match] as const));
+
+    // The losers of the top half of winners round 2 meet survivors from the bottom half, and vice versa.
+    assert.deepEqual(matchById.get(`match-losers-2-1`)?.slots[1].source, { type: `loser`, matchId: `match-winners-2-2` });
+    assert.deepEqual(matchById.get(`match-losers-2-2`)?.slots[1].source, { type: `loser`, matchId: `match-winners-2-1` });
+    assert.deepEqual(matchById.get(`match-winners-2-1`)?.advanceLoserTo, { matchId: `match-losers-2-2`, slotIndex: 1 });
+    assert.deepEqual(matchById.get(`match-winners-2-2`)?.advanceLoserTo, { matchId: `match-losers-2-1`, slotIndex: 1 });
+});
+
+test(`players who have not played yet can be replaced after the bracket starts`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 6 });
+    const substitute = createAccountUser({ id: `substitute`, username: `Substitute` });
+    const otherSubstitute = createAccountUser({ id: `substitute-2`, username: `Substitute 2` });
+    context.authRepository.users.set(substitute.id, substitute);
+    context.authRepository.users.set(otherSubstitute.id, otherSubstitute);
+
+    // player-6 is waiting in an unplayed round-one lobby; player-1 advanced on a bye.
+    const before = context.repository.getSync(context.tournamentId);
+    const roundOneMatch = before.matches.find((match) => match.round === 1 && match.slots.some((slot) => slot.profileId === `player-6`))!;
+    const oldSessionId = roundOneMatch.sessionId;
+    assert.ok(oldSessionId);
+
+    await context.service.swapParticipant(context.tournamentId, kOrganizer, { profileId: `player-6`, replacementProfileId: substitute.id });
+    await context.service.swapParticipant(context.tournamentId, kOrganizer, { profileId: `player-1`, replacementProfileId: otherSubstitute.id });
+
+    const after = context.repository.getSync(context.tournamentId);
+    const replacedMatch = after.matches.find((match) => match.id === roundOneMatch.id)!;
+    assert.ok(replacedMatch.slots.some((slot) => slot.profileId === substitute.id));
+    assert.notEqual(replacedMatch.sessionId, oldSessionId);
+    assert.equal(replacedMatch.state, `in-progress`);
+    assert.deepEqual(context.sessionManager.sessions.get(replacedMatch.sessionId!)?.players.map((player) => player.profileId).sort(),
+        replacedMatch.slots.map((slot) => slot.profileId).sort());
+
+    const byeMatch = after.matches.find((match) => match.resultType === `bye` && match.slots.some((slot) => slot.profileId === otherSubstitute.id))!;
+    assert.equal(byeMatch.winnerProfileId, otherSubstitute.id);
+    assert.ok(after.matches.some((match) => match.round === 2 && match.slots.some((slot) => slot.profileId === otherSubstitute.id)));
+    assert.equal(after.matches.some((match) => match.slots.some((slot) => slot.profileId === `player-1` || slot.profileId === `player-6`)), false);
+});
+
+test(`players who already played cannot be replaced`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    const substitute = createAccountUser({ id: `substitute`, username: `Substitute` });
+    context.authRepository.users.set(substitute.id, substitute);
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+
+    await assert.rejects(
+        context.service.swapParticipant(context.tournamentId, kOrganizer, { profileId: `player-1`, replacementProfileId: substitute.id }),
+        /already played/,
+    );
+});
+
+function getPairKeys(matches: TournamentMatch[]): string[] {
+    return matches
+        .filter((match) => match.slots.every((slot) => slot.profileId))
+        .map((match) => match.slots.map((slot) => slot.profileId).sort().join(` v `));
+}
+
+test(`swiss pairing leaves the remaining rounds rematch-free (Hexagon League 27 regression)`, () => {
+    // Rounds 1-6 exactly as played in HL27 (9 players, 9 rounds), by seed. The old greedy pairing
+    // chose a round 7 after which rounds 8 and 9 could not avoid four rematches.
+    const history: Array<{ pairs: [number, number, number][]; bye: number }> = [
+        { pairs: [[1, 2, 1], [3, 4, 3], [5, 6, 5], [7, 8, 7]], bye: 9 },
+        { pairs: [[1, 3, 1], [5, 7, 5], [9, 2, 2], [4, 6, 6]], bye: 8 },
+        { pairs: [[1, 5, 1], [2, 7, 2], [3, 6, 3], [8, 9, 9]], bye: 4 },
+        { pairs: [[1, 9, 1], [2, 3, 2], [5, 4, 5], [6, 8, 6]], bye: 7 },
+        { pairs: [[1, 7, 1], [2, 5, 5], [3, 9, 9], [4, 8, 4]], bye: 6 },
+        { pairs: [[1, 6, 1], [5, 9, 9], [2, 8, 2], [7, 4, 7]], bye: 3 },
+    ];
+    const participants = createCheckedInParticipants(9).map((participant) => ({ ...participant, seed: participant.seed! }));
+    const matches: TournamentMatch[] = history.flatMap(({ pairs, bye }, roundIndex) => [
+        ...pairs.map(([left, right, winner], index) => createMatch({
+            id: `match-swiss-${roundIndex + 1}-${index + 1}`,
+            bracket: `swiss`,
+            round: roundIndex + 1,
+            order: index + 1,
+            state: `completed`,
+            resultType: `played`,
+            slots: [createPlayerSlot(`player-${left}`, left), createPlayerSlot(`player-${right}`, right)],
+            winnerProfileId: `player-${winner}`,
+            loserProfileId: `player-${winner === left ? right : left}`,
+        })),
+        createMatch({
+            id: `match-swiss-${roundIndex + 1}-5`,
+            bracket: `swiss`,
+            round: roundIndex + 1,
+            order: 5,
+            state: `completed`,
+            resultType: `bye`,
+            slots: [createPlayerSlot(`player-${bye}`, bye), createSlot({ displayName: `BYE`, isBye: true })],
+            winnerProfileId: `player-${bye}`,
+        }),
+    ]);
+
+    for (let round = 7; round <= 9; round += 1) {
+        const roundMatches = buildSwissRoundMatches({
+            participants,
+            existingMatches: matches,
+            round,
+            totalRounds: 9,
+            seriesSettings: { earlyRoundsBestOf: 1, finalsBestOf: 1, grandFinalBestOf: 1, grandFinalResetEnabled: false },
+        });
+        assert.equal(roundMatches.length, 5);
+        for (const match of roundMatches) {
+            const [left, right] = match.slots;
+            matches.push({
+                ...match,
+                state: `completed`,
+                resultType: right.isBye ? `bye` : `played`,
+                winnerProfileId: left.profileId,
+                loserProfileId: right.isBye ? null : right.profileId,
+            });
+        }
+    }
+
+    const pairKeys = getPairKeys(matches);
+    assert.equal(new Set(pairKeys).size, pairKeys.length, `a pairing was repeated`);
+    assert.equal(pairKeys.length, 36);
+});
+
+test(`a swiss event with as many rounds as a round robin pairs everyone exactly once`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 9, swissRoundCount: 9 });
+    const tournament = await playOutWithFavoritesWinning(context);
+
+    assert.equal(tournament.status, `completed`);
+    const pairKeys = getPairKeys(tournament.matches);
+    assert.equal(pairKeys.length, 36);
+    assert.equal(new Set(pairKeys).size, 36);
+    const byes = tournament.matches.filter((match) => match.resultType === `bye`).map((match) => match.winnerProfileId);
+    assert.equal(new Set(byes).size, 9);
+});
+
+test(`swiss round count is capped at what the checked-in field can play without rematches`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 9 });
+    const tournament = context.repository.getSync(context.tournamentId);
+
+    assert.equal(tournament.swissRoundCount, 3);
+    assert.ok(tournament.activity.some((entry) => entry.type === `swiss-rounds-capped`));
+});
+
+test(`swiss standings keep withdrawn players listed and count their results for opponents`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3 });
+    await finishMatchGame(context, `match-swiss-1-1`, `player-1`);
+    await finishMatchGame(context, `match-swiss-1-2`, `player-3`);
+    // player-3 beat player-4 and then withdraws.
+    await context.service.withdrawCurrentUser(context.tournamentId, createPlayerAccount(3));
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    const withdrawn = detail!.standings.find((standing) => standing.profileId === `player-3`)!;
+    assert.equal(withdrawn.isDropped, true);
+    assert.equal(withdrawn.wins, 1);
+    assert.equal(detail!.standings.at(-1)?.profileId, `player-3`);
+    assert.equal(detail!.participants.find((participant) => participant.profileId === `player-3`)?.dropReason, `withdrew`);
+
+    // player-4's only opponent so far is the withdrawn player-3, whose win still counts.
+    assert.equal(detail!.standings.find((standing) => standing.profileId === `player-4`)?.buchholz, withdrawn.wins);
+});
+
+test(`completed tournaments keep the standings captured when they finished`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    const finished = await playOutWithFavoritesWinning(context);
+    assert.equal(finished.status, `completed`);
+    assert.deepEqual(finished.finalStandings?.map((standing) => standing.profileId).slice(0, 2), [`player-1`, `player-2`]);
+
+    // Tamper with the stored snapshot: views must serve it as-is instead of recomputing.
+    const stored = context.repository.getSync(context.tournamentId);
+    stored.finalStandings = stored.finalStandings!.map((standing) => ({ ...standing, rank: 7 }));
+    context.repository.saveSync(stored);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    assert.ok(detail!.standings.every((standing) => standing.rank === 7));
+});
+
+test(`the final standings migration preserves the ranking rules past events were played under`, async () => {
+    // Under the old rules a player who withdrew mid-event disappeared from swiss standings.
+    const tournament = createTournament({
+        id: `past-event`,
+        status: `completed`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        startedAt: 10,
+        participants: [
+            ...createCheckedInParticipants(3),
+            createParticipant({ profileId: `player-4`, displayName: `Player 4`, checkedInAt: 4, seed: 4, status: `dropped`, removedAt: 20 }),
+        ],
+        matches: [
+            createMatch({
+                id: `match-swiss-1-1`, bracket: `swiss`, round: 1, order: 1, state: `completed`, resultType: `played`,
+                slots: [createPlayerSlot(`player-1`, 1), createPlayerSlot(`player-2`, 2)], winnerProfileId: `player-1`, loserProfileId: `player-2`,
+            }),
+            createMatch({
+                id: `match-swiss-1-2`, bracket: `swiss`, round: 1, order: 2, state: `completed`, resultType: `walkover`,
+                slots: [createPlayerSlot(`player-3`, 3), createPlayerSlot(`player-4`, 4)], winnerProfileId: `player-3`, loserProfileId: `player-4`,
+            }),
+        ],
+    });
+    const documents = [structuredClone(tournament)];
+    const database = {
+        collection: () => ({
+            find: () => ({
+                async *[Symbol.asyncIterator]() {
+                    yield* documents.filter((document) => document.status === `completed` && !document.finalStandings);
+                },
+            }),
+            updateOne: async (filter: { id: string }, update: { $set: Partial<TournamentRecord> }) => {
+                Object.assign(documents.find((document) => document.id === filter.id)!, update.$set);
+            },
+        }),
+    };
+
+    await tournamentFinalStandingsMigration.up({ database: database as never, logger: pino({ level: `silent` }) });
+
+    const finalStandings = documents[0]!.finalStandings!;
+    assert.deepEqual(finalStandings.map((standing) => standing.profileId), [`player-1`, `player-3`, `player-2`]);
+    assert.ok(finalStandings.every((standing) => standing.isDropped === false));
+
+    const repository = new FakeTournamentRepository(documents[0]!);
+    const { service } = createServiceWithOverrides({ repository });
+    const detail = await service.getTournamentDetail(tournament.id, null);
+    assert.deepEqual(detail!.standings, finalStandings);
+});
+
+test(`organizers can correct a bracket result until a match that depends on it is played`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+    const finalSessionId = context.repository.getSync(context.tournamentId).matches.find((match) => match.id === `match-winners-2-1`)!.sessionId!;
+
+    await context.service.correctMatchResult(context.tournamentId, `match-winners-1-1`, `player-4`, kOrganizer);
+
+    let tournament = context.repository.getSync(context.tournamentId);
+    const final = tournament.matches.find((match) => match.id === `match-winners-2-1`)!;
+    assert.deepEqual(final.slots.map((slot) => slot.profileId), [`player-4`, `player-2`]);
+    assert.notEqual(final.sessionId, finalSessionId);
+    assert.deepEqual(context.sessionManager.sessions.get(finalSessionId)?.tournament?.matchOutcome, { kind: `restarted` });
+    const corrected = tournament.matches.find((match) => match.id === `match-winners-1-1`)!;
+    assert.equal(corrected.resultType, `played`);
+    assert.equal(corrected.resultCorrected, true);
+
+    await finishMatchGame(context, `match-winners-2-1`, `player-2`);
+    await assert.rejects(
+        context.service.correctMatchResult(context.tournamentId, `match-winners-1-2`, `player-3`, kOrganizer),
+        /already been played/,
+    );
+
+    // The final itself can still be corrected after the tournament completed.
+    tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.status, `completed`);
+    await context.service.correctMatchResult(context.tournamentId, `match-winners-2-1`, `player-4`, kOrganizer);
+    tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.status, `completed`);
+    assert.equal(tournament.finalStandings?.[0]?.profileId, `player-4`);
+});
+
+test(`a double forfeit eliminates both bracket players and gives their next opponent a bye`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await context.service.awardWalkover(context.tournamentId, `match-winners-1-1`, null, kOrganizer);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const forfeited = tournament.matches.find((match) => match.id === `match-winners-1-1`)!;
+    assert.equal(forfeited.resultType, `double-forfeit`);
+    assert.equal(forfeited.winnerProfileId, null);
+    for (const profileId of [`player-1`, `player-4`]) {
+        const participant = tournament.participants.find((entry) => entry.profileId === profileId)!;
+        assert.equal(participant.status, `dropped`);
+        assert.equal(participant.dropReason, `forfeited`);
+    }
+    assert.equal(tournament.status, `completed`);
+    assert.equal(tournament.matches.find((match) => match.id === `match-winners-2-1`)?.winnerProfileId, `player-2`);
+});
+
+test(`a swiss double forfeit gives both players a loss`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3 });
+    await context.service.awardWalkover(context.tournamentId, `match-swiss-1-1`, null, kOrganizer);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    for (const profileId of [`player-1`, `player-2`]) {
+        const standing = detail!.standings.find((entry) => entry.profileId === profileId)!;
+        assert.equal(standing.losses, 1);
+        assert.equal(standing.matchPoints, 0);
+        assert.equal(standing.buchholz, 0);
+        assert.equal(standing.isDropped, false);
+    }
+});
+
+test(`swiss results can be corrected after the next round was paired`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3 });
+    await finishMatchGame(context, `match-swiss-1-1`, `player-1`);
+    await finishMatchGame(context, `match-swiss-1-2`, `player-3`);
+    const roundTwo = context.repository.getSync(context.tournamentId).matches.filter((match) => match.round === 2).map((match) => match.id);
+    assert.equal(roundTwo.length, 2);
+
+    await context.service.correctMatchResult(context.tournamentId, `match-swiss-1-1`, `player-2`, kOrganizer);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.deepEqual(tournament.matches.filter((match) => match.round === 2).map((match) => match.id), roundTwo);
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    assert.equal(detail!.standings.find((entry) => entry.profileId === `player-2`)?.wins, 1);
+    assert.equal(detail!.standings.find((entry) => entry.profileId === `player-1`)?.wins, 0);
+});
+
+test(`rating seeding orders the field by Elo when the tournament starts`, async () => {
+    const eloRepository = new FakeEloRepository();
+    eloRepository.ratings.set(`player-4`, 1_600);
+    eloRepository.ratings.set(`player-3`, 1_500);
+    eloRepository.ratings.set(`player-1`, 900);
+    // player-2 is unrated and counts as a new player (1000).
+    const context = await startTournamentWithPlayers({
+        format: `single-elimination`,
+        playerCount: 4,
+        overrides: { seedingMode: `rating` },
+        eloRepository,
+    });
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const seedOf = (profileId: string) => tournament.participants.find((participant) => participant.profileId === profileId)?.seed;
+    assert.deepEqual([`player-4`, `player-3`, `player-2`, `player-1`].map(seedOf), [1, 2, 3, 4]);
+    assert.deepEqual(tournament.matches.find((match) => match.id === `match-winners-1-1`)?.slots.map((slot) => slot.profileId), [`player-4`, `player-1`]);
+    assert.ok(tournament.activity.some((entry) => entry.type === `seeded-by-rating`));
+});
+
+test(`manual seed reordering is rejected when seeding follows ratings`, async () => {
+    const tournament = createTournament({
+        status: `registration-open`,
+        seedingMode: `rating`,
+        participants: createCheckedInParticipants(2),
+    });
+    const { service } = createService(tournament);
+
+    await assert.rejects(service.reorderSeeds(tournament.id, [`player-2`, `player-1`], kOrganizer), /by rating/);
+});
+
+function createSwissResult(round: number, order: number, winner: number, loser: number, resultType: TournamentMatch[`resultType`] = `played`): TournamentMatch {
+    return createMatch({
+        id: `match-swiss-${round}-${order}`,
+        bracket: `swiss`,
+        round,
+        order,
+        state: `completed`,
+        resultType,
+        slots: [createPlayerSlot(`player-${winner}`, winner), createPlayerSlot(`player-${loser}`, loser)],
+        winnerProfileId: `player-${winner}`,
+        loserProfileId: `player-${loser}`,
+    });
+}
+
+test(`fair tiebreaks do not penalize players for a forfeit win`, () => {
+    const participants = createCheckedInParticipants(4);
+    const matches = [
+        createSwissResult(1, 1, 1, 2),
+        createSwissResult(1, 2, 3, 4, `walkover`),
+        createSwissResult(2, 1, 1, 3),
+        createSwissResult(2, 2, 2, 4),
+    ];
+
+    const classic = calculateSwissStandings(participants, matches, `classic`);
+    const fair = calculateSwissStandings(participants, matches, `fair`);
+
+    // Classic counts the absent player-4 (0 wins) as player-3's opponent: tied with player-2, seed decides.
+    assert.deepEqual(classic.map((standing) => standing.profileId), [`player-1`, `player-2`, `player-3`, `player-4`]);
+    // Fair counts the forfeit as a game against an opponent with player-3's own score.
+    assert.equal(fair.find((standing) => standing.profileId === `player-3`)?.buchholz, 3);
+    assert.deepEqual(fair.map((standing) => standing.profileId), [`player-1`, `player-3`, `player-2`, `player-4`]);
+});
+
+test(`fair tiebreaks use head-to-head before seed`, () => {
+    const participants = createCheckedInParticipants(6);
+    const matches = [
+        createSwissResult(1, 1, 2, 1), createSwissResult(1, 2, 4, 3), createSwissResult(1, 3, 5, 6),
+        createSwissResult(2, 1, 3, 1), createSwissResult(2, 2, 5, 2), createSwissResult(2, 3, 6, 4),
+        createSwissResult(3, 1, 4, 1), createSwissResult(3, 2, 6, 2), createSwissResult(3, 3, 3, 5),
+    ];
+
+    const rank = (tiebreaks: `classic` | `fair`) => calculateSwissStandings(participants, matches, tiebreaks).map((standing) => standing.profileId);
+    // player-3 and player-4 are tied on points, Buchholz and Sonneborn-Berger; player-4 won their game.
+    assert.deepEqual(rank(`classic`).slice(2, 4), [`player-3`, `player-4`]);
+    assert.deepEqual(rank(`fair`).slice(2, 4), [`player-4`, `player-3`]);
+});
+
+/** Marks who is in a match lobby and moves the match start back so its join timer has run out. */
+function simulateTimedOutLobby(context: StartedTournament, matchId: string, connectedProfileIds: string[]) {
+    const stored = context.repository.getSync(context.tournamentId);
+    const match = stored.matches.find((entry) => entry.id === matchId)!;
+    match.startedAt = Date.now() - (stored.matchJoinTimeoutMinutes + 1) * 60_000;
+    context.repository.saveSync(stored);
+
+    const session = context.sessionManager.sessions.get(match.sessionId!)!;
+    for (const player of session.players) {
+        player.connection = { status: connectedProfileIds.includes(player.profileId ?? ``) ? `connected` : `disconnected` };
+    }
+}
+
+test(`automatic no-show handling starts the win claim for the waiting player`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, overrides: { noShowHandling: `automatic` } });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+
+    await context.service.reconcileAllTournaments();
+
+    assert.equal(context.service.getActiveClaimWin(`match-winners-1-1`)?.claimantProfileId, `player-1`);
+    await (context.service as unknown as {
+        resolveClaimWin: (tournamentId: string, matchId: string) => Promise<void>;
+    }).resolveClaimWin(context.tournamentId, `match-winners-1-1`);
+
+    const match = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)!;
+    assert.equal(match.state, `completed`);
+    assert.equal(match.resultType, `walkover`);
+    assert.equal(match.winnerProfileId, `player-1`);
+});
+
+test(`automatic no-show handling forfeits a match nobody joined after a grace period`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3, overrides: { noShowHandling: `automatic` } });
+    simulateTimedOutLobby(context, `match-swiss-1-1`, []);
+
+    await context.service.reconcileAllTournaments();
+    assert.equal(context.repository.getSync(context.tournamentId).matches[0]!.state, `in-progress`);
+
+    const firstSeen = (context.service as unknown as { emptyMatchFirstSeenAt: Map<string, number> }).emptyMatchFirstSeenAt;
+    for (const [key, timestamp] of firstSeen) {
+        firstSeen.set(key, timestamp - 31_000);
+    }
+    await context.service.reconcileAllTournaments();
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.matches.find((entry) => entry.id === `match-swiss-1-1`)?.resultType, `double-forfeit`);
+    assert.ok(tournament.activity.some((entry) => entry.type === `match-double-forfeit`));
+});
+
+test(`manual no-show handling leaves timed-out matches to players and organizers`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+
+    await context.service.reconcileAllTournaments();
+
+    assert.equal(context.service.getActiveClaimWin(`match-winners-1-1`), null);
+    assert.equal(context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)?.state, `in-progress`);
+});
+
+test(`players are withdrawn after forfeiting the configured number of matches`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3, overrides: { noShowDropAfter: 1 } });
+    await context.service.awardWalkover(context.tournamentId, `match-swiss-1-2`, `player-3`, kOrganizer);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const participant = tournament.participants.find((entry) => entry.profileId === `player-4`)!;
+    assert.equal(participant.status, `dropped`);
+    assert.equal(participant.dropReason, `no-shows`);
+    assert.equal(tournament.participants.find((entry) => entry.profileId === `player-3`)?.status, `checked-in`);
+});
+
+test(`automatic extension approval moves the join deadline right away`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, overrides: { extensionApproval: `automatic` } });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+    const before = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)!.startedAt!;
+
+    await context.service.requestExtension(context.tournamentId, `match-winners-1-1`, createPlayerAccount(4));
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.extensionRequests[0]?.status, `approved`);
+    assert.ok(tournament.matches.find((entry) => entry.id === `match-winners-1-1`)!.startedAt! > before);
+});
+
+test(`the player already waiting in the lobby cannot request an extension`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+
+    await assert.rejects(
+        context.service.requestExtension(context.tournamentId, `match-winners-1-1`, createPlayerAccount(1)),
+        /already in the match/,
+    );
+});
+
+test(`active win claims can be looked up for the lobby they belong to`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, overrides: { noShowHandling: `automatic` } });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+    await context.service.reconcileAllTournaments();
+
+    const sessionId = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)!.sessionId!;
+    const claim = context.service.getActiveClaimWin(`match-winners-1-1`, sessionId);
+    assert.equal(claim?.claimantProfileId, `player-1`);
+    assert.ok(claim!.expiresInMs > 0 && claim!.expiresInMs <= 30_000);
+    assert.equal(context.service.getActiveClaimWin(`match-winners-1-1`, `some-older-lobby`), null);
+
+    await (context.service as unknown as {
+        resolveClaimWin: (tournamentId: string, matchId: string) => Promise<void>;
+    }).resolveClaimWin(context.tournamentId, `match-winners-1-1`);
+});
+
+test(`players over the forfeit limit are withdrawn before the next swiss round is paired`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3, overrides: { noShowDropAfter: 1 } });
+    await finishMatchGame(context, `match-swiss-1-1`, `player-1`);
+    // The forfeit that reaches the limit is the last result of the round.
+    await context.service.awardWalkover(context.tournamentId, `match-swiss-1-2`, `player-3`, kOrganizer);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const roundTwo = tournament.matches.filter((match) => match.round === 2);
+    assert.ok(roundTwo.length > 0);
+    assert.equal(roundTwo.some((match) => match.slots.some((slot) => slot.profileId === `player-4`)), false);
+    assert.equal(tournament.participants.find((entry) => entry.profileId === `player-4`)?.status, `dropped`);
+});
+
+test(`a final nobody can play still completes the tournament`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await context.service.awardWalkover(context.tournamentId, `match-winners-1-1`, null, kOrganizer);
+    await context.service.awardWalkover(context.tournamentId, `match-winners-1-2`, null, kOrganizer);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.matches.find((match) => match.id === `match-winners-2-1`)?.state, `completed`);
+    assert.equal(tournament.status, `completed`);
+    assert.ok(tournament.activity.some((entry) => entry.message === `The tournament ended without a champion.`));
+});
+
+test(`automatic no-show handling leaves games that are already running alone`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, overrides: { noShowHandling: `automatic` } });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+    const sessionId = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)!.sessionId!;
+    context.sessionManager.sessions.get(sessionId)!.state = { status: `in-game` };
+
+    await context.service.reconcileAllTournaments();
+
+    assert.equal(context.service.getActiveClaimWin(`match-winners-1-1`), null);
+    assert.equal(context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)?.state, `in-progress`);
+});
+
+test(`correcting a played result does not count as a forfeit`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3, overrides: { noShowDropAfter: 1 } });
+    await finishMatchGame(context, `match-swiss-1-1`, `player-1`);
+    await context.service.correctMatchResult(context.tournamentId, `match-swiss-1-1`, `player-2`, kOrganizer);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.participants.find((entry) => entry.profileId === `player-1`)?.status, `checked-in`);
+});
+
+test(`correcting the forfeit that withdrew a player brings them back`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3, overrides: { noShowDropAfter: 1 } });
+    await context.service.awardWalkover(context.tournamentId, `match-swiss-1-1`, `player-1`, kOrganizer);
+    assert.equal(context.repository.getSync(context.tournamentId).participants.find((entry) => entry.profileId === `player-2`)?.status, `dropped`);
+
+    await context.service.correctMatchResult(context.tournamentId, `match-swiss-1-1`, `player-2`, kOrganizer);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const participant = tournament.participants.find((entry) => entry.profileId === `player-2`)!;
+    assert.equal(participant.status, `checked-in`);
+    assert.equal(participant.dropReason, null);
+});
+
+test(`players who never checked in are not listed in the standings`, async () => {
+    const tournament = createTournament({
+        status: `check-in-open`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        participants: [
+            ...createCheckedInParticipants(2),
+            createParticipant({ profileId: `no-show`, displayName: `No Show`, status: `registered`, checkInState: `pending` }),
+        ],
+    });
+    const repository = new FakeTournamentRepository(tournament);
+    const { service } = createServiceWithOverrides({ repository });
+    await service.startTournament(tournament.id, kOrganizer);
+
+    const detail = await service.getTournamentDetail(tournament.id, null);
+    assert.deepEqual(detail!.standings.map((standing) => standing.profileId).sort(), [`player-1`, `player-2`]);
+});
+
+test(`a grand-final reset both players forfeited keeps the grand final result`, async () => {
+    const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount: 4, grandFinalResetEnabled: true });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+    await finishMatchGame(context, `match-winners-2-1`, `player-1`);
+    await finishMatchGame(context, `match-losers-1-1`, `player-3`);
+    await finishMatchGame(context, `match-losers-2-1`, `player-2`);
+    await finishMatchGame(context, `match-grand-final-1-1`, `player-2`);
+    await context.service.awardWalkover(context.tournamentId, `match-grand-final-reset-1-1`, null, kOrganizer);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    assert.equal(detail!.status, `completed`);
+    const rankOf = (profileId: string) => detail!.standings.find((standing) => standing.profileId === profileId)?.rank;
+    assert.equal(rankOf(`player-2`), 1);
+    assert.equal(rankOf(`player-1`), 2);
+});
+
+test(`a result whose dependent game just finished cannot be corrected`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+    // The final's game has finished but has not been reconciled yet.
+    const finalSessionId = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-2-1`)!.sessionId!;
+    context.sessionManager.sessions.get(finalSessionId)!.state = { status: `finished`, gameId: `final-game`, winningPlayerId: null };
+
+    await assert.rejects(
+        context.service.correctMatchResult(context.tournamentId, `match-winners-1-1`, `player-4`, kOrganizer),
+        /already been played/,
+    );
 });

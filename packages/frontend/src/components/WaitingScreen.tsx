@@ -1,12 +1,13 @@
 import { Button } from '@/components/ui/button';
-import type { LobbyOptions, MatchClaimWinState, SessionTournamentInfo } from '@ih3t/shared';
+import type { LobbyOptions, MatchClaimWinState, SessionTournamentInfo, TournamentMatchOutcome } from '@ih3t/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 
 import { useLiveGameStore } from '../liveGameStore';
-import { claimMatchWin, requestMatchExtension } from '../query/tournamentClient';
+import { claimMatchWin } from '../query/tournamentClient';
 import { formatTimeControl } from '../utils/gameTimeControl';
 import ScreenFooter from './ScreenFooter';
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 
 type WaitingScreenProps = {
@@ -75,8 +76,6 @@ function TournamentTimerSection({
     const joinRemaining = useCountdown(joinDeadline);
     const claimRemaining = useCountdown(claimDeadline);
     const [isClaimPending, setIsClaimPending] = useState(false);
-    const [isExtensionPending, setIsExtensionPending] = useState(false);
-    const extensionMinutes = Math.round(tournament.matchExtensionMs / 60_000);
 
     const isTimedOut = hasTimeout && joinRemaining !== null && joinRemaining <= 0;
     const hasActiveClaim = claimWinState !== null;
@@ -95,19 +94,6 @@ function TournamentTimerSection({
             toast.error(message, { toastId: `claim-win-error` });
         } finally {
             setIsClaimPending(false);
-        }
-    };
-
-    const handleRequestExtension = async () => {
-        try {
-            setIsExtensionPending(true);
-            await requestMatchExtension(tournament.tournamentId, tournament.matchId);
-            toast.success(t('extensionRequestedWaitingForOrganizerApproval', 'Extension requested. Waiting for organizer approval.'), { toastId: `extension-requested` });
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : t('failedToRequestExtension', 'Failed to request extension.');
-            toast.error(message, { toastId: `extension-error` });
-        } finally {
-            setIsExtensionPending(false);
         }
     };
 
@@ -158,23 +144,20 @@ function TournamentTimerSection({
                     </p>
                 </div>
 
-                <Button
-                    type="button"
-                    onClick={() => void handleClaimWin()}
-                    disabled={isClaimPending}
-                    variant="success" size="lg" className="w-full"
-                >
-                    {isClaimPending ? `Claiming...` : `Claim Win`}
-                </Button>
-
-                <Button
-                    type="button"
-                    onClick={() => void handleRequestExtension()}
-                    disabled={isExtensionPending}
-                    variant="outline" size="lg" className="w-full"
-                >
-                    {isExtensionPending ? `Requesting...` : t('requestExtensionExtensionminutesMin', 'Request Extension (+{{extensionMinutes}} min)', { extensionMinutes })}
-                </Button>
+                {tournament.autoClaimWin ? (
+                    <p className="text-center text-sm text-slate-300">
+                        {t('winAwardedAutomatically', 'Stay here: the win is awarded to you automatically in a moment.')}
+                    </p>
+                ) : (
+                    <Button
+                        type="button"
+                        onClick={() => void handleClaimWin()}
+                        disabled={isClaimPending}
+                        variant="success" size="lg" className="w-full"
+                    >
+                        {isClaimPending ? `Claiming...` : `Claim Win`}
+                    </Button>
+                )}
             </div>
         );
     }
@@ -189,17 +172,48 @@ function TournamentTimerSection({
                     {joinRemaining !== null ? formatCountdown(joinRemaining) : `--:--`}
                 </div>
             </div>
-
-            <Button
-                type="button"
-                onClick={() => void handleRequestExtension()}
-                disabled={isExtensionPending}
-                variant="outline" size="lg" className="w-full"
-            >
-                {isExtensionPending ? `Requesting...` : `Request Extension`}
-            </Button>
         </div>
     );
+}
+
+/** Series score with the local player's wins first; seats swap between games of a series. */
+function getScoreFromLocalSide(tournament: SessionTournamentInfo, localProfileId: string | null): { leftWins: number; rightWins: number } {
+    return localProfileId !== null && localProfileId === tournament.rightProfileId
+        ? { leftWins: tournament.rightWins, rightWins: tournament.leftWins }
+        : { leftWins: tournament.leftWins, rightWins: tournament.rightWins };
+}
+
+function getMatchOutcomeText(t: TFunction, outcome: TournamentMatchOutcome, localProfileId: string | null, opponentName: string): { title: string; message: string } {
+    if (outcome.kind === `restarted`) {
+        return {
+            title: t('tournamentMatchRestarted', 'Match restarted'),
+            message: t('tournamentMatchRestartedMessage', 'This match was reset by an organizer. Check the tournament page for your next match.'),
+        };
+    }
+
+    if (outcome.kind === `cancelled`) {
+        return {
+            title: t('tournamentCancelled', 'Tournament cancelled'),
+            message: t('tournamentCancelledMessage', 'This tournament was cancelled, so the match will not be played.'),
+        };
+    }
+
+    if (outcome.winnerProfileId === null) {
+        return {
+            title: t('tournamentMatchDecided', 'Match decided'),
+            message: t('tournamentMatchDecidedWithoutWinner', 'This match was decided without a winner.'),
+        };
+    }
+
+    return outcome.winnerProfileId === localProfileId
+        ? {
+            title: t('tournamentMatchYouAdvance', 'You advance'),
+            message: t('tournamentMatchWonWithoutPlaying', '{{opponentName}} did not play this match, so it was awarded to you.', { opponentName }),
+        }
+        : {
+            title: t('tournamentMatchDecided', 'Match decided'),
+            message: t('tournamentMatchAwardedToOpponent', 'The match was awarded to {{opponentName}}.', { opponentName }),
+        };
 }
 
 function WaitingScreen({
@@ -220,16 +234,22 @@ function WaitingScreen({
         ? (localProfileId === tournament.leftProfileId ? tournament.rightDisplayName : tournament.leftDisplayName)
         : null;
     const showOfflinePlayButton = !isTournament && gameOptions.visibility === `public` && playerCount < 2 && Boolean(onPlayOffline);
+    const matchOutcome = tournament?.matchOutcome ?? null;
+    const outcomeText = matchOutcome
+        ? getMatchOutcomeText(t, matchOutcome, localProfileId, opponentName ?? t('yourOpponent', 'Your opponent'))
+        : null;
 
     return (
         <div className="flex flex-col justify-between h-full p-4 mx-8">
             <div className="flex flex-col min-w-30 w-full max-w-2xl self-center my-auto pb-[10svh]">
                 <h2 className="font-black uppercase tracking-[0.08em] text-white mt-6 text-4xl">
-                    {t('waitingForVal', 'Waiting for {{val}}', { val: isTournament ? opponentName ?? `opponent` : `another player` })}
+                    {outcomeText
+                        ? outcomeText.title
+                        : t('waitingForVal', 'Waiting for {{val}}', { val: isTournament ? opponentName ?? `opponent` : `another player` })}
                 </h2>
 
                 <p className="mt-4 text-slate-200 text-base leading-7">
-                    {isTournament
+                    {outcomeText ? outcomeText.message : isTournament
                         ? t('yourOpponentHasBeenNotifiedTheMatchWillStartAutomaticallyOnceTheyJoin', 'Your opponent has been notified. The match will start automatically once they join.')
                         : gameOptions.visibility === `private`
                             ? t('keepThisSessionOpenAndShareTheInviteLinkWithThePlayerYouWantToJoinTheMatchWillLaunchAutomaticallyOnceTheyArrive', 'Keep this session open and share the invite link with the player you want to join. The match will launch automatically once they arrive.')
@@ -256,7 +276,7 @@ function WaitingScreen({
                                         {formatTimeControl(gameOptions.timeControl)}
                                     </div>
                                     <div className="mt-1 whitespace-nowrap text-sm tabular-nums text-slate-400">
-                                        {tournament.bracket.replace(/-/g, ` `)}{t('rroundBobestofGameCurrentgamenumberScoreLeftwinsrightwins', 'R{{round}} · BO{{bestOf}} · Game {{currentGameNumber}} · Score {{leftWins}}‑{{rightWins}}', { round: tournament.round, bestOf: tournament.bestOf, currentGameNumber: tournament.currentGameNumber, leftWins: tournament.leftWins, rightWins: tournament.rightWins })}</div>
+                                        {tournament.bracket.replace(/-/g, ` `)}{t('rroundBobestofGameCurrentgamenumberScoreLeftwinsrightwins', 'R{{round}} · BO{{bestOf}} · Game {{currentGameNumber}} · Score {{leftWins}}‑{{rightWins}}', { round: tournament.round, bestOf: tournament.bestOf, currentGameNumber: tournament.currentGameNumber, ...getScoreFromLocalSide(tournament, localProfileId) })}</div>
                                 </div>
                             </>
                         ) : (
@@ -289,7 +309,15 @@ function WaitingScreen({
                         )}
                     </div>
 
-                    {isTournament && playerCount < 2 && (
+                    {isTournament && matchOutcome && (
+                        <div className="mt-6">
+                            <Button onClick={onCancel} variant="default" size="lg" className="w-full">
+                                {t('returnToTournament', 'Return To Tournament')}
+                            </Button>
+                        </div>
+                    )}
+
+                    {isTournament && !matchOutcome && playerCount < 2 && (
                         <TournamentTimerSection
                             tournament={tournament}
                             claimWinState={claimWinState}

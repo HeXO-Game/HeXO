@@ -57,6 +57,34 @@ export type TournamentKind = z.infer<typeof zTournamentKind>;
 export const zTournamentFormat = z.enum([`single-elimination`, `double-elimination`, `swiss`]);
 export type TournamentFormat = z.infer<typeof zTournamentFormat>;
 
+/** How players are seeded when the tournament starts. */
+export const zTournamentSeedingMode = z.enum([`registration`, `rating`]);
+export type TournamentSeedingMode = z.infer<typeof zTournamentSeedingMode>;
+
+/**
+ * `classic`: match points, Buchholz, Sonneborn-Berger, seed.
+ * `fair`: byes and forfeits count as a game against an opponent with the player's own score,
+ * and head-to-head results break ties before seed.
+ */
+export const zTournamentSwissTiebreaks = z.enum([`classic`, `fair`]);
+export type TournamentSwissTiebreaks = z.infer<typeof zTournamentSwissTiebreaks>;
+
+/**
+ * `manual`: after the join timeout the waiting player claims the win, or an organizer decides.
+ * `automatic`: the waiting player is awarded the match after a short countdown; if neither player
+ * joined, both forfeit.
+ */
+export const zTournamentNoShowHandling = z.enum([`manual`, `automatic`]);
+export type TournamentNoShowHandling = z.infer<typeof zTournamentNoShowHandling>;
+
+export const zTournamentExtensionApproval = z.enum([`organizer`, `automatic`]);
+export type TournamentExtensionApproval = z.infer<typeof zTournamentExtensionApproval>;
+
+/** Players are withdrawn after forfeiting this many matches; 0 disables it. */
+export const zTournamentNoShowDropAfter = z.number().int()
+    .min(0)
+    .max(3);
+
 export const zTournamentVisibility = z.enum([`public`, `private`]);
 export type TournamentVisibility = z.infer<typeof zTournamentVisibility>;
 
@@ -90,6 +118,16 @@ export const zTournamentParticipantStatus = z.enum([
 ]);
 export type TournamentParticipantStatus = z.infer<typeof zTournamentParticipantStatus>;
 
+/** Why a participant was dropped from a running tournament. */
+export const zTournamentDropReason = z.enum([
+    `withdrew`,
+    `disqualified`,
+    `no-shows`,
+    /** Both players of a bracket match were forfeited by an organizer. */
+    `forfeited`,
+]);
+export type TournamentDropReason = z.infer<typeof zTournamentDropReason>;
+
 export const zTournamentBracket = z.enum([
     `winners`,
     `losers`,
@@ -112,6 +150,8 @@ export const zTournamentMatchResultType = z.enum([
     `played`,
     `bye`,
     `walkover`,
+    /** Neither player showed up (or both were forfeited by an organizer); nobody wins. */
+    `double-forfeit`,
 ]);
 export type TournamentMatchResultType = z.infer<typeof zTournamentMatchResultType>;
 
@@ -198,6 +238,10 @@ export const zTournamentMatch = z.object({
     advanceWinnerTo: zTournamentMatchAdvanceTarget.nullable(),
     advanceLoserTo: zTournamentMatchAdvanceTarget.nullable(),
     waitingForPlayers: z.boolean().optional(),
+    /** Players currently connected to the match lobby while it waits for the other player. */
+    presentProfileIds: z.array(zIdentifier).optional(),
+    /** The result was changed by an organizer after the match was completed. */
+    resultCorrected: z.boolean().optional(),
 });
 export type TournamentMatch = z.infer<typeof zTournamentMatch>;
 
@@ -217,6 +261,7 @@ export const zTournamentParticipant = z.object({
     eliminatedAt: zTimestamp.nullable(),
     replacedByProfileId: zIdentifier.nullable(),
     replacesProfileId: zIdentifier.nullable(),
+    dropReason: zTournamentDropReason.nullable().default(null),
 });
 export type TournamentParticipant = z.infer<typeof zTournamentParticipant>;
 
@@ -282,6 +327,8 @@ export const zTournamentStanding = z.object({
     sonnebornBerger: z.number().int()
         .nonnegative(),
     hadBye: z.boolean(),
+    /** Withdrawn or disqualified during the event; ranked after everyone who finished. */
+    isDropped: z.boolean().default(false),
 });
 export type TournamentStanding = z.infer<typeof zTournamentStanding>;
 
@@ -334,6 +381,11 @@ export const zTournamentSummary = z.object({
     waitlistClosesAt: zTimestamp.nullable(),
     waitlistedCount: z.number().int()
         .nonnegative(),
+    seedingMode: zTournamentSeedingMode,
+    swissTiebreaks: zTournamentSwissTiebreaks,
+    noShowHandling: zTournamentNoShowHandling,
+    noShowDropAfter: zTournamentNoShowDropAfter,
+    extensionApproval: zTournamentExtensionApproval,
 });
 export type TournamentSummary = z.infer<typeof zTournamentSummary>;
 
@@ -468,6 +520,11 @@ export const zCreateTournamentRequest = z.object({
         .optional(),
     whitelist: z.array(zIdentifier).optional(),
     blacklist: z.array(zIdentifier).optional(),
+    seedingMode: zTournamentSeedingMode.optional(),
+    swissTiebreaks: zTournamentSwissTiebreaks.optional(),
+    noShowHandling: zTournamentNoShowHandling.optional(),
+    noShowDropAfter: zTournamentNoShowDropAfter.optional(),
+    extensionApproval: zTournamentExtensionApproval.optional(),
 });
 export type CreateTournamentRequest = z.infer<typeof zCreateTournamentRequest>;
 
@@ -519,6 +576,11 @@ export const zUpdateTournamentRequest = z.object({
         .optional(),
     whitelist: z.array(zIdentifier).nullable().optional(),
     blacklist: z.array(zIdentifier).nullable().optional(),
+    seedingMode: zTournamentSeedingMode.optional(),
+    swissTiebreaks: zTournamentSwissTiebreaks.optional(),
+    noShowHandling: zTournamentNoShowHandling.optional(),
+    noShowDropAfter: zTournamentNoShowDropAfter.optional(),
+    extensionApproval: zTournamentExtensionApproval.optional(),
 });
 export type UpdateTournamentRequest = z.infer<typeof zUpdateTournamentRequest>;
 
@@ -539,7 +601,8 @@ export const zTournamentParticipantSwapRequest = z.object({
 export type TournamentParticipantSwapRequest = z.infer<typeof zTournamentParticipantSwapRequest>;
 
 export const zTournamentMatchResolutionRequest = z.object({
-    winnerProfileId: zIdentifier,
+    /** `null` forfeits the match for both players. */
+    winnerProfileId: zIdentifier.nullable(),
 });
 export type TournamentMatchResolutionRequest = z.infer<typeof zTournamentMatchResolutionRequest>;
 
@@ -547,6 +610,22 @@ export const zReorderSeedsRequest = z.object({
     orderedProfileIds: z.array(zIdentifier).min(1),
 });
 export type ReorderSeedsRequest = z.infer<typeof zReorderSeedsRequest>;
+
+/** Set on a match lobby once the match no longer depends on the game played in it. */
+export const zTournamentMatchOutcome = z.discriminatedUnion(`kind`, [
+    z.object({
+        kind: z.literal(`resolved`),
+        resultType: zTournamentMatchResultType,
+        winnerProfileId: zIdentifier.nullable(),
+    }),
+    z.object({
+        kind: z.literal(`restarted`),
+    }),
+    z.object({
+        kind: z.literal(`cancelled`),
+    }),
+]);
+export type TournamentMatchOutcome = z.infer<typeof zTournamentMatchOutcome>;
 
 export const zSessionTournamentInfo = z.object({
     tournamentId: zIdentifier,
@@ -569,10 +648,15 @@ export const zSessionTournamentInfo = z.object({
     matchExtensionMs: z.number().int()
         .nonnegative(),
     pendingExtension: z.boolean().default(false),
+    /** Time left to join, computed by the server whenever the session info is sent. */
     matchJoinTimeoutInMs: z.number().int()
         .nonnegative()
         .nullable()
         .default(null),
+    matchJoinDeadlineAt: zTimestamp.nullable().default(null),
+    matchOutcome: zTournamentMatchOutcome.nullable().default(null),
+    /** The tournament starts the win claim itself once the join timer runs out. */
+    autoClaimWin: z.boolean().default(false),
     leftDisplayName: z.string().nullable(),
     rightDisplayName: z.string().nullable(),
     leftProfileId: zIdentifier.nullable()
@@ -595,6 +679,8 @@ export type TournamentUpdatedEvent = z.infer<typeof zTournamentUpdatedEvent>;
 
 export const zTournamentNotificationEvent = z.object({
     tournamentId: zIdentifier,
+    /** Match lobby the notification is about, so the client can offer to join it. */
+    sessionId: zIdentifier.nullable().optional(),
     kind: z.enum([`match-ready`, `tournament-started`, `participant-replaced`, `timeout-warning`, `extension-requested`, `extension-resolved`, `claim-win-started`, `claim-win-cancelled`, `claim-win-awarded`, `low-registration`, `waitlist-open`]),
     message: z.string(),
 });

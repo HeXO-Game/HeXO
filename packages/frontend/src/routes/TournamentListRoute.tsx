@@ -218,7 +218,7 @@ function TournamentCard({ tournament, onClick, onUnsubscribe }: {
 
                     <div className="shrink-0 text-right">
                         <div className="text-lg font-black tabular-nums text-white">
-                            {tournament.checkedInCount}
+                            {tournament.status === `registration-open` ? tournament.registeredCount : tournament.checkedInCount}
                             <span className="text-[12px] font-medium text-slate-500">/{tournament.maxPlayers}</span>
                         </div>
                     </div>

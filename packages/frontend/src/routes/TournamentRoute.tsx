@@ -15,6 +15,7 @@ import {
     addTournamentParticipant,
     bulkAddToAccessList,
     awardTournamentWalkover,
+    correctTournamentMatchResult,
     cancelTournament,
     checkInTournament,
 
@@ -237,9 +238,9 @@ function sortParticipants(
     return sorted;
 }
 
-function ParticipantList({ participants, standings, canManage, isLive, viewerProfileId, tournamentId, tournamentStatus, tournamentStartedAt, onRemove, onSwapSelect, swapTarget }: {
+function ParticipantList({ participants, standings, canManage, isLive, viewerProfileId, tournamentId, tournamentStatus, tournamentStartedAt, seedingMode, onRemove, onSwapSelect, swapTarget }: {
     participants: TournamentParticipant[]; standings: TournamentStanding[]; canManage: boolean; isLive: boolean; viewerProfileId: string | null
-    tournamentId: string; tournamentStatus: string; tournamentStartedAt: number | null
+    tournamentId: string; tournamentStatus: string; tournamentStartedAt: number | null; seedingMode: TournamentDetail[`seedingMode`]
     onRemove: (id: string) => void; onSwapSelect: (id: string | null) => void; swapTarget: string | null
 }) {
     const { t } = useTranslation()
@@ -252,7 +253,7 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
     const [dragIdx, setDragIdx] = useState<number | null>(null);
 
     const isPreStart = tournamentStatus === `registration-open` || tournamentStatus === `check-in-open`;
-    const canSeed = canManage && isPreStart;
+    const canSeed = canManage && isPreStart && seedingMode !== `rating`;
 
     const isPreStartDrop = (p: TournamentParticipant) =>
         p.status === `dropped` && p.removedAt !== null && (tournamentStartedAt === null || p.removedAt < tournamentStartedAt);
@@ -295,7 +296,9 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
     };
 
     const pColor = (s: string) => s === `checked-in` ? `sky` as const : s === `waitlisted` ? `amber` as const : s === `eliminated` || s === `removed` || s === `dropped` ? `rose` as const : s === `completed` ? `emerald` as const : `default` as const;
-    const pLabel = (s: string) => s === `dropped` ? `DQ` : s === `checked-in` ? `in` : s === `waitlisted` ? `waitlist` : s;
+    const pLabel = (p: TournamentParticipant) => p.status === `dropped`
+        ? getDropLabel(p)
+        : p.status === `checked-in` ? `in` : p.status === `waitlisted` ? `waitlist` : p.status;
 
     const seedRow = (profileId: string, idx: number) => {
         const p = participants.find((pp) => pp.profileId === profileId);
@@ -337,7 +340,7 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
                 {st && <span className="text-[10px] tabular-nums text-slate-500">{t('winLossRecord', '{{wins}}W {{losses}}L', { wins: st.wins, losses: st.losses })}</span>}
 
                 <Chip color={pColor(p.status)}>
-                    {pLabel(p.status)}
+                    {pLabel(p)}
                 </Chip>
 
                 {canManage && isActive && (
@@ -404,6 +407,9 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
                             {t('seed', 'Seed')}
                         </Button>
                     )}
+                    {isPreStart && seedingMode === `rating` && (
+                        <span className="ml-auto text-[9px] text-slate-500">{t('seededByRatingAtStart', 'Seeded by rating at start')}</span>
+                    )}
                 </div>
             )}
 
@@ -436,9 +442,9 @@ function getExitInfo(
     matches: TournamentMatch[],
     format: StandingsFormat,
 ): { label: string; color: `gold` | `silver` | `bronze` | `rose` | `default` } {
-    if (participant?.status === `dropped`) return { label: i18next.t('disqualified', 'Disqualified'), color: `rose` };
+    if (participant?.status === `dropped`) return { label: getDropLabel(participant), color: `rose` };
     if (s.rank === 1) return { label: i18next.t('champion', 'Champion'), color: `gold` };
-    if (s.rank === 2) return { label: i18next.t('finalist', 'Finalist'), color: `silver` };
+    if (s.rank === 2) return { label: format === `swiss` ? i18next.t('2ndPlace', '2nd Place') : i18next.t('finalist', 'Finalist'), color: `silver` };
     if (s.rank === 3) return { label: i18next.t('3rdPlace', '3rd Place'), color: `bronze` };
 
     if (format === `swiss`) return { label: ``, color: `default` };
@@ -462,6 +468,20 @@ function getExitInfo(
     return { label: i18next.t('valRround', '{{val}} R{{round}}', { val: bracketLabel(elimMatch.bracket), round: elimMatch.round }), color: `default` };
 }
 
+/** Why a player left a running tournament. */
+function getDropLabel(participant: TournamentParticipant): string {
+    switch (participant.dropReason) {
+        case `withdrew`:
+            return i18next.t('withdrew', 'Withdrew');
+        case `no-shows`:
+            return i18next.t('withdrawnNoShows', 'Withdrawn (no-shows)');
+        case `forfeited`:
+            return i18next.t('forfeitedOut', 'Forfeited');
+        default:
+            return i18next.t('disqualified', 'Disqualified');
+    }
+}
+
 function bracketLabel(bracket: string): string {
     if (bracket === `winners`) return `Winners`;
     if (bracket === `losers`) return `Losers`;
@@ -483,6 +503,21 @@ function getMatchPath(profileId: string, matches: TournamentMatch[]): { matchId:
                 resultType: m.resultType,
             };
         });
+}
+
+type MatchPathStep = ReturnType<typeof getMatchPath>[number];
+
+function getMatchPathLetter(step: MatchPathStep): string {
+    if (step.resultType === `bye`) return `B`;
+    if (step.resultType === `double-forfeit`) return `F`;
+    return step.won ? `W` : `L`;
+}
+
+function getMatchPathTitle(step: MatchPathStep): string | undefined {
+    if (step.resultType === `bye`) return i18next.t('matchPathBye', 'Bye');
+    if (step.resultType === `double-forfeit`) return i18next.t('matchPathDoubleForfeit', 'Both players forfeited');
+    if (step.resultType === `walkover`) return step.won ? i18next.t('matchPathWonByForfeit', 'Won by forfeit') : i18next.t('matchPathLostByForfeit', 'Lost by forfeit');
+    return undefined;
 }
 
 function scrollToMatch(matchId: string) {
@@ -623,8 +658,9 @@ function PodiumMatchPath({ profileId, matches }: { profileId: string; matches: T
                             variant={step.resultType === `bye` ? `muted` : step.won ? `success-soft` : `destructive-soft`}
                             size="xxs"
                             onClick={() => scrollToMatch(step.matchId)}
+                            title={getMatchPathTitle(step)}
                         >
-                            <span className="font-semibold">{step.won ? `W` : step.resultType === `bye` ? `B` : `L`}</span>
+                            <span className="font-semibold">{getMatchPathLetter(step)}</span>
                             <span className="text-white/50">vs</span>
                             <span className="max-w-[6rem] truncate">{step.opponent}</span>
                         </Button>
@@ -649,8 +685,9 @@ function MatchPath({ profileId, matches }: { profileId: string; matches: Tournam
                     variant={step.resultType === `bye` ? `muted` : step.won ? `success-soft` : `destructive-soft`}
                     size="xxs"
                     onClick={() => scrollToMatch(step.matchId)}
+                    title={getMatchPathTitle(step)}
                 >
-                    <span className="font-semibold">{step.won ? `W` : step.resultType === `bye` ? `B` : `L`}</span>
+                    <span className="font-semibold">{getMatchPathLetter(step)}</span>
                     <span className="text-white/50">vs</span>
                     <span className="max-w-[8rem] truncate">{step.opponent}</span>
                 </Button>
@@ -666,9 +703,8 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
     format: StandingsFormat; tournamentName: string; viewerProfileId: string | null
 }) {
     const { t } = useTranslation()
-    if (standings.length === 0) return null;
-
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    if (standings.length === 0) return null;
 
     const participantMap = new Map(participants.map((p) => [p.profileId, p]));
 
@@ -678,7 +714,7 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
     // Group rest into tiers
     const tiers = new Map<string, TournamentStanding[]>();
     for (const s of rest) {
-        const tier = tierLabel(s.rank);
+        const tier = format === `swiss` ? t('standings', 'Standings') : tierLabel(s.rank);
         const list = tiers.get(tier) ?? [];
         list.push(s);
         tiers.set(tier, list);
@@ -730,8 +766,8 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
                     <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-400">{t('winsLosses', '{{wins}}-{{losses}}', { wins: s.wins, losses: s.losses })}</span>
 
                     {/* Swiss tiebreakers */}
-                    {isSwiss && (s.buchholz > 0 || s.sonnebornBerger > 0) && (
-                        <span className="hidden text-[9px] tabular-nums text-slate-600 sm:inline" title={t('buchholzSonnebornberger', 'Buchholz / Sonneborn-Berger')}>{t('buchholzSonnebornberger2', '{{buchholz}}/{{sonnebornBerger}}', { buchholz: s.buchholz, sonnebornBerger: s.sonnebornBerger })}</span>
+                    {isSwiss && (
+                        <span className="text-[9px] tabular-nums text-slate-500" title={t('buchholzSonnebornberger', 'Buchholz / Sonneborn-Berger')}>{t('tiebreakValues', 'BH {{buchholz}} · SB {{sonnebornBerger}}', { buchholz: s.buchholz, sonnebornBerger: s.sonnebornBerger })}</span>
                     )}
 
                     {/* Exit label */}
@@ -865,18 +901,87 @@ function useCountdown(deadlineMs: number | null) {
 
 /* ── Match card ─────────────────────────────────────── */
 
-function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentStatus, timeoutAt, extensionMinutes, pendingExtension, claimWinExpiresAt, onOpen, onWalkover, onReopen, onRequestExtension, onResolveExtension }: {
+/**
+ * Mirrors the backend rule for correcting bracket results: allowed only while no later match fed by
+ * this one (directly or indirectly) has been played or decided.
+ */
+function hasPlayedDependentMatch(match: TournamentMatch, allMatches: TournamentMatch[]): boolean {
+    if (match.bracket === `swiss`) {
+        return false;
+    }
+
+    const visited = new Set([match.id]);
+    const queue = [match];
+    while (queue.length > 0) {
+        const source = queue.shift()!;
+        for (const candidate of allMatches) {
+            if (visited.has(candidate.id)) {
+                continue;
+            }
+
+            const isFed = candidate.slots.some((slot) => slot.source && slot.source.type !== `seed` && slot.source.matchId === source.id)
+                || (candidate.bracket === `grand-final-reset` && source.bracket === `grand-final`);
+            if (!isFed) {
+                continue;
+            }
+
+            const isPlayingOrDecided = candidate.gameIds.length > 0
+                || (candidate.state === `completed` && candidate.resultType !== `bye`)
+                || (candidate.state === `in-progress` && !candidate.waitingForPlayers);
+            if (isPlayingOrDecided) {
+                return true;
+            }
+
+            visited.add(candidate.id);
+            queue.push(candidate);
+        }
+    }
+
+    return false;
+}
+
+function MatchResultChip({ resultType }: { resultType: TournamentMatch[`resultType`] }) {
+    const { t } = useTranslation()
+    switch (resultType) {
+        case `walkover`:
+            return <Chip color="amber">{t('matchResultAwarded', 'awarded')}</Chip>;
+        case `double-forfeit`:
+            return <Chip color="rose">{t('matchResultDoubleForfeit', 'both forfeited')}</Chip>;
+        case `bye`:
+            return <Chip>{t('matchResultBye', 'bye')}</Chip>;
+        default:
+            return null;
+    }
+}
+
+function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentStatus, timeoutAt, extensionMinutes, pendingExtension, claimWinExpiresAt, onOpen, onWalkover, onCorrectResult, onReopen, onRequestExtension, onResolveExtension }: {
     match: TournamentMatch; allMatches: TournamentMatch[]; canManage: boolean; viewerProfileId: string | null; tournamentStatus: TournamentDetail[`status`]
     timeoutAt: number | null; extensionMinutes: number; pendingExtension: TournamentExtensionRequest | null; claimWinExpiresAt: number | null
-    onOpen: (sid: string) => void; onWalkover: (mid: string, pid: string) => void; onReopen: (mid: string) => void
+    onOpen: (sid: string) => void; onWalkover: (mid: string, pid: string | null) => void; onCorrectResult: (mid: string, pid: string | null) => void
+    onReopen: (mid: string) => void
     onRequestExtension: (mid: string) => void; onResolveExtension: (eid: string, approve: boolean) => void
 }) {
     const { t } = useTranslation()
+    const [isEditingResult, setIsEditingResult] = useState(false);
+    const playerSlots = match.slots.filter((s): s is typeof s & { profileId: string } => Boolean(s.profileId) && !s.isBye);
+    const canAwardMatch = canManage && tournamentStatus === `live` && (match.state === `ready` || match.state === `in-progress`);
+    const canCorrectResult = canManage
+        && (tournamentStatus === `live` || tournamentStatus === `completed`)
+        && match.state === `completed`
+        && match.resultType !== `bye`
+        && playerSlots.length === 2
+        && !hasPlayedDependentMatch(match, allMatches);
     const countdown = useCountdown(timeoutAt);
     const claimCountdown = useCountdown(claimWinExpiresAt);
     const timedOut = countdown?.expired ?? false;
-    const stateColor = match.state === `completed` ? `emerald` as const : match.state === `in-progress` ? `sky` as const : match.state === `ready` ? `amber` as const : `default` as const;
+    const isWaitingForPlayers = match.state === `in-progress` && match.waitingForPlayers === true;
+    const stateColor = match.state === `completed` ? `emerald` as const : isWaitingForPlayers ? `amber` as const : match.state === `in-progress` ? `sky` as const : match.state === `ready` ? `amber` as const : `default` as const;
+    const presentProfileIds = new Set(match.presentProfileIds ?? []);
+    const isViewerPresent = viewerProfileId !== null && presentProfileIds.has(viewerProfileId);
+    const presentNames = match.slots.filter((s) => s.profileId && presentProfileIds.has(s.profileId)).map((s) => s.displayName ?? ``);
     const { isParticipant, canJoin, canSpectate } = getTournamentMatchSessionAccess(tournamentStatus, match, viewerProfileId);
+    // Extensions give a late player more time; the player who is already waiting does not need one.
+    const canRequestExtension = isParticipant && !isViewerPresent;
     const isInProgress = match.state === `in-progress`;
 
     const slot = (s: TournamentMatch[`slots`][number], wins: number, isW: boolean) => {
@@ -893,6 +998,13 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                     {s.seed && <span className="text-[9px] text-slate-500">
                         {s.seed}
                     </span>}
+
+                    {isWaitingForPlayers && s.profileId && (
+                        <span
+                            className={`size-1.5 shrink-0 rounded-full ${presentProfileIds.has(s.profileId) ? `bg-emerald-400` : `bg-slate-600`}`}
+                            title={presentProfileIds.has(s.profileId) ? t('inTheMatchLobby', 'In the match lobby') : t('notJoinedYet', 'Not joined yet')}
+                        />
+                    )}
 
                     {s.displayName ?? `TBD`}
                     {canNavigate && sourceMatchRecord && <span className="text-[9px] text-slate-600">
@@ -915,10 +1027,14 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 <span className="text-[9px] font-semibold tabular-nums text-slate-600">{t('mOrder', 'M{{order}}', { order: match.order })}</span>
 
                 <Chip color={stateColor}>
-                    {match.state === `in-progress` ? `live` : match.state}
+                    {isWaitingForPlayers ? t('matchStateWaiting', 'waiting') : match.state === `in-progress` ? `live` : match.state}
                 </Chip>
 
                 <Chip>{t('boBestof', 'BO{{bestOf}}', { bestOf: match.bestOf })}</Chip>
+
+                {match.state === `completed` && <MatchResultChip resultType={match.resultType} />}
+
+                {match.state === `completed` && match.resultCorrected && <Chip color="sky">{t('matchResultCorrected', 'corrected')}</Chip>}
 
                 {canJoin && (
                     <Button
@@ -958,7 +1074,7 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         </span>
                     </div>
 
-                    {isParticipant && !pendingExtension && (
+                    {canRequestExtension && !pendingExtension && (
                         <Button
                             onClick={() => onRequestExtension(match.id)}
                             variant="warning" size="xs"
@@ -1017,21 +1133,29 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 </div>
             )}
 
-            {/* Timed out — no claim win on tournament page, only in lobby */}
+            {/* Timed out — the win is claimed from the match lobby */}
             {timedOut && !claimCountdown && !pendingExtension && match.state !== `completed` && (
                 <div className="mt-1.5 rounded bg-amber-300/8 px-2 py-1.5">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                         <span className="text-[9px] font-semibold text-amber-200">
-                            {t('timedOutWaitingForPlayer', 'Timed out — waiting for player')}
+                            {presentNames.length > 0
+                                ? t('timedOutPlayerWaiting', 'Timed out — {{name}} is waiting', { name: presentNames.join(`, `) })
+                                : t('timedOutNobodyJoined', 'Timed out — nobody has joined')}
                         </span>
 
-                        {isParticipant && (
+                        {canRequestExtension && (
                             <Button
                                 onClick={() => onRequestExtension(match.id)}
                                 variant="warning" size="xs"
                             >{t('requestExtensionExtensionminutesMin', 'Request Extension (+{{extensionMinutes}} min)', { extensionMinutes })}</Button>
                         )}
                     </div>
+
+                    {isViewerPresent && (
+                        <div className="mt-1 text-[9px] text-amber-100/70">
+                            {t('claimWinFromLobbyHint', 'Your opponent did not join in time. Claim the win from your match lobby.')}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -1070,19 +1194,59 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                 </div>
             )}
 
-            {canManage && match.state !== `completed` && (
+            {canAwardMatch && (
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                    {match.slots.filter((s): s is typeof s & { profileId: string } => Boolean(s.profileId) && !s.isBye).map((s) => (
+                    {playerSlots.map((s) => (
                         <Confirm
                             key={s.profileId} label={t('awardDisplayname', 'Award {{displayName}}', { displayName: s.displayName })} onConfirm={() => onWalkover(match.id, s.profileId)}
                             variant="info"
                         />
                     ))}
 
+                    {playerSlots.length === 2 && (
+                        <Confirm
+                            label={t('forfeitBothPlayers', 'Both forfeit')} onConfirm={() => onWalkover(match.id, null)}
+                            variant="destructive-soft"
+                        />
+                    )}
+
                     <Confirm
                         label="Reopen" onConfirm={() => onReopen(match.id)}
                         variant="ghost"
                     />
+                </div>
+            )}
+
+            {canCorrectResult && !isEditingResult && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                    <Button onClick={() => setIsEditingResult(true)} variant="ghost" size="xxs">
+                        {t('editResult', 'Edit result')}
+                    </Button>
+                </div>
+            )}
+
+            {canCorrectResult && isEditingResult && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                    {/* The current result is not offered again: re-confirming it would still re-record it as awarded. */}
+                    {playerSlots.filter((s) => match.resultType === `double-forfeit` || s.profileId !== match.winnerProfileId).map((s) => (
+                        <Confirm
+                            key={s.profileId} label={t('displaynameWins', '{{displayName}} wins', { displayName: s.displayName })}
+                            onConfirm={() => { setIsEditingResult(false); onCorrectResult(match.id, s.profileId); }}
+                            variant="info"
+                        />
+                    ))}
+
+                    {match.resultType !== `double-forfeit` && (
+                        <Confirm
+                            label={t('forfeitBothPlayers', 'Both forfeit')}
+                            onConfirm={() => { setIsEditingResult(false); onCorrectResult(match.id, null); }}
+                            variant="destructive-soft"
+                        />
+                    )}
+
+                    <Button onClick={() => setIsEditingResult(false)} variant="ghost" size="xxs">
+                        {t('cancel', 'Cancel')}
+                    </Button>
                 </div>
             )}
         </div>
@@ -1124,9 +1288,10 @@ function TournamentRoute() {
         toast.info(t('subscribedToName', 'Subscribed to {{name}}.', { name: tournament.name }), { toastId: `subscribed:${tournament.id}` });
     }, [tournament, shownSubscribedToast]);
 
-    const run = async (action: () => Promise<unknown>, msg: string) => {
-        try { setBusy(true); await action(); toast.success(msg, { toastId: `ok:${msg}` }); await tQ.refetch(); }
-        catch (e: unknown) { toast.error(e instanceof Error ? e.message : `Failed.`, { toastId: `err` }); }
+    /** Runs an action with toasts; resolves to whether it succeeded. */
+    const run = async (action: () => Promise<unknown>, msg: string): Promise<boolean> => {
+        try { setBusy(true); await action(); toast.success(msg, { toastId: `ok:${msg}` }); await tQ.refetch(); return true; }
+        catch (e: unknown) { toast.error(e instanceof Error ? e.message : `Failed.`, { toastId: `err` }); return false; }
         finally { setBusy(false); }
     };
 
@@ -1160,6 +1325,10 @@ function TournamentRoute() {
         const k = `${m.bracket}:${m.round}`;
         (grouped.get(k) ?? (() => { const a: TournamentMatch[] = []; grouped.set(k, a); return a; })()).push(m);
     }
+    // Swiss rounds are listed newest first so the round being played is at the top.
+    const orderedGroups = tournament?.format === `swiss`
+        ? Array.from(grouped.entries()).reverse()
+        : Array.from(grouped.entries());
     const bracketName = (b: string) =>
         b === `swiss` ? `Swiss` : b === `winners` ? `Winners` : b === `losers` ? `Losers` : b === `grand-final` ? `Grand Final` : b === `grand-final-reset` ? `GF Reset` : b === `third-place` ? `Third Place` : b;
 
@@ -1179,7 +1348,11 @@ function TournamentRoute() {
                 {!tournament ? (
                     <div className="px-4 pb-6 sm:px-6">
                         <div className="rounded-xl border border-white/8 bg-slate-900/50 p-6 text-center text-sm text-slate-500">
-                            Loading...
+                            {tQ.isError
+                                ? t('tournamentLoadFailed', 'The tournament could not be loaded. Try refreshing.')
+                                : tQ.isSuccess
+                                    ? t('tournamentMissingOrHidden', 'This tournament does not exist or is not visible to you.')
+                                    : `Loading...`}
                         </div>
                     </div>
                 ) : (
@@ -1196,9 +1369,13 @@ function TournamentRoute() {
                                 {formatBadge}
                             </Chip>
 
+                            {tournament.seedingMode === `rating` && <Chip>{t('ratingSeeds', 'Rating seeds')}</Chip>}
+                            {tournament.format === `swiss` && tournament.swissTiebreaks === `fair` && <Chip>{t('fairTiebreaks', 'Fair tiebreaks')}</Chip>}
+                            {tournament.matchJoinTimeoutMinutes > 0 && tournament.noShowHandling === `automatic` && <Chip>{t('autoNoShows', 'Auto no-shows')}</Chip>}
+
                             <div className="ml-auto flex items-center gap-2 text-[12px] tabular-nums">
-                                <span className="font-bold text-white">
-                                    {tournament.checkedInCount}
+                                <span className="font-bold text-white" title={tournament.status === `registration-open` ? t('registeredPlayers', 'Registered players') : t('checkedInPlayers', 'Checked-in players')}>
+                                    {tournament.status === `registration-open` ? tournament.registeredCount : tournament.checkedInCount}
 
                                     <span className="font-normal text-slate-500">
                                         /
@@ -1321,7 +1498,8 @@ function TournamentRoute() {
 
                             {tournament.viewer.canWithdraw && (
                                 <Confirm
-                                    label="Withdraw" onConfirm={() => void run(() => withdrawFromTournament(tournament.id), `Withdrawn.`)}
+                                    label={tournament.status === `live` ? t('withdrawAndForfeit', 'Withdraw (forfeits remaining matches)') : `Withdraw`}
+                                    onConfirm={() => void run(() => withdrawFromTournament(tournament.id), `Withdrawn.`)}
                                     variant="outline"
                                     size="sm"
                                 />
@@ -1413,12 +1591,16 @@ function TournamentRoute() {
                                         {t('bracketAppearsWhenTheTournamentGoesLive', 'Bracket appears when the tournament goes live.')}
                                     </div>
                                 ) : (
-                                    Array.from(grouped.entries()).map(([key, matches]) => {
+                                    orderedGroups.map(([key, matches]) => {
                                         const [bracket, round] = key.split(`:`);
+                                        const isCurrentRound = matches.some((m) => m.state === `ready` || m.state === `in-progress`);
                                         return (
                                             <div key={key}>
-                                                <div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600">
-                                                    {t('bracketRound', '{{bracket}} · R{{round}}', { bracket: bracketName(bracket), round })}
+                                                <div className="mb-2 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-600">
+                                                    {bracket === `swiss` && tournament.swissRoundCount
+                                                        ? t('swissRoundOfTotal', 'Round {{round}} of {{total}}', { round, total: tournament.swissRoundCount })
+                                                        : t('bracketRound', '{{bracket}} · R{{round}}', { bracket: bracketName(bracket), round })}
+                                                    {isCurrentRound && <Chip color="sky">{t('currentRound', 'current')}</Chip>}
                                                 </div>
 
                                                 <div className="grid gap-2 sm:grid-cols-2">
@@ -1432,7 +1614,8 @@ function TournamentRoute() {
                                                             pendingExtension={tournament.extensionRequests.find((r) => r.matchId === m.id && (r.gameNumber ?? 1) === m.currentGameNumber && r.status === `pending`) ?? null}
                                                             claimWinExpiresAt={m.claimWinExpiresAt ?? null}
                                                             onOpen={(sid) => void nav(`/session/${sid}`)}
-                                                            onWalkover={(mid, pid) => void run(() => awardTournamentWalkover(tournament.id, mid, pid), `Walkover.`)}
+                                                            onWalkover={(mid, pid) => void run(() => awardTournamentWalkover(tournament.id, mid, pid), pid ? `Walkover.` : t('bothPlayersForfeited', 'Both players forfeited.'))}
+                                                            onCorrectResult={(mid, pid) => void run(() => correctTournamentMatchResult(tournament.id, mid, pid), t('resultUpdated', 'Result updated.'))}
                                                             onReopen={(mid) => void run(() => reopenTournamentMatch(tournament.id, mid), `Reopened.`)}
                                                             onRequestExtension={(mid) => void run(() => requestMatchExtension(tournament.id, mid), `Extension requested.`)}
                                                             onResolveExtension={(eid, approve) => void run(() => resolveExtension(tournament.id, eid, approve), approve ? t('extensionApproved', 'Extension approved.') : `Extension denied.`)}
@@ -1464,7 +1647,7 @@ function TournamentRoute() {
                                                         {s.rank}
                                                     </span>
 
-                                                    <span className="flex-1 truncate text-[12px] font-medium text-white">
+                                                    <span className={`flex-1 truncate text-[12px] font-medium ${s.isDropped ? `text-slate-500 line-through decoration-slate-600` : `text-white`}`}>
                                                         {s.displayName}
                                                     </span>
 
@@ -1473,6 +1656,10 @@ function TournamentRoute() {
                                                     </span>
 
                                                     <span className="text-[10px] tabular-nums text-slate-500">{t('winsLosses2', '{{wins}}-{{losses}}', { wins: s.wins, losses: s.losses })}</span>
+
+                                                    <span className="w-16 text-right text-[9px] tabular-nums text-slate-600" title={t('buchholzSonnebornberger', 'Buchholz / Sonneborn-Berger')}>
+                                                        {t('tiebreakValues', 'BH {{buchholz}} · SB {{sonnebornBerger}}', { buchholz: s.buchholz, sonnebornBerger: s.sonnebornBerger })}
+                                                    </span>
                                                 </div>
                                             ))}
                                         </div>
@@ -1496,6 +1683,7 @@ function TournamentRoute() {
                                         canManage={tournament.viewer.canManage} isLive={tournament.status === `live`}
                                         viewerProfileId={acct?.id ?? null}
                                         tournamentId={tournament.id} tournamentStatus={tournament.status} tournamentStartedAt={tournament.startedAt}
+                                        seedingMode={tournament.seedingMode}
                                         onRemove={(pid) => void run(() => removeTournamentParticipant(tournament.id, pid), tournament.status === `live` ? `Disqualified.` : `Removed.`)}
                                         onSwapSelect={setSwapTarget} swapTarget={swapTarget}
                                     />
@@ -1537,10 +1725,15 @@ function TournamentRoute() {
             {editOpen && tournament && (
                 <TournamentEditorDialog
                     onClose={() => setEditOpen(false)}
-                    formKey={t('idupdatedat', '{{id}}:{{updatedAt}}', { id: tournament.id, updatedAt: tournament.updatedAt })} title={t('editTournament', 'Edit Tournament')} description=""
+                    formKey={tournament.id} title={t('editTournament', 'Edit Tournament')} description=""
                     defaultRequest={buildCreateTournamentRequestFromDetail(tournament)}
                     submitLabel="Save" submitting={busy}
-                    onSubmit={(request) => void run(() => updateTournament(tournament.id, request), `Updated.`).then(() => setEditOpen(false))}
+                    onSubmit={(request) => void run(() => updateTournament(tournament.id, {
+                        ...request,
+                        // Cleared fields mean "reset": no description, automatic round count.
+                        description: request.description ?? null,
+                        swissRoundCount: request.swissRoundCount ?? null,
+                    }), `Updated.`).then((saved) => { if (saved) setEditOpen(false); })}
                 />
             )}
 
