@@ -4,6 +4,7 @@ import type {
     TournamentParticipant,
     TournamentSeriesSettings,
     TournamentStanding,
+    TournamentSwissTiebreaks,
 } from '@ih3t/shared';
 
 import { getPairingKey, selectSwissRoundPairing } from './tournamentSwissPairing';
@@ -196,54 +197,71 @@ function pairWithRelaxedRematches(
     return null;
 }
 
+type SwissGame = {
+    opponentProfileId: string | null;
+    won: boolean;
+    /** False for byes, walkovers and double forfeits. */
+    played: boolean;
+};
+
 /**
  * Ranks the given participants by match points, then Buchholz, Sonneborn-Berger, wins and seed.
  * Tiebreaks use the real results of every opponent, including opponents who later withdrew.
  * Withdrawn and disqualified players stay listed but rank after everyone who finished the event.
+ *
+ * With `fair` tiebreaks every unplayed round (bye, walkover, double forfeit) counts as a game
+ * against an opponent with the player's own score, so receiving a bye or a forfeit no longer
+ * lowers a player's Buchholz, and head-to-head results break remaining ties before seed.
  */
 export function calculateSwissStandings(
     participants: TournamentParticipant[],
     matches: TournamentMatch[],
+    tiebreaks: TournamentSwissTiebreaks = `classic`,
 ): TournamentStanding[] {
     const statsByProfileId = new Map<string, {
         wins: number;
         losses: number;
         opponents: string[];
         defeatedOpponents: string[];
+        games: SwissGame[];
         hadBye: boolean;
     }>();
     const getStats = (profileId: string) => {
         let stats = statsByProfileId.get(profileId);
         if (!stats) {
-            stats = { wins: 0, losses: 0, opponents: [], defeatedOpponents: [], hadBye: false };
+            stats = { wins: 0, losses: 0, opponents: [], defeatedOpponents: [], games: [], hadBye: false };
             statsByProfileId.set(profileId, stats);
         }
 
         return stats;
     };
 
-    for (const match of matches) {
-        if (match.bracket !== `swiss` || match.state !== `completed`) {
-            continue;
-        }
-
+    const swissMatches = matches.filter((match) => match.bracket === `swiss` && match.state === `completed`);
+    for (const match of swissMatches) {
         const slotProfileIds = match.slots.map((slot) => slot.profileId).filter((profileId): profileId is string => Boolean(profileId));
         if (match.resultType === `double-forfeit`) {
             // Nobody played, so both players take a loss and neither counts as the other's opponent.
             for (const profileId of slotProfileIds) {
-                getStats(profileId).losses += 1;
+                const stats = getStats(profileId);
+                stats.losses += 1;
+                stats.games.push({ opponentProfileId: null, won: false, played: false });
             }
             continue;
         }
 
+        const played = match.resultType === `played`;
         if (slotProfileIds.length === 2) {
             const [leftProfileId, rightProfileId] = slotProfileIds;
             getStats(leftProfileId).opponents.push(rightProfileId);
             getStats(rightProfileId).opponents.push(leftProfileId);
+            getStats(leftProfileId).games.push({ opponentProfileId: rightProfileId, won: match.winnerProfileId === leftProfileId, played });
+            getStats(rightProfileId).games.push({ opponentProfileId: leftProfileId, won: match.winnerProfileId === rightProfileId, played });
         }
 
         if (match.resultType === `bye` && match.winnerProfileId) {
-            getStats(match.winnerProfileId).hadBye = true;
+            const stats = getStats(match.winnerProfileId);
+            stats.hadBye = true;
+            stats.games.push({ opponentProfileId: null, won: true, played: false });
         }
 
         if (match.winnerProfileId) {
@@ -260,7 +278,27 @@ export function calculateSwissStandings(
     }
 
     const getWins = (profileId: string) => statsByProfileId.get(profileId)?.wins ?? 0;
-    const standings = participants
+    const getTiebreaks = (profileId: string) => {
+        const stats = statsByProfileId.get(profileId);
+        if (!stats) {
+            return { buchholz: 0, sonnebornBerger: 0 };
+        }
+
+        if (tiebreaks === `classic`) {
+            return {
+                buchholz: stats.opponents.reduce((sum, opponentProfileId) => sum + getWins(opponentProfileId), 0),
+                sonnebornBerger: stats.defeatedOpponents.reduce((sum, opponentProfileId) => sum + getWins(opponentProfileId), 0),
+            };
+        }
+
+        const getOpponentScore = (game: SwissGame) => game.played && game.opponentProfileId ? getWins(game.opponentProfileId) : stats.wins;
+        return {
+            buchholz: stats.games.reduce((sum, game) => sum + getOpponentScore(game), 0),
+            sonnebornBerger: stats.games.filter((game) => game.won).reduce((sum, game) => sum + getOpponentScore(game), 0),
+        };
+    };
+
+    const sorted = participants
         .filter((participant) => participant.status !== `removed`)
         .map((participant) => {
             const stats = statsByProfileId.get(participant.profileId);
@@ -270,8 +308,7 @@ export function calculateSwissStandings(
                 matchPoints: wins,
                 wins,
                 losses: stats?.losses ?? 0,
-                buchholz: (stats?.opponents ?? []).reduce((sum, opponentProfileId) => sum + getWins(opponentProfileId), 0),
-                sonnebornBerger: (stats?.defeatedOpponents ?? []).reduce((sum, opponentProfileId) => sum + getWins(opponentProfileId), 0),
+                ...getTiebreaks(participant.profileId),
                 hadBye: stats?.hadBye ?? false,
                 isDropped: participant.status === `dropped`,
                 rank: 0,
@@ -286,6 +323,7 @@ export function calculateSwissStandings(
             || (left.participant.seed ?? Number.MAX_SAFE_INTEGER) - (right.participant.seed ?? Number.MAX_SAFE_INTEGER)
             || left.participant.registeredAt - right.participant.registeredAt
             || left.participant.displayName.localeCompare(right.participant.displayName));
+    const standings = tiebreaks === `fair` ? applyHeadToHead(sorted, swissMatches) : sorted;
 
     return standings.map((entry, index) => ({
         rank: index + 1,
@@ -302,14 +340,53 @@ export function calculateSwissStandings(
     }));
 }
 
+/**
+ * Within each group of players still tied on points, Buchholz and Sonneborn-Berger, ranks players by
+ * how many of the decided matches among the group they won. Ties within the group keep their order.
+ */
+function applyHeadToHead(sorted: StandingEntry[], matches: TournamentMatch[]): StandingEntry[] {
+    const isTied = (left: StandingEntry, right: StandingEntry) => left.isDropped === right.isDropped
+        && left.matchPoints === right.matchPoints
+        && left.buchholz === right.buchholz
+        && left.sonnebornBerger === right.sonnebornBerger;
+
+    const result: StandingEntry[] = [];
+    for (let start = 0; start < sorted.length;) {
+        let end = start + 1;
+        while (end < sorted.length && isTied(sorted[start]!, sorted[end]!)) {
+            end += 1;
+        }
+
+        const group = sorted.slice(start, end);
+        if (group.length > 1) {
+            const members = new Set(group.map((entry) => entry.participant.profileId));
+            const headToHeadWins = new Map<string, number>();
+            for (const match of matches) {
+                if (match.winnerProfileId && match.loserProfileId && members.has(match.winnerProfileId) && members.has(match.loserProfileId)) {
+                    headToHeadWins.set(match.winnerProfileId, (headToHeadWins.get(match.winnerProfileId) ?? 0) + 1);
+                }
+            }
+
+            group.sort((left, right) =>
+                (headToHeadWins.get(right.participant.profileId) ?? 0) - (headToHeadWins.get(left.participant.profileId) ?? 0));
+        }
+
+        result.push(...group);
+        start = end;
+    }
+
+    return result;
+}
+
 export function buildSwissRoundMatches(options: {
     participants: SeededSwissParticipant[];
     existingMatches: TournamentMatch[];
     round: number;
     totalRounds: number;
     seriesSettings: TournamentSeriesSettings;
+    tiebreaks?: TournamentSwissTiebreaks;
 }): TournamentMatch[] {
-    const standings = calculateSwissStandings(options.participants, options.existingMatches);
+    const standings = calculateSwissStandings(options.participants, options.existingMatches, options.tiebreaks);
     const standingByProfileId = new Map(standings.map((standing) => [standing.profileId, standing] as const));
     const playedPairings = buildPlayedPairings(options.existingMatches);
 

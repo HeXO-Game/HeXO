@@ -57,6 +57,18 @@ export type TournamentKind = z.infer<typeof zTournamentKind>;
 export const zTournamentFormat = z.enum([`single-elimination`, `double-elimination`, `swiss`]);
 export type TournamentFormat = z.infer<typeof zTournamentFormat>;
 
+/** How players are seeded when the tournament starts. */
+export const zTournamentSeedingMode = z.enum([`registration`, `rating`]);
+export type TournamentSeedingMode = z.infer<typeof zTournamentSeedingMode>;
+
+/**
+ * `classic`: match points, Buchholz, Sonneborn-Berger, seed.
+ * `fair`: byes and forfeits count as a game against an opponent with the player's own score,
+ * and head-to-head results break ties before seed.
+ */
+export const zTournamentSwissTiebreaks = z.enum([`classic`, `fair`]);
+export type TournamentSwissTiebreaks = z.infer<typeof zTournamentSwissTiebreaks>;
+
 export const zTournamentVisibility = z.enum([`public`, `private`]);
 export type TournamentVisibility = z.infer<typeof zTournamentVisibility>;
 
@@ -347,6 +359,8 @@ export const zTournamentSummary = z.object({
     waitlistClosesAt: zTimestamp.nullable(),
     waitlistedCount: z.number().int()
         .nonnegative(),
+    seedingMode: zTournamentSeedingMode,
+    swissTiebreaks: zTournamentSwissTiebreaks,
 });
 export type TournamentSummary = z.infer<typeof zTournamentSummary>;
 
@@ -481,6 +495,8 @@ export const zCreateTournamentRequest = z.object({
         .optional(),
     whitelist: z.array(zIdentifier).optional(),
     blacklist: z.array(zIdentifier).optional(),
+    seedingMode: zTournamentSeedingMode.optional(),
+    swissTiebreaks: zTournamentSwissTiebreaks.optional(),
 });
 export type CreateTournamentRequest = z.infer<typeof zCreateTournamentRequest>;
 
@@ -532,6 +548,8 @@ export const zUpdateTournamentRequest = z.object({
         .optional(),
     whitelist: z.array(zIdentifier).nullable().optional(),
     blacklist: z.array(zIdentifier).nullable().optional(),
+    seedingMode: zTournamentSeedingMode.optional(),
+    swissTiebreaks: zTournamentSwissTiebreaks.optional(),
 });
 export type UpdateTournamentRequest = z.infer<typeof zUpdateTournamentRequest>;
 

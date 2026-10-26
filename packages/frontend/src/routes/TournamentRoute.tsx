@@ -238,9 +238,9 @@ function sortParticipants(
     return sorted;
 }
 
-function ParticipantList({ participants, standings, canManage, isLive, viewerProfileId, tournamentId, tournamentStatus, tournamentStartedAt, onRemove, onSwapSelect, swapTarget }: {
+function ParticipantList({ participants, standings, canManage, isLive, viewerProfileId, tournamentId, tournamentStatus, tournamentStartedAt, seedingMode, onRemove, onSwapSelect, swapTarget }: {
     participants: TournamentParticipant[]; standings: TournamentStanding[]; canManage: boolean; isLive: boolean; viewerProfileId: string | null
-    tournamentId: string; tournamentStatus: string; tournamentStartedAt: number | null
+    tournamentId: string; tournamentStatus: string; tournamentStartedAt: number | null; seedingMode: TournamentDetail[`seedingMode`]
     onRemove: (id: string) => void; onSwapSelect: (id: string | null) => void; swapTarget: string | null
 }) {
     const { t } = useTranslation()
@@ -253,7 +253,7 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
     const [dragIdx, setDragIdx] = useState<number | null>(null);
 
     const isPreStart = tournamentStatus === `registration-open` || tournamentStatus === `check-in-open`;
-    const canSeed = canManage && isPreStart;
+    const canSeed = canManage && isPreStart && seedingMode !== `rating`;
 
     const isPreStartDrop = (p: TournamentParticipant) =>
         p.status === `dropped` && p.removedAt !== null && (tournamentStartedAt === null || p.removedAt < tournamentStartedAt);
@@ -404,6 +404,9 @@ function ParticipantList({ participants, standings, canManage, isLive, viewerPro
                             variant="warning" size="xs" className="ml-auto">
                             {t('seed', 'Seed')}
                         </Button>
+                    )}
+                    {isPreStart && seedingMode === `rating` && (
+                        <span className="ml-auto text-[9px] text-slate-500">{t('seededByRatingAtStart', 'Seeded by rating at start')}</span>
                     )}
                 </div>
             )}
@@ -1259,6 +1262,9 @@ function TournamentRoute() {
                                 {formatBadge}
                             </Chip>
 
+                            {tournament.seedingMode === `rating` && <Chip>{t('ratingSeeds', 'Rating seeds')}</Chip>}
+                            {tournament.format === `swiss` && tournament.swissTiebreaks === `fair` && <Chip>{t('fairTiebreaks', 'Fair tiebreaks')}</Chip>}
+
                             <div className="ml-auto flex items-center gap-2 text-[12px] tabular-nums">
                                 <span className="font-bold text-white">
                                     {tournament.checkedInCount}
@@ -1560,6 +1566,7 @@ function TournamentRoute() {
                                         canManage={tournament.viewer.canManage} isLive={tournament.status === `live`}
                                         viewerProfileId={acct?.id ?? null}
                                         tournamentId={tournament.id} tournamentStatus={tournament.status} tournamentStartedAt={tournament.startedAt}
+                                        seedingMode={tournament.seedingMode}
                                         onRemove={(pid) => void run(() => removeTournamentParticipant(tournament.id, pid), tournament.status === `live` ? `Disqualified.` : `Removed.`)}
                                         onSwapSelect={setSwapTarget} swapTarget={swapTarget}
                                     />

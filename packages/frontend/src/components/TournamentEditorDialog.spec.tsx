@@ -294,3 +294,33 @@ test(`dialog supports cancellation and blocks dismissal while submitting`, async
     await page.getByRole('button', { name: 'Cancel' }).click();
     await expect.poll(() => closed).toBe(true);
 });
+
+test(`submits the rating seeding and fair tiebreak options`, async ({ mount, page }) => {
+    let submitted: CreateTournamentRequest | null = null;
+
+    await mount(
+        <TournamentEditorDialogComponent
+            onClose={() => {}}
+            formKey="create"
+            title="Create Tournament"
+            description=""
+            defaultRequest={{
+                ...baseRequest,
+                format: `swiss`,
+                maxPlayers: 12,
+            }}
+            submitLabel="Create"
+            submitting={false}
+            onSubmit={(request) => {
+                submitted = request;
+            }}
+        />,
+    );
+
+    await page.getByRole(`button`, { name: `Rating`, exact: true }).click();
+    await page.getByRole(`button`, { name: `Fair`, exact: true }).click();
+    await page.getByRole(`button`, { name: `Create` }).click();
+
+    await expect.poll(() => submitted?.seedingMode ?? null).toBe(`rating`);
+    await expect.poll(() => submitted?.swissTiebreaks ?? null).toBe(`fair`);
+});

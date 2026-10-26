@@ -5,7 +5,9 @@ import type {
     TournamentDetail,
     TournamentFormat,
     TournamentGameTimeControl,
+    TournamentSeedingMode,
     TournamentSeriesBestOf,
+    TournamentSwissTiebreaks,
 } from '@ih3t/shared';
 import { TOURNAMENT_BRACKET_SIZES, TOURNAMENT_SERIES_BEST_OF_VALUES } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
@@ -47,6 +49,8 @@ type TournamentFormState = {
     roundDelayMinutes: string
     waitlistEnabled: boolean
     waitlistCheckInMinutes: string
+    seedingMode: TournamentSeedingMode
+    swissTiebreaks: TournamentSwissTiebreaks
 };
 
 /* ── tiny reusable pieces ───────────────────────────── */
@@ -139,6 +143,8 @@ export function buildCreateTournamentRequestFromDetail(tournament: TournamentDet
         roundDelayMinutes: tournament.roundDelayMinutes,
         waitlistEnabled: tournament.waitlistEnabled,
         waitlistCheckInMinutes: tournament.waitlistCheckInMinutes,
+        seedingMode: tournament.seedingMode,
+        swissTiebreaks: tournament.swissTiebreaks,
     };
 }
 
@@ -202,6 +208,8 @@ function init(r: CreateTournamentRequest): TournamentFormState {
         roundDelayMinutes: String(r.roundDelayMinutes ?? 0),
         waitlistEnabled: r.waitlistEnabled ?? false,
         waitlistCheckInMinutes: String(r.waitlistCheckInMinutes ?? 5),
+        seedingMode: r.seedingMode ?? `registration`,
+        swissTiebreaks: r.swissTiebreaks ?? `classic`,
     };
 }
 
@@ -304,6 +312,8 @@ function TournamentEditorDialog({
             roundDelayMinutes: Math.max(0, Math.min(60, Number.parseInt(f.roundDelayMinutes, 10) || 0)),
             waitlistEnabled: f.waitlistEnabled,
             waitlistCheckInMinutes: f.waitlistEnabled ? Math.max(1, Math.min(30, Number.parseInt(f.waitlistCheckInMinutes, 10) || 5)) : undefined,
+            seedingMode: f.seedingMode,
+            swissTiebreaks: f.swissTiebreaks,
         });
     };
 
@@ -483,6 +493,35 @@ function TournamentEditorDialog({
                                 <span className="text-[10px] text-slate-500">min</span>
                             </Row>
                         )}
+                    </div>
+
+                    {/* Rules */}
+                    <div className="mb-4 space-y-2 rounded-lg border border-white/6 bg-slate-950/30 px-3 py-2.5">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            <Row label={t('seeding', 'Seeding')} inline>
+                                <Pill value={f.seedingMode}
+                                    options={[{ value: `registration`, label: t('seedingRegistration', 'Registration order') }, { value: `rating`, label: t('seedingRating', 'Rating') }]}
+                                    onChange={(v) => set(`seedingMode`, v)} />
+                            </Row>
+
+                            {f.format === `swiss` && (
+                                <Row label={t('tiebreaks', 'Tiebreaks')} inline>
+                                    <Pill value={f.swissTiebreaks}
+                                        options={[{ value: `classic`, label: t('tiebreaksClassic', 'Classic') }, { value: `fair`, label: t('tiebreaksFair', 'Fair') }]}
+                                        onChange={(v) => set(`swissTiebreaks`, v)} />
+                                </Row>
+                            )}
+                        </div>
+
+                        <p className="text-[10px] leading-4 text-slate-500">
+                            {f.seedingMode === `rating`
+                                ? t('seedingRatingHint', 'Players are seeded by their rating when the tournament starts.')
+                                : t('seedingRegistrationHint', 'Players are seeded in registration order unless you reorder them.')}
+                            {f.format === `swiss` && ` `}
+                            {f.format === `swiss` && (f.swissTiebreaks === `fair`
+                                ? t('tiebreaksFairHint', 'Byes and forfeits count as a game against an opponent with the player\'s own score, and head-to-head results break ties before seed.')
+                                : t('tiebreaksClassicHint', 'Ties are broken by Buchholz, then Sonneborn-Berger, then seed.'))}
+                        </p>
                     </div>
 
                     {/* Estimated duration */}

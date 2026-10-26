@@ -16,7 +16,7 @@ import { SessionError } from '../session/sessionManager';
 import { buildDoubleEliminationMatches } from './tournamentBracket';
 import type { TournamentRecord } from './tournamentRepository';
 import { TournamentService } from './tournamentService';
-import { buildSwissRoundMatches } from './tournamentSwiss';
+import { buildSwissRoundMatches, calculateSwissStandings } from './tournamentSwiss';
 
 function createParticipant(overrides: Partial<TournamentParticipant> & Pick<TournamentParticipant, `profileId` | `displayName`>): TournamentParticipant {
     return {
@@ -120,6 +120,8 @@ function createTournament(overrides: Partial<TournamentRecord> = {}): Tournament
         organizers: overrides.organizers ? [...overrides.organizers] : [],
         whitelist: overrides.whitelist ? structuredClone(overrides.whitelist) : [],
         blacklist: overrides.blacklist ? structuredClone(overrides.blacklist) : [],
+        seedingMode: overrides.seedingMode ?? `registration`,
+        swissTiebreaks: overrides.swissTiebreaks ?? `classic`,
         finalStandings: overrides.finalStandings ? structuredClone(overrides.finalStandings) : null,
     };
 }
@@ -382,6 +384,17 @@ class FakeAuthRepository {
     }
 }
 
+class FakeEloRepository {
+    readonly ratings = new Map<string, number>();
+
+    async getPlayerRatings(profileIds: string[]): Promise<Map<string, { eloScore: number; gameCount: number }>> {
+        return new Map(profileIds.flatMap((profileId) => {
+            const eloScore = this.ratings.get(profileId);
+            return eloScore === undefined ? [] : [[profileId, { eloScore, gameCount: 10 }] as const];
+        }));
+    }
+}
+
 class FakeTournamentEventSink {
     readonly tournamentNotifications: Array<{ profileId: string; kind: string }> = [];
     readonly sessionClaimWins: Array<{ sessionId: string; state: unknown | null }> = [];
@@ -426,6 +439,7 @@ function createService(initialTournament: TournamentRecord) {
         sessionManager as never,
         new FakeGameHistoryRepository() as never,
         pino({ level: `silent` }),
+        new FakeEloRepository() as never,
     );
     service.setEventHandlers(eventSink);
 
@@ -444,6 +458,7 @@ function createServiceWithOverrides(options: {
     eventSink?: FakeTournamentEventSink;
     authRepository?: FakeAuthRepository;
     gameHistoryRepository?: FakeGameHistoryRepository;
+    eloRepository?: FakeEloRepository;
 }) {
     const repository = options.repository;
     const sessionManager = options.sessionManager ?? new FakeSessionManager();
@@ -455,6 +470,7 @@ function createServiceWithOverrides(options: {
         sessionManager as never,
         (options.gameHistoryRepository ?? new FakeGameHistoryRepository()) as never,
         pino({ level: `silent` }),
+        (options.eloRepository ?? new FakeEloRepository()) as never,
     );
     service.setEventHandlers(eventSink);
 
@@ -2545,8 +2561,11 @@ async function startTournamentWithPlayers(options: {
     thirdPlaceMatchEnabled?: boolean;
     grandFinalResetEnabled?: boolean;
     swissRoundCount?: number | null;
+    overrides?: Partial<TournamentRecord>;
+    eloRepository?: FakeEloRepository;
 }) {
     const tournament = createTournament({
+        ...options.overrides,
         status: `check-in-open`,
         format: options.format,
         maxPlayers: 32,
@@ -2561,7 +2580,7 @@ async function startTournamentWithPlayers(options: {
         participants: createCheckedInParticipants(options.playerCount),
     });
     const repository = new FakeTournamentRepository(tournament);
-    const context = createServiceWithOverrides({ repository });
+    const context = createServiceWithOverrides({ repository, eloRepository: options.eloRepository });
     await context.service.startTournament(tournament.id, kOrganizer);
     return { ...context, tournamentId: tournament.id };
 }
@@ -3007,4 +3026,82 @@ test(`swiss results can be corrected after the next round was paired`, async () 
     const detail = await context.service.getTournamentDetail(context.tournamentId, null);
     assert.equal(detail!.standings.find((entry) => entry.profileId === `player-2`)?.wins, 1);
     assert.equal(detail!.standings.find((entry) => entry.profileId === `player-1`)?.wins, 0);
+});
+
+test(`rating seeding orders the field by Elo when the tournament starts`, async () => {
+    const eloRepository = new FakeEloRepository();
+    eloRepository.ratings.set(`player-4`, 1_600);
+    eloRepository.ratings.set(`player-3`, 1_500);
+    eloRepository.ratings.set(`player-1`, 900);
+    // player-2 is unrated and counts as a new player (1000).
+    const context = await startTournamentWithPlayers({
+        format: `single-elimination`,
+        playerCount: 4,
+        overrides: { seedingMode: `rating` },
+        eloRepository,
+    });
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const seedOf = (profileId: string) => tournament.participants.find((participant) => participant.profileId === profileId)?.seed;
+    assert.deepEqual([`player-4`, `player-3`, `player-2`, `player-1`].map(seedOf), [1, 2, 3, 4]);
+    assert.deepEqual(tournament.matches.find((match) => match.id === `match-winners-1-1`)?.slots.map((slot) => slot.profileId), [`player-4`, `player-1`]);
+    assert.ok(tournament.activity.some((entry) => entry.type === `seeded-by-rating`));
+});
+
+test(`manual seed reordering is rejected when seeding follows ratings`, async () => {
+    const tournament = createTournament({
+        status: `registration-open`,
+        seedingMode: `rating`,
+        participants: createCheckedInParticipants(2),
+    });
+    const { service } = createService(tournament);
+
+    await assert.rejects(service.reorderSeeds(tournament.id, [`player-2`, `player-1`], kOrganizer), /by rating/);
+});
+
+function createSwissResult(round: number, order: number, winner: number, loser: number, resultType: TournamentMatch[`resultType`] = `played`): TournamentMatch {
+    return createMatch({
+        id: `match-swiss-${round}-${order}`,
+        bracket: `swiss`,
+        round,
+        order,
+        state: `completed`,
+        resultType,
+        slots: [createPlayerSlot(`player-${winner}`, winner), createPlayerSlot(`player-${loser}`, loser)],
+        winnerProfileId: `player-${winner}`,
+        loserProfileId: `player-${loser}`,
+    });
+}
+
+test(`fair tiebreaks do not penalize players for a forfeit win`, () => {
+    const participants = createCheckedInParticipants(4);
+    const matches = [
+        createSwissResult(1, 1, 1, 2),
+        createSwissResult(1, 2, 3, 4, `walkover`),
+        createSwissResult(2, 1, 1, 3),
+        createSwissResult(2, 2, 2, 4),
+    ];
+
+    const classic = calculateSwissStandings(participants, matches, `classic`);
+    const fair = calculateSwissStandings(participants, matches, `fair`);
+
+    // Classic counts the absent player-4 (0 wins) as player-3's opponent: tied with player-2, seed decides.
+    assert.deepEqual(classic.map((standing) => standing.profileId), [`player-1`, `player-2`, `player-3`, `player-4`]);
+    // Fair counts the forfeit as a game against an opponent with player-3's own score.
+    assert.equal(fair.find((standing) => standing.profileId === `player-3`)?.buchholz, 3);
+    assert.deepEqual(fair.map((standing) => standing.profileId), [`player-1`, `player-3`, `player-2`, `player-4`]);
+});
+
+test(`fair tiebreaks use head-to-head before seed`, () => {
+    const participants = createCheckedInParticipants(6);
+    const matches = [
+        createSwissResult(1, 1, 2, 1), createSwissResult(1, 2, 4, 3), createSwissResult(1, 3, 5, 6),
+        createSwissResult(2, 1, 3, 1), createSwissResult(2, 2, 5, 2), createSwissResult(2, 3, 6, 4),
+        createSwissResult(3, 1, 4, 1), createSwissResult(3, 2, 6, 2), createSwissResult(3, 3, 3, 5),
+    ];
+
+    const rank = (tiebreaks: `classic` | `fair`) => calculateSwissStandings(participants, matches, tiebreaks).map((standing) => standing.profileId);
+    // player-3 and player-4 are tied on points, Buchholz and Sonneborn-Berger; player-4 won their game.
+    assert.deepEqual(rank(`classic`).slice(2, 4), [`player-3`, `player-4`]);
+    assert.deepEqual(rank(`fair`).slice(2, 4), [`player-4`, `player-3`]);
 });

@@ -33,6 +33,7 @@ import type { Logger } from 'pino';
 import { inject, injectable } from 'tsyringe';
 
 import { type AccountUserProfile, AuthRepository } from '../auth/authRepository';
+import { DEFAULT_PLAYER_ELO, EloRepository } from '../elo/eloRepository';
 import { ROOT_LOGGER } from '../logger';
 import { type RequestClientInfo } from '../network/clientInfo';
 import { GameHistoryRepository } from '../persistence/gameHistoryRepository';
@@ -402,7 +403,7 @@ function calculateTournamentStandings(tournament: TournamentRecord): TournamentS
     );
 
     if (tournament.format === `swiss`) {
-        return calculateSwissStandings(standingsParticipants, tournament.matches);
+        return calculateSwissStandings(standingsParticipants, tournament.matches, tournament.swissTiebreaks);
     }
 
     return calculateEliminationStandings(tournament, standingsParticipants);
@@ -616,6 +617,8 @@ function toSummary(tournament: TournamentRecord): TournamentSummary {
         waitlistOpensAt: tournament.waitlistOpensAt,
         waitlistClosesAt: tournament.waitlistClosesAt,
         waitlistedCount: tournament.participants.filter((p) => p.status === `waitlisted`).length,
+        seedingMode: tournament.seedingMode,
+        swissTiebreaks: tournament.swissTiebreaks,
     };
 }
 
@@ -670,6 +673,7 @@ export class TournamentService {
         @inject(SessionManager) private readonly sessionManager: SessionManager,
         @inject(GameHistoryRepository) private readonly gameHistoryRepository: GameHistoryRepository,
         @inject(ROOT_LOGGER) rootLogger: Logger,
+        @inject(EloRepository) private readonly eloRepository: EloRepository,
     ) {
         this.logger = rootLogger.child({ component: `tournament-service` });
     }
@@ -883,6 +887,14 @@ export class TournamentService {
                 tournament.waitlistEnabled = update.waitlistEnabled;
             }
 
+            if (update.seedingMode !== undefined) {
+                tournament.seedingMode = update.seedingMode;
+            }
+
+            if (update.swissTiebreaks !== undefined) {
+                tournament.swissTiebreaks = update.swissTiebreaks;
+            }
+
             if (update.waitlistCheckInMinutes !== undefined) {
                 tournament.waitlistCheckInMinutes = update.waitlistCheckInMinutes ?? tournament.waitlistCheckInMinutes;
             }
@@ -990,6 +1002,10 @@ export class TournamentService {
 
             if (tournament.status !== `registration-open` && tournament.status !== `check-in-open`) {
                 throw new SessionError(`Seeds can only be reordered before the tournament starts.`);
+            }
+
+            if (tournament.seedingMode === `rating`) {
+                throw new SessionError(`This tournament seeds players by rating when it starts.`);
             }
 
             const activeParticipants = tournament.participants.filter(isActiveParticipant);
@@ -1693,6 +1709,8 @@ export class TournamentService {
             organizers: [],
             whitelist: [],
             blacklist: [],
+            seedingMode: request.seedingMode ?? `registration`,
+            swissTiebreaks: request.swissTiebreaks ?? `classic`,
             finalStandings: null,
             activity: [
                 createTournamentActivity(
@@ -1718,10 +1736,15 @@ export class TournamentService {
             throw new SessionError(`Tournament check-in must be open before the event can start.`);
         }
 
-        const checkedInParticipants = this.getCheckedInParticipants(tournament);
+        let checkedInParticipants = this.getCheckedInParticipants(tournament);
         const minimumParticipantsToStart = getMinimumParticipantsToStart(tournament.format);
         if (checkedInParticipants.length < minimumParticipantsToStart) {
             throw new SessionError(`At least ${minimumParticipantsToStart} checked-in player${minimumParticipantsToStart === 1 ? `` : `s`} are required to start the tournament.`);
+        }
+
+        if (tournament.seedingMode === `rating`) {
+            checkedInParticipants = await this.sortByRating(checkedInParticipants);
+            tournament.activity.unshift(createTournamentActivity(null, `seeded-by-rating`, `Seeded ${checkedInParticipants.length} players by rating.`));
         }
 
         const seededParticipants = checkedInParticipants.map((participant, index) => ({
@@ -1782,6 +1805,7 @@ export class TournamentService {
                 round: 1,
                 totalRounds: swissRoundCount,
                 seriesSettings: tournament.seriesSettings,
+                tiebreaks: tournament.swissTiebreaks,
             });
         }
 
@@ -1799,6 +1823,16 @@ export class TournamentService {
                 message: `${tournament.name} has started.`,
             } satisfies TournamentNotificationEvent);
         }
+    }
+
+    /** Highest rated first; players without a rating count as new players. Ties keep their current order. */
+    private async sortByRating(participants: TournamentParticipant[]): Promise<TournamentParticipant[]> {
+        const ratings = await this.eloRepository.getPlayerRatings(participants.map((participant) => participant.profileId));
+        const getElo = (profileId: string) => ratings.get(profileId)?.eloScore ?? DEFAULT_PLAYER_ELO;
+        return participants
+            .map((participant, index) => ({ participant, index }))
+            .sort((left, right) => getElo(right.participant.profileId) - getElo(left.participant.profileId) || left.index - right.index)
+            .map(({ participant }) => participant);
     }
 
     private getTournamentBracketSize(entrants: number, maxPlayers: number): number {
@@ -2193,6 +2227,7 @@ export class TournamentService {
                         round: currentRound + 1,
                         totalRounds,
                         seriesSettings: tournament.seriesSettings,
+                        tiebreaks: tournament.swissTiebreaks,
                     });
                     tournament.matches.push(...nextRoundMatches);
                     tournament.activity.unshift(createTournamentActivity(null, `swiss-round-created`, `Created Swiss round ${currentRound + 1}.`));
