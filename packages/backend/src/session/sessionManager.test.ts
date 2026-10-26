@@ -115,3 +115,47 @@ test(`aborting a tournament game forfeits it instead of restarting the pairing`,
     assert.equal(session.finishReason, `surrender`);
     assert.equal(session.winningPlayerId, `opponent`);
 });
+
+function createTournamentSession(sessionManager: SessionManager, sessionId: SessionId, tournament: Record<string, unknown>): ServerGameSession {
+    const session = createGameSession(sessionId, {
+        visibility: `private`,
+        rated: false,
+        timeControl: { mode: `unlimited` },
+        firstPlayer: `host`,
+    }, {
+        tournament: { tournamentId: `tournament-1`, matchId: `match-1`, matchJoinDeadlineAt: null, matchOutcome: null, ...tournament } as never,
+    });
+    (sessionManager as unknown as {
+        sessions: Map<string, ServerGameSession>;
+    }).sessions.set(sessionId, session);
+    return session;
+}
+
+test(`tournament join countdown is measured when the session is sent, not when it was created`, () => {
+    const sessionManager = createSessionManager({ finishGame: async () => {} } as never);
+    const sessionId = `session-late-join` as SessionId;
+    createTournamentSession(sessionManager, sessionId, {
+        // Snapshot taken when the lobby was created: the full five minutes.
+        matchJoinTimeoutInMs: 300_000,
+        matchJoinDeadlineAt: Date.now() + 120_000,
+    });
+
+    const remaining = sessionManager.getSessionInfo(sessionId)?.tournament?.matchJoinTimeoutInMs ?? 0;
+    assert.ok(remaining <= 120_000 && remaining > 115_000, `expected about two minutes left, got ${remaining}`);
+});
+
+test(`closing a tournament match ends a game that is still being played`, async () => {
+    const sessionManager = createSessionManager({ finishGame: async () => {} } as never);
+    const sessionId = `session-closed-match` as SessionId;
+    const session = createTournamentSession(sessionManager, sessionId, {});
+    session.state = `in-game`;
+    session.startedAt = Date.now() - 1_000;
+    session.gameId = `game-closed-match`;
+
+    sessionManager.closeTournamentMatchSession(sessionId, { kind: `resolved`, resultType: `walkover`, winnerProfileId: `profile-a` });
+    await session.lock.runExclusive(async () => {});
+
+    assert.deepEqual(session.tournament?.matchOutcome, { kind: `resolved`, resultType: `walkover`, winnerProfileId: `profile-a` });
+    assert.equal(session.state, `finished`);
+    assert.equal(session.finishReason, `terminated`);
+});

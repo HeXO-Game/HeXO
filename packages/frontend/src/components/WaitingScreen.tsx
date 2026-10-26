@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import type { LobbyOptions, MatchClaimWinState, SessionTournamentInfo } from '@ih3t/shared';
+import type { LobbyOptions, MatchClaimWinState, SessionTournamentInfo, TournamentMatchOutcome } from '@ih3t/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 
@@ -7,6 +7,7 @@ import { useLiveGameStore } from '../liveGameStore';
 import { claimMatchWin, requestMatchExtension } from '../query/tournamentClient';
 import { formatTimeControl } from '../utils/gameTimeControl';
 import ScreenFooter from './ScreenFooter';
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 
 type WaitingScreenProps = {
@@ -202,6 +203,39 @@ function TournamentTimerSection({
     );
 }
 
+function getMatchOutcomeText(t: TFunction, outcome: TournamentMatchOutcome, localProfileId: string | null, opponentName: string): { title: string; message: string } {
+    if (outcome.kind === `restarted`) {
+        return {
+            title: t('tournamentMatchRestarted', 'Match restarted'),
+            message: t('tournamentMatchRestartedMessage', 'An organizer restarted this match. Rejoin it from the tournament page.'),
+        };
+    }
+
+    if (outcome.kind === `cancelled`) {
+        return {
+            title: t('tournamentCancelled', 'Tournament cancelled'),
+            message: t('tournamentCancelledMessage', 'This tournament was cancelled, so the match will not be played.'),
+        };
+    }
+
+    if (outcome.winnerProfileId === null) {
+        return {
+            title: t('tournamentMatchDecided', 'Match decided'),
+            message: t('tournamentMatchDecidedWithoutWinner', 'This match was decided without a winner.'),
+        };
+    }
+
+    return outcome.winnerProfileId === localProfileId
+        ? {
+            title: t('tournamentMatchYouAdvance', 'You advance'),
+            message: t('tournamentMatchWonWithoutPlaying', '{{opponentName}} did not play this match, so it was awarded to you.', { opponentName }),
+        }
+        : {
+            title: t('tournamentMatchDecided', 'Match decided'),
+            message: t('tournamentMatchAwardedToOpponent', 'The match was awarded to {{opponentName}}.', { opponentName }),
+        };
+}
+
 function WaitingScreen({
     sessionId,
     playerCount,
@@ -220,16 +254,22 @@ function WaitingScreen({
         ? (localProfileId === tournament.leftProfileId ? tournament.rightDisplayName : tournament.leftDisplayName)
         : null;
     const showOfflinePlayButton = !isTournament && gameOptions.visibility === `public` && playerCount < 2 && Boolean(onPlayOffline);
+    const matchOutcome = tournament?.matchOutcome ?? null;
+    const outcomeText = matchOutcome
+        ? getMatchOutcomeText(t, matchOutcome, localProfileId, opponentName ?? t('yourOpponent', 'Your opponent'))
+        : null;
 
     return (
         <div className="flex flex-col justify-between h-full p-4 mx-8">
             <div className="flex flex-col min-w-30 w-full max-w-2xl self-center my-auto pb-[10svh]">
                 <h2 className="font-black uppercase tracking-[0.08em] text-white mt-6 text-4xl">
-                    {t('waitingForVal', 'Waiting for {{val}}', { val: isTournament ? opponentName ?? `opponent` : `another player` })}
+                    {outcomeText
+                        ? outcomeText.title
+                        : t('waitingForVal', 'Waiting for {{val}}', { val: isTournament ? opponentName ?? `opponent` : `another player` })}
                 </h2>
 
                 <p className="mt-4 text-slate-200 text-base leading-7">
-                    {isTournament
+                    {outcomeText ? outcomeText.message : isTournament
                         ? t('yourOpponentHasBeenNotifiedTheMatchWillStartAutomaticallyOnceTheyJoin', 'Your opponent has been notified. The match will start automatically once they join.')
                         : gameOptions.visibility === `private`
                             ? t('keepThisSessionOpenAndShareTheInviteLinkWithThePlayerYouWantToJoinTheMatchWillLaunchAutomaticallyOnceTheyArrive', 'Keep this session open and share the invite link with the player you want to join. The match will launch automatically once they arrive.')
@@ -289,7 +329,15 @@ function WaitingScreen({
                         )}
                     </div>
 
-                    {isTournament && playerCount < 2 && (
+                    {isTournament && matchOutcome && (
+                        <div className="mt-6">
+                            <Button onClick={onCancel} variant="default" size="lg" className="w-full">
+                                {t('returnToTournament', 'Return To Tournament')}
+                            </Button>
+                        </div>
+                    )}
+
+                    {isTournament && !matchOutcome && playerCount < 2 && (
                         <TournamentTimerSection
                             tournament={tournament}
                             claimWinState={claimWinState}

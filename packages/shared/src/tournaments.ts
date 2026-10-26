@@ -559,6 +559,22 @@ export const zReorderSeedsRequest = z.object({
 });
 export type ReorderSeedsRequest = z.infer<typeof zReorderSeedsRequest>;
 
+/** Set on a match lobby once the match no longer depends on the game played in it. */
+export const zTournamentMatchOutcome = z.discriminatedUnion(`kind`, [
+    z.object({
+        kind: z.literal(`resolved`),
+        resultType: zTournamentMatchResultType,
+        winnerProfileId: zIdentifier.nullable(),
+    }),
+    z.object({
+        kind: z.literal(`restarted`),
+    }),
+    z.object({
+        kind: z.literal(`cancelled`),
+    }),
+]);
+export type TournamentMatchOutcome = z.infer<typeof zTournamentMatchOutcome>;
+
 export const zSessionTournamentInfo = z.object({
     tournamentId: zIdentifier,
     tournamentName: z.string(),
@@ -580,10 +596,13 @@ export const zSessionTournamentInfo = z.object({
     matchExtensionMs: z.number().int()
         .nonnegative(),
     pendingExtension: z.boolean().default(false),
+    /** Time left to join, computed by the server whenever the session info is sent. */
     matchJoinTimeoutInMs: z.number().int()
         .nonnegative()
         .nullable()
         .default(null),
+    matchJoinDeadlineAt: zTimestamp.nullable().default(null),
+    matchOutcome: zTournamentMatchOutcome.nullable().default(null),
     leftDisplayName: z.string().nullable(),
     rightDisplayName: z.string().nullable(),
     leftProfileId: zIdentifier.nullable()

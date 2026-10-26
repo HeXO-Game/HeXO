@@ -1,5 +1,5 @@
 import { Button, buttonVariants } from '@/components/ui/button';
-import type { SessionPlayer, SessionStateFinished } from '@ih3t/shared';
+import type { SessionPlayer, SessionStateFinished, TournamentMatchOutcome } from '@ih3t/shared';
 import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router';
 
@@ -15,6 +15,8 @@ type GameOverlayFinishedPlayerProps = {
     players: SessionPlayer[],
     localPlayerId: string,
     isTournament?: boolean,
+    /** Set when an organizer decided the tournament match while this game was still running. */
+    tournamentMatchOutcome?: TournamentMatchOutcome | null,
 
     onReturnToLobby: () => void
     onRequestRematch?: () => void
@@ -121,15 +123,19 @@ function GameOverlayFinishedPlayer({
     players,
     localPlayerId,
     isTournament,
+    tournamentMatchOutcome,
 
     onReturnToLobby,
     onRequestRematch,
 }: Readonly<GameOverlayFinishedPlayerProps>) {
     const { t } = useTranslation()
-    const isAborted = state.finishReason === `aborted`;
-    const isDraw = state.finishReason === `draw-agreement`;
-    const isWin = state.winningPlayerId === localPlayerId;
     const currentPlayer = players.find(player => player.id === localPlayerId) ?? null;
+    const awardedOutcome = tournamentMatchOutcome?.kind === `resolved` ? tournamentMatchOutcome : null;
+    const isAborted = state.finishReason === `aborted`;
+    const isDraw = state.finishReason === `draw-agreement` || (awardedOutcome !== null && awardedOutcome.winnerProfileId === null);
+    const isWin = awardedOutcome
+        ? awardedOutcome.winnerProfileId !== null && awardedOutcome.winnerProfileId === currentPlayer?.profileId
+        : state.winningPlayerId === localPlayerId;
 
     const eloAdjustment = currentPlayer?.ratingAdjustment
         ? isDraw ? 0 : isWin ? currentPlayer.ratingAdjustment.eloGain : currentPlayer.ratingAdjustment.eloLoss : 0;
@@ -189,11 +195,13 @@ function GameOverlayFinishedPlayer({
                             </h1>
 
                             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg">
-                                {isAborted && state.abortedByPlayerId
-                                    ? state.abortedByPlayerId === localPlayerId
-                                        ? t('youAbortedGame', 'You aborted the game. No ELO adjustments were made.')
-                                        : t('opponentAbortedGame', 'The other player aborted the game. No ELO adjustments were made.')
-                                    : getPlayerResultMessage(isDraw ? `draw` : isWin ? `win` : `lose`, state.finishReason)}
+                                {awardedOutcome
+                                    ? t('tournamentMatchDecidedByOrganizer', 'An organizer decided this match while the game was running, so this game does not count.')
+                                    : isAborted && state.abortedByPlayerId
+                                        ? state.abortedByPlayerId === localPlayerId
+                                            ? t('youAbortedGame', 'You aborted the game. No ELO adjustments were made.')
+                                            : t('opponentAbortedGame', 'The other player aborted the game. No ELO adjustments were made.')
+                                        : getPlayerResultMessage(isDraw ? `draw` : isWin ? `win` : `lose`, state.finishReason)}
                             </p>
 
                             {eloSummary && (

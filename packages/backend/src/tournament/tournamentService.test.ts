@@ -324,10 +324,10 @@ class FakeSessionManager {
         }
     }
 
-    clearSessionTournamentInfo(sessionId: string) {
+    closeTournamentMatchSession(sessionId: string, outcome: Record<string, unknown>) {
         const session = this.sessions.get(sessionId);
-        if (session) {
-            session.tournament = null;
+        if (session?.tournament) {
+            session.tournament.matchOutcome = outcome;
         }
     }
 }
@@ -530,7 +530,7 @@ test(`awardWalkover rejects winners that are not assigned to the match`, async (
     assert.equal(stored.matches[0]?.state, `ready`);
 });
 
-test(`awardWalkover clears the old session tournament context`, async () => {
+test(`awardWalkover tells the old lobby how the match was decided`, async () => {
     const organizer = createAccountUser({ id: `organizer-1`, username: `Organizer` });
     const tournament = createTournament({
         status: `live`,
@@ -585,7 +585,12 @@ test(`awardWalkover clears the old session tournament context`, async () => {
 
     await service.awardWalkover(tournament.id, `match-winners-1-1`, `player-1`, organizer);
 
-    assert.equal(sessionManager.sessions.get(`session-award-walkover`)?.tournament, null);
+    // The lobby keeps its tournament context and tells the players how the match was decided.
+    assert.deepEqual(sessionManager.sessions.get(`session-award-walkover`)?.tournament?.matchOutcome, {
+        kind: `resolved`,
+        resultType: `walkover`,
+        winnerProfileId: `player-1`,
+    });
 });
 
 test(`reopenMatch rejects pending matches that do not have an active session to reopen`, async () => {
@@ -1272,7 +1277,7 @@ test(`cancelled tournaments reject organizer match actions`, async () => {
     );
 });
 
-test(`cancelTournament clears session tournament context and pending extensions`, async () => {
+test(`cancelTournament closes match lobbies and pending extensions`, async () => {
     const organizer = createAccountUser({ id: `organizer-1`, username: `Organizer` });
     const now = Date.now();
     const tournament = createTournament({
@@ -1344,7 +1349,7 @@ test(`cancelTournament clears session tournament context and pending extensions`
     const extension = stored.extensionRequests.find((entry) => entry.id === `extension-cancelled`);
     assert.equal(stored.status, `cancelled`);
     assert.equal(extension?.status, `denied`);
-    assert.equal(sessionManager.sessions.get(`session-cancelled-context`)?.tournament, null);
+    assert.deepEqual(sessionManager.sessions.get(`session-cancelled-context`)?.tournament?.matchOutcome, { kind: `cancelled` });
 });
 
 test(`cancelled tournaments appear in the past tournament listing`, async () => {
@@ -2292,7 +2297,11 @@ test(`resolveClaimWin clears the session claim state after awarding the walkover
         sessionId: `session-claim`,
         state: null,
     });
-    assert.equal(sessionManager.sessions.get(`session-claim`)?.tournament, null);
+    assert.deepEqual(sessionManager.sessions.get(`session-claim`)?.tournament?.matchOutcome, {
+        kind: `resolved`,
+        resultType: `walkover`,
+        winnerProfileId: user.id,
+    });
 });
 
 test(`getTournamentDetail does not overwrite a newer live tournament update`, async () => {

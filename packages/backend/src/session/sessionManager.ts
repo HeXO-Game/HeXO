@@ -19,6 +19,7 @@ import type {
     SessionInfo,
     SessionState,
     SessionTournamentInfo,
+    TournamentMatchOutcome,
 } from "@ih3t/shared";
 import {
     ABORT_GAME_MAX_MOVES,
@@ -1074,7 +1075,9 @@ export class SessionManager {
             session.finishedAt !== null &&
             Date.now() - session.finishedAt < 30_000;
         const shouldKeepTournamentSession =
-            session.tournament !== null && session.state !== `finished`;
+            session.tournament !== null &&
+            session.tournament.matchOutcome === null &&
+            session.state !== `finished`;
         if (
             !shouldKeepTournamentSession &&
             !isTournamentSessionAwaitingReconciliation &&
@@ -1528,10 +1531,26 @@ export class SessionManager {
         }
     }
 
-    clearSessionTournamentInfo(sessionId: string): void {
+    /**
+     * Marks the tournament match behind a session as decided, restarted or cancelled without this game.
+     * Players keep the tournament context so they can see what happened; a game that is still running
+     * is ended because its result no longer counts.
+     */
+    closeTournamentMatchSession(sessionId: string, outcome: TournamentMatchOutcome): void {
         const session = this.sessions.get(sessionId);
-        if (session) {
-            session.tournament = null;
+        if (!session?.tournament) {
+            return;
+        }
+
+        session.tournament.matchOutcome = outcome;
+        session.tournament.matchJoinDeadlineAt = null;
+        session.tournament.matchJoinTimeoutInMs = null;
+        this.emitSessionUpdated(session, [`tournament`]);
+
+        if (session.state === `in-game`) {
+            void this.terminateActiveSession(sessionId).catch((error: unknown) => {
+                this.logger.warn({ err: error, event: `session.tournament-close.failed`, sessionId }, `Failed to end a game whose tournament match was closed`);
+            });
         }
     }
 
@@ -1834,7 +1853,12 @@ export class SessionManager {
                 displayNames: session.chatNames,
                 messages: session.chatMessages.map(cloneChatMessage),
             },
-            tournament: session.tournament ? { ...session.tournament } : null,
+            tournament: session.tournament ? {
+                ...session.tournament,
+                matchJoinTimeoutInMs: session.tournament.matchJoinDeadlineAt !== null
+                    ? Math.max(0, session.tournament.matchJoinDeadlineAt - Date.now())
+                    : session.tournament.matchJoinTimeoutInMs,
+            } : null,
         };
     }
 

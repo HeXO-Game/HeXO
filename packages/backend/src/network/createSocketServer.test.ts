@@ -502,6 +502,8 @@ test(`watch-session can follow multiple rooms and unwatch stops further updates`
                     matchExtensionMs: 300_000,
                     pendingExtension: false,
                     matchJoinTimeoutInMs: 300_000,
+                    matchJoinDeadlineAt: null,
+                    matchOutcome: null,
                     leftDisplayName: `Alpha`,
                     rightDisplayName: `Bravo`,
                     leftProfileId: `profile-alpha`,

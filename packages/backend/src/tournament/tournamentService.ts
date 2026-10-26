@@ -14,6 +14,7 @@ import {
     type TournamentFormat,
     type TournamentListingResponse,
     type TournamentMatch,
+    type TournamentMatchOutcome,
     type TournamentMatchSlot,
     type TournamentNotificationEvent,
     type TournamentParticipant,
@@ -1335,7 +1336,7 @@ export class TournamentService {
             match.state = `ready`;
             match.startedAt = null;
             if (oldSessionId) {
-                this.clearSessionTournamentInfo(oldSessionId);
+                this.closeMatchSession(oldSessionId, { kind: `restarted` });
             }
             tournament.updatedAt = Date.now();
             tournament.activity.unshift(createTournamentActivity(user, `match-reopened`, `Reopened round ${match.round}, match ${match.order}.`));
@@ -2346,7 +2347,7 @@ export class TournamentService {
         match.sessionId = null;
 
         if (sessionId && resultType !== `played`) {
-            this.clearSessionTournamentInfo(sessionId);
+            this.closeMatchSession(sessionId, { kind: `resolved`, resultType: resultType ?? `walkover`, winnerProfileId });
         }
 
         if (match.bracket === `grand-final` && tournament.seriesSettings.grandFinalResetEnabled) {
@@ -2648,7 +2649,7 @@ export class TournamentService {
             }
 
             if (match.sessionId) {
-                this.clearSessionTournamentInfo(match.sessionId);
+                this.closeMatchSession(match.sessionId, { kind: `restarted` });
             }
             match.sessionId = null;
             match.startedAt = null;
@@ -2709,6 +2710,8 @@ export class TournamentService {
             matchExtensionMs: getMatchExtensionMinutes(tournament) * 60_000,
             pendingExtension: hasPendingExtensionForMatchGame(tournament, match.id, match.currentGameNumber),
             matchJoinTimeoutInMs,
+            matchJoinDeadlineAt: timeoutMs > 0 ? matchStartedAt + timeoutMs : null,
+            matchOutcome: null,
             leftDisplayName: match.slots[0].displayName,
             rightDisplayName: match.slots[1].displayName,
             leftProfileId: match.slots[0].profileId,
@@ -2731,12 +2734,8 @@ export class TournamentService {
         }
     }
 
-    private clearSessionTournamentInfo(sessionId: string): void {
-        this.sessionManager.clearSessionTournamentInfo(sessionId);
-        this.emitSessionUpdated({
-            sessionId: sessionId as SessionInfo[`id`],
-            session: { tournament: null },
-        });
+    private closeMatchSession(sessionId: string, outcome: TournamentMatchOutcome): void {
+        this.sessionManager.closeTournamentMatchSession(sessionId, outcome);
     }
 
     private notifyMatchReady(tournament: TournamentRecord, match: TournamentMatch) {
@@ -3336,7 +3335,7 @@ export class TournamentService {
                 continue;
             }
 
-            this.clearSessionTournamentInfo(match.sessionId);
+            this.closeMatchSession(match.sessionId, { kind: `cancelled` });
         }
     }
 
