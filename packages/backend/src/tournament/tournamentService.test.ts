@@ -8,6 +8,7 @@ import type {
     TournamentMatchSlot,
     TournamentParticipant,
 } from '@ih3t/shared';
+import pino from 'pino';
 
 import type { AccountUserProfile } from '../auth/authRepository';
 import { SessionError } from '../session/sessionManager';
@@ -279,6 +280,7 @@ type FakeSession = {
         status: `lobby` | `in-game` | `finished`;
         gameId?: string;
         winningPlayerId?: string | null;
+        finishReason?: string;
     };
     tournament: Record<string, unknown> | null;
 };
@@ -418,6 +420,7 @@ function createService(initialTournament: TournamentRecord) {
         authRepository as never,
         sessionManager as never,
         new FakeGameHistoryRepository() as never,
+        pino({ level: `silent` }),
     );
     service.setEventHandlers(eventSink);
 
@@ -446,6 +449,7 @@ function createServiceWithOverrides(options: {
         authRepository as never,
         sessionManager as never,
         (options.gameHistoryRepository ?? new FakeGameHistoryRepository()) as never,
+        pino({ level: `silent` }),
     );
     service.setEventHandlers(eventSink);
 
@@ -2391,4 +2395,126 @@ test(`unsubscribeFromTournament does not overwrite newer live tournament updates
     assert.deepEqual(stored.organizers, []);
     assert.equal(match?.state, `completed`);
     assert.equal(match?.winnerProfileId, `player-1`);
+});
+
+function createCheckedInParticipants(count: number): TournamentParticipant[] {
+    return Array.from({ length: count }, (_, index) => createParticipant({
+        profileId: `player-${index + 1}`,
+        displayName: `Player ${index + 1}`,
+        checkedInAt: index + 1,
+        status: `checked-in`,
+        checkInState: `checked-in`,
+        seed: index + 1,
+    }));
+}
+
+function createPlayerSlot(profileId: string, seed: number | null = null): TournamentMatchSlot {
+    return createSlot({ profileId, displayName: profileId, seed });
+}
+
+test(`games that finish without a winner are replayed instead of wedging the match`, async () => {
+    const tournament = createTournament({
+        status: `live`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        participants: createCheckedInParticipants(2),
+        matches: [
+            createMatch({
+                id: `match-swiss-1-1`,
+                bracket: `swiss`,
+                round: 1,
+                order: 1,
+                state: `in-progress`,
+                sessionId: `terminated-session`,
+                startedAt: Date.now(),
+                slots: [createPlayerSlot(`player-1`, 1), createPlayerSlot(`player-2`, 2)],
+            }),
+        ],
+    });
+    const repository = new FakeTournamentRepository(tournament);
+    const sessionManager = new FakeSessionManager();
+    sessionManager.sessions.set(`terminated-session`, {
+        id: `terminated-session`,
+        players: [
+            { id: `left`, profileId: `player-1`, connection: { status: `disconnected` } },
+            { id: `right`, profileId: `player-2`, connection: { status: `disconnected` } },
+        ],
+        state: { status: `finished`, gameId: `game-1`, winningPlayerId: null, finishReason: `terminated` },
+        tournament: {},
+    });
+    const { service } = createServiceWithOverrides({ repository, sessionManager });
+
+    await service.reconcileAllTournaments();
+
+    const stored = repository.getSync(tournament.id);
+    assert.equal(stored.matches[0]!.state, `ready`);
+    assert.equal(stored.matches[0]!.sessionId, null);
+    assert.deepEqual(stored.matches[0]!.gameIds, []);
+    assert.ok(stored.activity.some((entry) => entry.type === `game-replayed`));
+
+    await service.reconcileAllTournaments();
+
+    const replayed = repository.getSync(tournament.id).matches[0]!;
+    assert.equal(replayed.state, `in-progress`);
+    assert.ok(replayed.sessionId);
+    assert.notEqual(replayed.sessionId, `terminated-session`);
+
+    const detail = await service.getTournamentDetail(tournament.id, null);
+    assert.equal(detail?.status, `live`);
+});
+
+class ThrowingSessionManager extends FakeSessionManager {
+    override getSessionInfo(sessionId: string): FakeSession | null {
+        if (sessionId === `broken-session`) {
+            throw new Error(`boom`);
+        }
+
+        return super.getSessionInfo(sessionId);
+    }
+}
+
+test(`reconcileAllTournaments keeps going when one tournament fails`, async () => {
+    const broken = createTournament({
+        id: `tournament-broken`,
+        status: `live`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        participants: createCheckedInParticipants(2),
+        matches: [
+            createMatch({
+                id: `match-swiss-1-1`,
+                bracket: `swiss`,
+                round: 1,
+                order: 1,
+                state: `in-progress`,
+                sessionId: `broken-session`,
+                startedAt: Date.now(),
+                slots: [createPlayerSlot(`player-1`, 1), createPlayerSlot(`player-2`, 2)],
+            }),
+        ],
+    });
+    const healthy = createTournament({
+        id: `tournament-healthy`,
+        status: `live`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        participants: createCheckedInParticipants(2),
+        matches: [
+            createMatch({
+                id: `match-swiss-1-1`,
+                bracket: `swiss`,
+                round: 1,
+                order: 1,
+                state: `pending`,
+                slots: [createPlayerSlot(`player-1`, 1), createPlayerSlot(`player-2`, 2)],
+            }),
+        ],
+    });
+    const repository = new FakeTournamentRepository(broken);
+    repository.saveSync(healthy);
+    const { service } = createServiceWithOverrides({ repository, sessionManager: new ThrowingSessionManager() });
+
+    await service.reconcileAllTournaments();
+
+    assert.equal(repository.getSync(healthy.id).matches[0]!.state, `in-progress`);
 });

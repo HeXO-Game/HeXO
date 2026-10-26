@@ -28,9 +28,11 @@ import {
     type SessionUpdatedEvent,
 } from '@ih3t/shared';
 import { Mutex } from 'async-mutex';
+import type { Logger } from 'pino';
 import { inject, injectable } from 'tsyringe';
 
 import { type AccountUserProfile, AuthRepository } from '../auth/authRepository';
+import { ROOT_LOGGER } from '../logger';
 import { type RequestClientInfo } from '../network/clientInfo';
 import { GameHistoryRepository } from '../persistence/gameHistoryRepository';
 import { SessionError, SessionManager } from '../session/sessionManager';
@@ -588,13 +590,17 @@ export class TournamentService {
     private readonly activeClaimWins = new Map<string, ActiveClaimWin>();
     private readonly missingSessionFirstSeenAt = new Map<string, number>();
     private eventHandlers: TournamentServiceEventHandlers = {};
+    private readonly logger: Logger;
 
     constructor(
         @inject(TournamentRepository) private readonly tournamentRepository: TournamentRepository,
         @inject(AuthRepository) private readonly authRepository: AuthRepository,
         @inject(SessionManager) private readonly sessionManager: SessionManager,
         @inject(GameHistoryRepository) private readonly gameHistoryRepository: GameHistoryRepository,
-    ) { }
+        @inject(ROOT_LOGGER) rootLogger: Logger,
+    ) {
+        this.logger = rootLogger.child({ component: `tournament-service` });
+    }
 
     setEventHandlers(eventHandlers: TournamentServiceEventHandlers): void {
         this.eventHandlers = eventHandlers;
@@ -1413,14 +1419,19 @@ export class TournamentService {
     async reconcileAllTournaments(): Promise<void> {
         const tournaments = await this.tournamentRepository.listReconciliableTournaments();
         for (const tournament of tournaments) {
-            await this.withTournamentLock(tournament.id, async () => {
-                const latest = await this.requireTournament(tournament.id);
-                const previousUpdatedAt = latest.updatedAt;
-                await this.reconcileTournamentRecord(latest);
-                if (latest.updatedAt !== previousUpdatedAt) {
-                    this.broadcastTournamentUpdate(latest);
-                }
-            });
+            /* A failure in one tournament must not stall reconciliation for every tournament after it. */
+            try {
+                await this.withTournamentLock(tournament.id, async () => {
+                    const latest = await this.requireTournament(tournament.id);
+                    const previousUpdatedAt = latest.updatedAt;
+                    await this.reconcileTournamentRecord(latest);
+                    if (latest.updatedAt !== previousUpdatedAt) {
+                        this.broadcastTournamentUpdate(latest);
+                    }
+                });
+            } catch (error: unknown) {
+                this.logger.error({ err: error, event: `tournament.reconcile.failed`, tournamentId: tournament.id }, `Failed to reconcile tournament`);
+            }
         }
     }
 
@@ -2024,7 +2035,23 @@ export class TournamentService {
                     }
                     const winnerProfileId = this.resolveProfileIdFromFinishedSession(session, session.state.winningPlayerId);
                     if (!winnerProfileId) {
-                        throw new SessionError(`Failed to resolve the winner for a tournament match.`);
+                        /* Terminated games, or games both players left, have no winner. Replay the game instead of wedging the match. */
+                        this.logger.warn({
+                            event: `tournament.game.no-result`,
+                            tournamentId: tournament.id,
+                            matchId: match.id,
+                            sessionId: match.sessionId,
+                            finishReason: session.state.finishReason,
+                        }, `Tournament game finished without a winner; replaying it`);
+                        tournament.activity.unshift(createTournamentActivity(
+                            null,
+                            `game-replayed`,
+                            `${describeTournamentMatch(match)} game ${match.currentGameNumber} ended without a result and will be replayed.`,
+                        ));
+                        match.sessionId = null;
+                        match.state = `ready`;
+                        match.startedAt = null;
+                        return true;
                     }
 
                     const appliedGame = this.applyFinishedGameToMatch(tournament, match, session.state.gameId, winnerProfileId);
