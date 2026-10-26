@@ -39,6 +39,7 @@ function createTournament(overrides: Partial<SessionTournamentInfo> = {}): Sessi
     matchJoinTimeoutInMs: 0,
     matchJoinDeadlineAt: null,
     matchOutcome: null,
+    autoClaimWin: false,
     leftDisplayName: 'Alpha',
     rightDisplayName: 'Bravo',
     leftProfileId: 'profile-alpha',

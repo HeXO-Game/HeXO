@@ -123,6 +123,8 @@ export const zTournamentDropReason = z.enum([
     `withdrew`,
     `disqualified`,
     `no-shows`,
+    /** Both players of a bracket match were forfeited by an organizer. */
+    `forfeited`,
 ]);
 export type TournamentDropReason = z.infer<typeof zTournamentDropReason>;
 
@@ -651,6 +653,8 @@ export const zSessionTournamentInfo = z.object({
         .default(null),
     matchJoinDeadlineAt: zTimestamp.nullable().default(null),
     matchOutcome: zTournamentMatchOutcome.nullable().default(null),
+    /** The tournament starts the win claim itself once the join timer runs out. */
+    autoClaimWin: z.boolean().default(false),
     leftDisplayName: z.string().nullable(),
     rightDisplayName: z.string().nullable(),
     leftProfileId: zIdentifier.nullable()

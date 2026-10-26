@@ -55,7 +55,8 @@ function showTournamentMessageToast(
     if (sessionId) {
         // Notifications about a match lobby take the player there when clicked.
         toast.info(`${message} ${i18next.t('clickToJoinMatch', 'Click to join.')}`, {
-            toastId: `tournament:${tournamentId}:${kind}:${message}`,
+            // A reopened match gets a new lobby with the same message; keep its toast separate.
+            toastId: `tournament:${tournamentId}:${kind}:${sessionId}`,
             autoClose: 15_000,
             onClick: () => navigateToSession(sessionId),
         });

@@ -1116,6 +1116,11 @@ export class SessionManager {
                     break;
                 }
 
+                if (session.tournament?.matchOutcome) {
+                    /* the tournament match was already decided without this game */
+                    break;
+                }
+
                 /* start game */
                 const startedAt = Date.now();
                 const gameId = await this.ensureGameHistory(session);

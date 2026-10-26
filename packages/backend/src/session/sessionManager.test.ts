@@ -159,3 +159,19 @@ test(`closing a tournament match ends a game that is still being played`, async 
     assert.equal(session.state, `finished`);
     assert.equal(session.finishReason, `terminated`);
 });
+
+test(`a tournament lobby whose match was decided does not start a game when both players arrive`, async () => {
+    const sessionManager = createSessionManager({ finishGame: async () => {} } as never);
+    const sessionId = `session-decided-match` as SessionId;
+    const session = createTournamentSession(sessionManager, sessionId, {
+        matchOutcome: { kind: `resolved`, resultType: `walkover`, winnerProfileId: `profile-a` },
+    });
+    session.players = [
+        { id: `winner`, profileId: `profile-a`, connection: { status: `connected`, socketId: `socket-a` } },
+        { id: `late-opponent`, profileId: `profile-b`, connection: { status: `connected`, socketId: `socket-b` } },
+    ] as never;
+
+    await (sessionManager as unknown as { tickSession: (session: ServerGameSession) => Promise<void> }).tickSession(session);
+
+    assert.equal(session.state, `lobby`);
+});

@@ -94,6 +94,7 @@ test('hides draw actions for tournament matches', async ({ mount }) => {
             matchJoinTimeoutInMs: 300000,
             matchJoinDeadlineAt: null,
             matchOutcome: null,
+            autoClaimWin: false,
             leftDisplayName: 'Alpha',
             rightDisplayName: 'Bravo',
             leftProfileId: 'profile-alpha',

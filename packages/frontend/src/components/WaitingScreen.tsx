@@ -144,14 +144,20 @@ function TournamentTimerSection({
                     </p>
                 </div>
 
-                <Button
-                    type="button"
-                    onClick={() => void handleClaimWin()}
-                    disabled={isClaimPending}
-                    variant="success" size="lg" className="w-full"
-                >
-                    {isClaimPending ? `Claiming...` : `Claim Win`}
-                </Button>
+                {tournament.autoClaimWin ? (
+                    <p className="text-center text-sm text-slate-300">
+                        {t('winAwardedAutomatically', 'Stay here: the win is awarded to you automatically in a moment.')}
+                    </p>
+                ) : (
+                    <Button
+                        type="button"
+                        onClick={() => void handleClaimWin()}
+                        disabled={isClaimPending}
+                        variant="success" size="lg" className="w-full"
+                    >
+                        {isClaimPending ? `Claiming...` : `Claim Win`}
+                    </Button>
+                )}
             </div>
         );
     }
@@ -181,7 +187,7 @@ function getMatchOutcomeText(t: TFunction, outcome: TournamentMatchOutcome, loca
     if (outcome.kind === `restarted`) {
         return {
             title: t('tournamentMatchRestarted', 'Match restarted'),
-            message: t('tournamentMatchRestartedMessage', 'An organizer restarted this match. Rejoin it from the tournament page.'),
+            message: t('tournamentMatchRestartedMessage', 'This match was reset by an organizer. Check the tournament page for your next match.'),
         };
     }
 

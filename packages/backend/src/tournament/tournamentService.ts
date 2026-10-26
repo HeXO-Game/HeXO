@@ -10,6 +10,7 @@ import {
     TOURNAMENT_BRACKET_SIZES,
     type TournamentActivityEntry,
     type TournamentDetail,
+    type TournamentDropReason,
     type TournamentExtensionRequest,
     type TournamentFormat,
     type TournamentListingResponse,
@@ -1361,7 +1362,7 @@ export class TournamentService {
                 throw new SessionError(`Only unresolved matches can be awarded.`);
             }
 
-            this.completeMatchSet(tournament, match, winnerProfileId, winnerProfileId === null ? `double-forfeit` : `walkover`);
+            this.completeMatchSet(tournament, match, winnerProfileId, winnerProfileId === null ? `double-forfeit` : `walkover`, `forfeited`);
             tournament.activity.unshift(createTournamentActivity(
                 user,
                 `match-walkover`,
@@ -1416,7 +1417,7 @@ export class TournamentService {
             if (match.resultType === `double-forfeit` && tournament.format !== `swiss`) {
                 for (const slot of match.slots) {
                     const participant = getParticipantSnapshot(tournament, slot.profileId);
-                    if (participant?.status === `dropped` && participant.dropReason === `no-shows`) {
+                    if (participant?.status === `dropped` && (participant.dropReason === `no-shows` || participant.dropReason === `forfeited`)) {
                         participant.status = `checked-in`;
                         participant.removedAt = null;
                         participant.dropReason = null;
@@ -1424,7 +1425,7 @@ export class TournamentService {
                 }
             }
 
-            this.completeMatchSet(tournament, match, winnerProfileId, winnerProfileId === null ? `double-forfeit` : `walkover`);
+            this.completeMatchSet(tournament, match, winnerProfileId, winnerProfileId === null ? `double-forfeit` : `walkover`, `forfeited`);
             if (tournament.status === `completed`) {
                 tournament.status = `live`;
                 tournament.completedAt = null;
@@ -2532,7 +2533,7 @@ export class TournamentService {
      * Neither player gets the win. In brackets both players are out of the tournament, so they are
      * dropped and the match feeds byes onwards; in swiss both simply take a loss.
      */
-    private completeDoubleForfeit(tournament: TournamentRecord, match: TournamentMatch) {
+    private completeDoubleForfeit(tournament: TournamentRecord, match: TournamentMatch, dropReason: TournamentDropReason) {
         const sessionId = match.sessionId;
         match.winnerProfileId = null;
         match.loserProfileId = null;
@@ -2553,7 +2554,7 @@ export class TournamentService {
             if (participant && isActiveParticipant(participant)) {
                 participant.status = `dropped`;
                 participant.removedAt = Date.now();
-                participant.dropReason = `no-shows`;
+                participant.dropReason = dropReason;
             }
         }
     }
@@ -2572,14 +2573,19 @@ export class TournamentService {
         match.sessionId = null;
     }
 
+    /**
+     * @param doubleForfeitDropReason recorded on bracket players removed by a double forfeit
+     *   (a `null` winner): `no-shows` when nobody joined, `forfeited` when an organizer decided it.
+     */
     private completeMatchSet(
         tournament: TournamentRecord,
         match: TournamentMatch,
         winnerProfileId: string | null,
         resultType: TournamentMatch[`resultType`],
+        doubleForfeitDropReason: TournamentDropReason = `no-shows`,
     ) {
         if (winnerProfileId === null) {
-            this.completeDoubleForfeit(tournament, match);
+            this.completeDoubleForfeit(tournament, match, doubleForfeitDropReason);
             return;
         }
 
@@ -2963,6 +2969,7 @@ export class TournamentService {
             matchJoinTimeoutInMs,
             matchJoinDeadlineAt: timeoutMs > 0 ? matchStartedAt + timeoutMs : null,
             matchOutcome: null,
+            autoClaimWin: timeoutMs > 0 && tournament.noShowHandling === `automatic`,
             leftDisplayName: match.slots[0].displayName,
             rightDisplayName: match.slots[1].displayName,
             leftProfileId: match.slots[0].profileId,

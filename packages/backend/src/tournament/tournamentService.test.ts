@@ -2996,7 +2996,7 @@ test(`a double forfeit eliminates both bracket players and gives their next oppo
     for (const profileId of [`player-1`, `player-4`]) {
         const participant = tournament.participants.find((entry) => entry.profileId === profileId)!;
         assert.equal(participant.status, `dropped`);
-        assert.equal(participant.dropReason, `no-shows`);
+        assert.equal(participant.dropReason, `forfeited`);
     }
     assert.equal(tournament.status, `completed`);
     assert.equal(tournament.matches.find((match) => match.id === `match-winners-2-1`)?.winnerProfileId, `player-2`);

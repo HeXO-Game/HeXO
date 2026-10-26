@@ -475,6 +475,8 @@ function getDropLabel(participant: TournamentParticipant): string {
             return i18next.t('withdrew', 'Withdrew');
         case `no-shows`:
             return i18next.t('withdrawnNoShows', 'Withdrawn (no-shows)');
+        case `forfeited`:
+            return i18next.t('forfeitedOut', 'Forfeited');
         default:
             return i18next.t('disqualified', 'Disqualified');
     }
@@ -701,9 +703,8 @@ function FinalStandings({ standings, participants, matches, format, tournamentNa
     format: StandingsFormat; tournamentName: string; viewerProfileId: string | null
 }) {
     const { t } = useTranslation()
-    if (standings.length === 0) return null;
-
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    if (standings.length === 0) return null;
 
     const participantMap = new Map(participants.map((p) => [p.profileId, p]));
 
@@ -900,6 +901,45 @@ function useCountdown(deadlineMs: number | null) {
 
 /* ── Match card ─────────────────────────────────────── */
 
+/**
+ * Mirrors the backend rule for correcting bracket results: allowed only while no later match fed by
+ * this one (directly or indirectly) has been played or decided.
+ */
+function hasPlayedDependentMatch(match: TournamentMatch, allMatches: TournamentMatch[]): boolean {
+    if (match.bracket === `swiss`) {
+        return false;
+    }
+
+    const visited = new Set([match.id]);
+    const queue = [match];
+    while (queue.length > 0) {
+        const source = queue.shift()!;
+        for (const candidate of allMatches) {
+            if (visited.has(candidate.id)) {
+                continue;
+            }
+
+            const isFed = candidate.slots.some((slot) => slot.source && slot.source.type !== `seed` && slot.source.matchId === source.id)
+                || (candidate.bracket === `grand-final-reset` && source.bracket === `grand-final`);
+            if (!isFed) {
+                continue;
+            }
+
+            const isPlayingOrDecided = candidate.gameIds.length > 0
+                || (candidate.state === `completed` && candidate.resultType !== `bye`)
+                || (candidate.state === `in-progress` && !candidate.waitingForPlayers);
+            if (isPlayingOrDecided) {
+                return true;
+            }
+
+            visited.add(candidate.id);
+            queue.push(candidate);
+        }
+    }
+
+    return false;
+}
+
 function MatchResultChip({ resultType }: { resultType: TournamentMatch[`resultType`] }) {
     const { t } = useTranslation()
     switch (resultType) {
@@ -929,7 +969,8 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
         && (tournamentStatus === `live` || tournamentStatus === `completed`)
         && match.state === `completed`
         && match.resultType !== `bye`
-        && playerSlots.length === 2;
+        && playerSlots.length === 2
+        && !hasPlayedDependentMatch(match, allMatches);
     const countdown = useCountdown(timeoutAt);
     const claimCountdown = useCountdown(claimWinExpiresAt);
     const timedOut = countdown?.expired ?? false;
@@ -1184,7 +1225,8 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
 
             {canCorrectResult && isEditingResult && (
                 <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                    {playerSlots.map((s) => (
+                    {/* The current result is not offered again: re-confirming it would still re-record it as awarded. */}
+                    {playerSlots.filter((s) => match.resultType === `double-forfeit` || s.profileId !== match.winnerProfileId).map((s) => (
                         <Confirm
                             key={s.profileId} label={t('displaynameWins', '{{displayName}} wins', { displayName: s.displayName })}
                             onConfirm={() => { setIsEditingResult(false); onCorrectResult(match.id, s.profileId); }}
@@ -1192,11 +1234,13 @@ function MatchCard({ match, allMatches, canManage, viewerProfileId, tournamentSt
                         />
                     ))}
 
-                    <Confirm
-                        label={t('forfeitBothPlayers', 'Both forfeit')}
-                        onConfirm={() => { setIsEditingResult(false); onCorrectResult(match.id, null); }}
-                        variant="destructive-soft"
-                    />
+                    {match.resultType !== `double-forfeit` && (
+                        <Confirm
+                            label={t('forfeitBothPlayers', 'Both forfeit')}
+                            onConfirm={() => { setIsEditingResult(false); onCorrectResult(match.id, null); }}
+                            variant="destructive-soft"
+                        />
+                    )}
 
                     <Button onClick={() => setIsEditingResult(false)} variant="ghost" size="xxs">
                         {t('cancel', 'Cancel')}
