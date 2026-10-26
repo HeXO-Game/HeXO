@@ -11,6 +11,7 @@ import type {
 import pino from 'pino';
 
 import type { AccountUserProfile } from '../auth/authRepository';
+import { tournamentFinalStandingsMigration } from '../persistence/migrations/013-tournament-final-standings';
 import { SessionError } from '../session/sessionManager';
 import { buildDoubleEliminationMatches } from './tournamentBracket';
 import type { TournamentRecord } from './tournamentRepository';
@@ -32,6 +33,7 @@ function createParticipant(overrides: Partial<TournamentParticipant> & Pick<Tour
         eliminatedAt: overrides.eliminatedAt ?? null,
         replacedByProfileId: overrides.replacedByProfileId ?? null,
         replacesProfileId: overrides.replacesProfileId ?? null,
+        dropReason: overrides.dropReason ?? null,
     };
 }
 
@@ -118,6 +120,7 @@ function createTournament(overrides: Partial<TournamentRecord> = {}): Tournament
         organizers: overrides.organizers ? [...overrides.organizers] : [],
         whitelist: overrides.whitelist ? structuredClone(overrides.whitelist) : [],
         blacklist: overrides.blacklist ? structuredClone(overrides.blacklist) : [],
+        finalStandings: overrides.finalStandings ? structuredClone(overrides.finalStandings) : null,
     };
 }
 
@@ -2835,4 +2838,86 @@ test(`swiss round count is capped at what the checked-in field can play without 
 
     assert.equal(tournament.swissRoundCount, 3);
     assert.ok(tournament.activity.some((entry) => entry.type === `swiss-rounds-capped`));
+});
+
+test(`swiss standings keep withdrawn players listed and count their results for opponents`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 3 });
+    await finishMatchGame(context, `match-swiss-1-1`, `player-1`);
+    await finishMatchGame(context, `match-swiss-1-2`, `player-3`);
+    // player-3 beat player-4 and then withdraws.
+    await context.service.withdrawCurrentUser(context.tournamentId, createPlayerAccount(3));
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    const withdrawn = detail!.standings.find((standing) => standing.profileId === `player-3`)!;
+    assert.equal(withdrawn.isDropped, true);
+    assert.equal(withdrawn.wins, 1);
+    assert.equal(detail!.standings.at(-1)?.profileId, `player-3`);
+    assert.equal(detail!.participants.find((participant) => participant.profileId === `player-3`)?.dropReason, `withdrew`);
+
+    // player-4's only opponent so far is the withdrawn player-3, whose win still counts.
+    assert.equal(detail!.standings.find((standing) => standing.profileId === `player-4`)?.buchholz, withdrawn.wins);
+});
+
+test(`completed tournaments keep the standings captured when they finished`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    const finished = await playOutWithFavoritesWinning(context);
+    assert.equal(finished.status, `completed`);
+    assert.deepEqual(finished.finalStandings?.map((standing) => standing.profileId).slice(0, 2), [`player-1`, `player-2`]);
+
+    // Tamper with the stored snapshot: views must serve it as-is instead of recomputing.
+    const stored = context.repository.getSync(context.tournamentId);
+    stored.finalStandings = stored.finalStandings!.map((standing) => ({ ...standing, rank: 7 }));
+    context.repository.saveSync(stored);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    assert.ok(detail!.standings.every((standing) => standing.rank === 7));
+});
+
+test(`the final standings migration preserves the ranking rules past events were played under`, async () => {
+    // Under the old rules a player who withdrew mid-event disappeared from swiss standings.
+    const tournament = createTournament({
+        id: `past-event`,
+        status: `completed`,
+        format: `swiss`,
+        swissRoundCount: 1,
+        startedAt: 10,
+        participants: [
+            ...createCheckedInParticipants(3),
+            createParticipant({ profileId: `player-4`, displayName: `Player 4`, checkedInAt: 4, seed: 4, status: `dropped`, removedAt: 20 }),
+        ],
+        matches: [
+            createMatch({
+                id: `match-swiss-1-1`, bracket: `swiss`, round: 1, order: 1, state: `completed`, resultType: `played`,
+                slots: [createPlayerSlot(`player-1`, 1), createPlayerSlot(`player-2`, 2)], winnerProfileId: `player-1`, loserProfileId: `player-2`,
+            }),
+            createMatch({
+                id: `match-swiss-1-2`, bracket: `swiss`, round: 1, order: 2, state: `completed`, resultType: `walkover`,
+                slots: [createPlayerSlot(`player-3`, 3), createPlayerSlot(`player-4`, 4)], winnerProfileId: `player-3`, loserProfileId: `player-4`,
+            }),
+        ],
+    });
+    const documents = [structuredClone(tournament)];
+    const database = {
+        collection: () => ({
+            find: () => ({
+                async *[Symbol.asyncIterator]() {
+                    yield* documents.filter((document) => document.status === `completed` && !document.finalStandings);
+                },
+            }),
+            updateOne: async (filter: { id: string }, update: { $set: Partial<TournamentRecord> }) => {
+                Object.assign(documents.find((document) => document.id === filter.id)!, update.$set);
+            },
+        }),
+    };
+
+    await tournamentFinalStandingsMigration.up({ database: database as never, logger: pino({ level: `silent` }) });
+
+    const finalStandings = documents[0]!.finalStandings!;
+    assert.deepEqual(finalStandings.map((standing) => standing.profileId), [`player-1`, `player-3`, `player-2`]);
+    assert.ok(finalStandings.every((standing) => standing.isDropped === false));
+
+    const repository = new FakeTournamentRepository(documents[0]!);
+    const { service } = createServiceWithOverrides({ repository });
+    const detail = await service.getTournamentDetail(tournament.id, null);
+    assert.deepEqual(detail!.standings, finalStandings);
 });

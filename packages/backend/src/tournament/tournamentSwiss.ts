@@ -20,6 +20,7 @@ type StandingEntry = {
     buchholz: number;
     sonnebornBerger: number;
     hadBye: boolean;
+    isDropped: boolean;
     rank: number;
 };
 
@@ -195,29 +196,31 @@ function pairWithRelaxedRematches(
     return null;
 }
 
+/**
+ * Ranks the given participants by match points, then Buchholz, Sonneborn-Berger, wins and seed.
+ * Tiebreaks use the real results of every opponent, including opponents who later withdrew.
+ * Withdrawn and disqualified players stay listed but rank after everyone who finished the event.
+ */
 export function calculateSwissStandings(
     participants: TournamentParticipant[],
     matches: TournamentMatch[],
 ): TournamentStanding[] {
-    const activeParticipants = participants.filter((participant) => participant.status !== `removed` && participant.status !== `dropped`);
     const statsByProfileId = new Map<string, {
-        participant: TournamentParticipant;
         wins: number;
         losses: number;
         opponents: string[];
         defeatedOpponents: string[];
         hadBye: boolean;
-    }>(activeParticipants.map((participant) => [
-        participant.profileId,
-        {
-            participant,
-            wins: 0,
-            losses: 0,
-            opponents: [],
-            defeatedOpponents: [],
-            hadBye: false,
-        },
-    ]));
+    }>();
+    const getStats = (profileId: string) => {
+        let stats = statsByProfileId.get(profileId);
+        if (!stats) {
+            stats = { wins: 0, losses: 0, opponents: [], defeatedOpponents: [], hadBye: false };
+            statsByProfileId.set(profileId, stats);
+        }
+
+        return stats;
+    };
 
     for (const match of matches) {
         if (match.bracket !== `swiss` || match.state !== `completed`) {
@@ -227,65 +230,54 @@ export function calculateSwissStandings(
         const slotProfileIds = match.slots.map((slot) => slot.profileId).filter((profileId): profileId is string => Boolean(profileId));
         if (slotProfileIds.length === 2) {
             const [leftProfileId, rightProfileId] = slotProfileIds;
-            statsByProfileId.get(leftProfileId)?.opponents.push(rightProfileId);
-            statsByProfileId.get(rightProfileId)?.opponents.push(leftProfileId);
+            getStats(leftProfileId).opponents.push(rightProfileId);
+            getStats(rightProfileId).opponents.push(leftProfileId);
         }
 
         if (match.resultType === `bye` && match.winnerProfileId) {
-            const stats = statsByProfileId.get(match.winnerProfileId);
-            if (stats) {
-                stats.hadBye = true;
-            }
+            getStats(match.winnerProfileId).hadBye = true;
         }
 
         if (match.winnerProfileId) {
-            const winnerStats = statsByProfileId.get(match.winnerProfileId);
-            if (winnerStats) {
-                winnerStats.wins += 1;
-                if (match.loserProfileId) {
-                    winnerStats.defeatedOpponents.push(match.loserProfileId);
-                }
+            const winnerStats = getStats(match.winnerProfileId);
+            winnerStats.wins += 1;
+            if (match.loserProfileId) {
+                winnerStats.defeatedOpponents.push(match.loserProfileId);
             }
         }
 
         if (match.loserProfileId) {
-            const loserStats = statsByProfileId.get(match.loserProfileId);
-            if (loserStats) {
-                loserStats.losses += 1;
-            }
+            getStats(match.loserProfileId).losses += 1;
         }
     }
 
-    const standings = activeParticipants.map((participant) => {
-        const stats = statsByProfileId.get(participant.profileId);
-        const wins = stats?.wins ?? 0;
-        const losses = stats?.losses ?? 0;
-        const opponents = stats?.opponents ?? [];
-        const defeatedOpponents = stats?.defeatedOpponents ?? [];
-
-        const buchholz = opponents.reduce((sum, opponentProfileId) =>
-            sum + (statsByProfileId.get(opponentProfileId)?.wins ?? 0), 0);
-        const sonnebornBerger = defeatedOpponents.reduce((sum, opponentProfileId) =>
-            sum + (statsByProfileId.get(opponentProfileId)?.wins ?? 0), 0);
-
-        return {
-            participant,
-            matchPoints: wins,
-            wins,
-            losses,
-            buchholz,
-            sonnebornBerger,
-            hadBye: stats?.hadBye ?? false,
-            rank: 0,
-        } satisfies StandingEntry;
-    }).sort((left, right) =>
-        right.matchPoints - left.matchPoints
-        || right.buchholz - left.buchholz
-        || right.sonnebornBerger - left.sonnebornBerger
-        || right.wins - left.wins
-        || (left.participant.seed ?? Number.MAX_SAFE_INTEGER) - (right.participant.seed ?? Number.MAX_SAFE_INTEGER)
-        || left.participant.registeredAt - right.participant.registeredAt
-        || left.participant.displayName.localeCompare(right.participant.displayName));
+    const getWins = (profileId: string) => statsByProfileId.get(profileId)?.wins ?? 0;
+    const standings = participants
+        .filter((participant) => participant.status !== `removed`)
+        .map((participant) => {
+            const stats = statsByProfileId.get(participant.profileId);
+            const wins = stats?.wins ?? 0;
+            return {
+                participant,
+                matchPoints: wins,
+                wins,
+                losses: stats?.losses ?? 0,
+                buchholz: (stats?.opponents ?? []).reduce((sum, opponentProfileId) => sum + getWins(opponentProfileId), 0),
+                sonnebornBerger: (stats?.defeatedOpponents ?? []).reduce((sum, opponentProfileId) => sum + getWins(opponentProfileId), 0),
+                hadBye: stats?.hadBye ?? false,
+                isDropped: participant.status === `dropped`,
+                rank: 0,
+            } satisfies StandingEntry;
+        })
+        .sort((left, right) =>
+            Number(left.isDropped) - Number(right.isDropped)
+            || right.matchPoints - left.matchPoints
+            || right.buchholz - left.buchholz
+            || right.sonnebornBerger - left.sonnebornBerger
+            || right.wins - left.wins
+            || (left.participant.seed ?? Number.MAX_SAFE_INTEGER) - (right.participant.seed ?? Number.MAX_SAFE_INTEGER)
+            || left.participant.registeredAt - right.participant.registeredAt
+            || left.participant.displayName.localeCompare(right.participant.displayName));
 
     return standings.map((entry, index) => ({
         rank: index + 1,
@@ -298,6 +290,7 @@ export function calculateSwissStandings(
         buchholz: entry.buchholz,
         sonnebornBerger: entry.sonnebornBerger,
         hadBye: entry.hadBye,
+        isDropped: entry.isDropped,
     }));
 }
 

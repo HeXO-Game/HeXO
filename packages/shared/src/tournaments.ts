@@ -90,6 +90,14 @@ export const zTournamentParticipantStatus = z.enum([
 ]);
 export type TournamentParticipantStatus = z.infer<typeof zTournamentParticipantStatus>;
 
+/** Why a participant was dropped from a running tournament. */
+export const zTournamentDropReason = z.enum([
+    `withdrew`,
+    `disqualified`,
+    `no-shows`,
+]);
+export type TournamentDropReason = z.infer<typeof zTournamentDropReason>;
+
 export const zTournamentBracket = z.enum([
     `winners`,
     `losers`,
@@ -217,6 +225,7 @@ export const zTournamentParticipant = z.object({
     eliminatedAt: zTimestamp.nullable(),
     replacedByProfileId: zIdentifier.nullable(),
     replacesProfileId: zIdentifier.nullable(),
+    dropReason: zTournamentDropReason.nullable().default(null),
 });
 export type TournamentParticipant = z.infer<typeof zTournamentParticipant>;
 
@@ -282,6 +291,8 @@ export const zTournamentStanding = z.object({
     sonnebornBerger: z.number().int()
         .nonnegative(),
     hadBye: z.boolean(),
+    /** Withdrawn or disqualified during the event; ranked after everyone who finished. */
+    isDropped: z.boolean().default(false),
 });
 export type TournamentStanding = z.infer<typeof zTournamentStanding>;
 

@@ -259,6 +259,7 @@ export class DevSupportService {
                 eliminatedAt: null,
                 replacedByProfileId: null,
                 replacesProfileId: null,
+                dropReason: null,
             });
         }
 

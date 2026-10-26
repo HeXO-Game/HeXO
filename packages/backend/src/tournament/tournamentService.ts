@@ -382,6 +382,14 @@ function isPreStartLeaver(p: TournamentParticipant, tournament: TournamentRecord
 }
 
 function getTournamentStandings(tournament: TournamentRecord): TournamentStanding[] {
+    if (tournament.status === `completed` && tournament.finalStandings) {
+        return tournament.finalStandings;
+    }
+
+    return calculateTournamentStandings(tournament);
+}
+
+function calculateTournamentStandings(tournament: TournamentRecord): TournamentStanding[] {
     const standingsParticipants = tournament.participants.filter(
         (p) => p.status !== `removed` && !isPreStartLeaver(p, tournament),
     );
@@ -537,6 +545,7 @@ function calculateEliminationStandings(tournament: TournamentRecord, activeParti
         buchholz: 0,
         sonnebornBerger: 0,
         hadBye: false,
+        isDropped: p.status === `dropped`,
     }));
 
     // Sort by placement score descending, then wins descending
@@ -941,6 +950,7 @@ export class TournamentService {
                 eliminatedAt: null,
                 replacedByProfileId: null,
                 replacesProfileId: null,
+                dropReason: null,
             } satisfies TournamentParticipant;
 
             if (existingParticipant) {
@@ -1043,6 +1053,7 @@ export class TournamentService {
             // Mark the player as dropped before forfeiting so reconciliation never advances them into new matches.
             participant.status = `dropped`;
             participant.removedAt = Date.now();
+            participant.dropReason = `withdrew`;
             if (tournament.status === `live`) {
                 await this.forfeitAllMatchesForPlayer(tournament, user.id);
             }
@@ -1149,6 +1160,7 @@ export class TournamentService {
                 eliminatedAt: null,
                 replacedByProfileId: null,
                 replacesProfileId: null,
+                dropReason: null,
             });
 
             tournament.updatedAt = Date.now();
@@ -1175,6 +1187,7 @@ export class TournamentService {
             // Mark the player as dropped before forfeiting so reconciliation never advances them into new matches.
             participant.status = `dropped`;
             participant.removedAt = Date.now();
+            participant.dropReason = `disqualified`;
             if (tournament.status === `live`) {
                 await this.forfeitAllMatchesForPlayer(tournament, profileId);
             }
@@ -1239,6 +1252,7 @@ export class TournamentService {
                 eliminatedAt: null,
                 replacedByProfileId: null,
                 replacesProfileId: currentParticipant.profileId,
+                dropReason: null,
             });
 
             tournament.updatedAt = Date.now();
@@ -1536,6 +1550,7 @@ export class TournamentService {
             organizers: [],
             whitelist: [],
             blacklist: [],
+            finalStandings: null,
             activity: [
                 createTournamentActivity(
                     user,
@@ -1933,6 +1948,7 @@ export class TournamentService {
         tournament.status = `completed`;
         tournament.completedAt = Date.now();
         tournament.updatedAt = Date.now();
+        tournament.finalStandings = calculateTournamentStandings(tournament);
         tournament.activity.unshift(createTournamentActivity(
             null,
             `tournament-completed`,
@@ -2383,6 +2399,7 @@ export class TournamentService {
             tournament.status = `completed`;
             tournament.completedAt = Date.now();
             tournament.updatedAt = Date.now();
+            tournament.finalStandings = calculateTournamentStandings(tournament);
             tournament.activity.unshift(createTournamentActivity(
                 null,
                 `tournament-completed`,
@@ -2404,6 +2421,7 @@ export class TournamentService {
         tournament.status = `completed`;
         tournament.completedAt = Date.now();
         tournament.updatedAt = Date.now();
+        tournament.finalStandings = calculateTournamentStandings(tournament);
         tournament.activity.unshift(createTournamentActivity(
             null,
             `tournament-completed`,
@@ -2435,6 +2453,7 @@ export class TournamentService {
         tournament.status = `completed`;
         tournament.completedAt = Date.now();
         tournament.updatedAt = Date.now();
+        tournament.finalStandings = calculateTournamentStandings(tournament);
         tournament.activity.unshift(createTournamentActivity(
             null,
             `tournament-completed`,
