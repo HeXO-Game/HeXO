@@ -40,6 +40,7 @@ import type { CreateSessionParams } from '../session/types';
 import { buildDoubleEliminationMatches, buildSingleEliminationMatches } from './tournamentBracket';
 import { type TournamentRecord,TournamentRepository } from './tournamentRepository';
 import { buildSwissRoundMatches, calculateSwissStandings } from './tournamentSwiss';
+import { getMaxRematchFreeSwissRounds } from './tournamentSwissPairing';
 
 const kTournamentSystemClient: RequestClientInfo = {
     deviceId: `tournament-system`,
@@ -1585,11 +1586,21 @@ export class TournamentService {
             }
         }
 
-        tournament.swissRoundCount = resolveSwissRoundCount(
+        const requestedSwissRoundCount = resolveSwissRoundCount(
             tournament.format,
             checkedInParticipants.length,
             tournament.swissRoundCount,
         );
+        tournament.swissRoundCount = requestedSwissRoundCount === null
+            ? null
+            : Math.min(requestedSwissRoundCount, getMaxRematchFreeSwissRounds(checkedInParticipants.length));
+        if (requestedSwissRoundCount !== null && tournament.swissRoundCount !== requestedSwissRoundCount) {
+            tournament.activity.unshift(createTournamentActivity(
+                null,
+                `swiss-rounds-capped`,
+                `Reduced the Swiss rounds from ${requestedSwissRoundCount} to ${tournament.swissRoundCount}: ${checkedInParticipants.length} players can only play ${tournament.swissRoundCount} rounds without rematches.`,
+            ));
+        }
 
         if (tournament.format === `single-elimination` || tournament.format === `double-elimination`) {
             const bracketSize = this.getTournamentBracketSize(checkedInParticipants.length, tournament.maxPlayers) as TournamentBracketSize;
@@ -1971,13 +1982,9 @@ export class TournamentService {
         return this.ensureDoubleEliminationTournamentCompletion(tournament) || changed;
     }
 
-    private async reconcileSwissTournament(tournament: TournamentRecord): Promise<boolean> {
+    private async reconcileSwissMatches(tournament: TournamentRecord, matches: TournamentMatch[]): Promise<boolean> {
         let changed = false;
-        const swissMatches = tournament.matches
-            .filter((match) => match.bracket === `swiss`)
-            .sort((left, right) => left.round - right.round || left.order - right.order);
-
-        for (const match of swissMatches) {
+        for (const match of matches) {
             if (match.state === `pending`) {
                 const actualPlayers = match.slots.filter((slot) => slot.profileId !== null);
                 const byeSlots = match.slots.filter((slot) => slot.isBye);
@@ -1996,6 +2003,15 @@ export class TournamentService {
             }
         }
 
+        return changed;
+    }
+
+    private async reconcileSwissTournament(tournament: TournamentRecord): Promise<boolean> {
+        const swissMatches = tournament.matches
+            .filter((match) => match.bracket === `swiss`)
+            .sort((left, right) => left.round - right.round || left.order - right.order);
+        let changed = await this.reconcileSwissMatches(tournament, swissMatches);
+
         const currentRound = Math.max(0, ...swissMatches.map((match) => match.round));
         const totalRounds = tournament.swissRoundCount ?? 0;
         if (currentRound > 0) {
@@ -2012,14 +2028,17 @@ export class TournamentService {
                     }));
 
                 if (activeParticipants.length >= 2) {
-                    tournament.matches.push(...buildSwissRoundMatches({
+                    const nextRoundMatches = buildSwissRoundMatches({
                         participants: activeParticipants,
                         existingMatches: swissMatches,
                         round: currentRound + 1,
                         totalRounds,
                         seriesSettings: tournament.seriesSettings,
-                    }));
+                    });
+                    tournament.matches.push(...nextRoundMatches);
                     tournament.activity.unshift(createTournamentActivity(null, `swiss-round-created`, `Created Swiss round ${currentRound + 1}.`));
+                    // Start the new round right away instead of on the next reconciliation tick.
+                    await this.reconcileSwissMatches(tournament, nextRoundMatches);
                     changed = true;
                 }
             }

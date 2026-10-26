@@ -6,6 +6,8 @@ import type {
     TournamentStanding,
 } from '@ih3t/shared';
 
+import { getPairingKey, selectSwissRoundPairing } from './tournamentSwissPairing';
+
 type SeededSwissParticipant = TournamentParticipant & {
     seed: number;
 };
@@ -70,11 +72,6 @@ function createSwissMatch(
         advanceWinnerTo: null,
         advanceLoserTo: null,
     };
-}
-
-function getPairingKey(leftProfileId: string, rightProfileId: string) {
-    return [leftProfileId, rightProfileId].sort()
-        .join(`:`);
 }
 
 function buildPlayedPairings(matches: TournamentMatch[]): Set<string> {
@@ -145,6 +142,54 @@ function pairParticipants(
             [firstParticipant, candidate],
             ...remainingPairings,
         ];
+    }
+
+    return null;
+}
+
+function pairWithRelaxedRematches(
+    orderedParticipants: SeededSwissParticipant[],
+    standingByProfileId: Map<string, TournamentStanding>,
+    existingMatches: TournamentMatch[],
+): { byeParticipant: SeededSwissParticipant | null; pairings: [SeededSwissParticipant, SeededSwissParticipant][] } | null {
+    const byeEligibleParticipantIndex = orderedParticipants.length % 2 === 1
+        ? (() => {
+            for (let index = orderedParticipants.length - 1; index >= 0; index -= 1) {
+                const participant = orderedParticipants[index];
+                const standing = standingByProfileId.get(participant.profileId);
+                if (!standing?.hadBye) {
+                    return index;
+                }
+            }
+
+            return orderedParticipants.length - 1;
+        })()
+        : -1;
+
+    const participantsForPairing = byeEligibleParticipantIndex >= 0
+        ? orderedParticipants.filter((_, index) => index !== byeEligibleParticipantIndex)
+        : orderedParticipants;
+    const byeParticipant = byeEligibleParticipantIndex >= 0
+        ? orderedParticipants[byeEligibleParticipantIndex] ?? null
+        : null;
+
+    const pairingsByRound = buildPlayedPairingsByRound(existingMatches);
+    const rounds = [...pairingsByRound.keys()].sort((a, b) => a - b);
+    for (let relaxCount = 0; relaxCount <= rounds.length; relaxCount += 1) {
+        const relaxedRounds = new Set(rounds.slice(0, relaxCount));
+        const constrainedPairings = new Set<string>();
+        for (const [round, roundPairings] of pairingsByRound) {
+            if (!relaxedRounds.has(round)) {
+                for (const key of roundPairings) {
+                    constrainedPairings.add(key);
+                }
+            }
+        }
+
+        const pairings = pairParticipants(participantsForPairing, constrainedPairings);
+        if (pairings) {
+            return { byeParticipant, pairings };
+        }
     }
 
     return null;
@@ -278,79 +323,32 @@ export function buildSwissRoundMatches(options: {
             || left.seed - right.seed;
     });
 
-    const byeEligibleParticipantIndex = orderedParticipants.length % 2 === 1
-        ? (() => {
-            for (let index = orderedParticipants.length - 1; index >= 0; index -= 1) {
-                const participant = orderedParticipants[index];
-                const standing = standingByProfileId.get(participant.profileId);
-                if (!standing?.hadBye) {
-                    return index;
-                }
-            }
-
-            return orderedParticipants.length - 1;
-        })()
-        : -1;
-
-    const participantsForPairing = byeEligibleParticipantIndex >= 0
-        ? orderedParticipants.filter((_, index) => index !== byeEligibleParticipantIndex)
-        : orderedParticipants;
-    const byeParticipant = byeEligibleParticipantIndex >= 0
-        ? orderedParticipants[byeEligibleParticipantIndex] ?? null
-        : null;
-
-    const pairings = pairParticipants(participantsForPairing, playedPairings);
-    if (!pairings) {
-        const pairingsByRound = buildPlayedPairingsByRound(options.existingMatches);
-        const rounds = [...pairingsByRound.keys()].sort((a, b) => a - b);
-
-        let relaxedPairings: ReturnType<typeof pairParticipants> = null;
-        for (let relaxCount = 1; relaxCount <= rounds.length; relaxCount += 1) {
-            const relaxedRounds = new Set(rounds.slice(0, relaxCount));
-            const constrainedPairings = new Set<string>();
-            for (const [round, roundPairings] of pairingsByRound) {
-                if (!relaxedRounds.has(round)) {
-                    for (const key of roundPairings) {
-                        constrainedPairings.add(key);
-                    }
-                }
-            }
-            relaxedPairings = pairParticipants(participantsForPairing, constrainedPairings);
-            if (relaxedPairings) {
-                break;
-            }
-        }
-
-        if (!relaxedPairings) {
-            return [];
-        }
-
-        return relaxedPairings.map(([leftParticipant, rightParticipant], index) => createSwissMatch(
-            options.round,
-            index + 1,
-            options.round >= options.totalRounds
-                ? options.seriesSettings.finalsBestOf
-                : options.seriesSettings.earlyRoundsBestOf,
-            [
-                createSwissSlot(leftParticipant),
-                createSwissSlot(rightParticipant),
-            ],
-        )).concat(byeParticipant ? [createSwissMatch(
-            options.round,
-            relaxedPairings.length + 1,
-            options.round >= options.totalRounds
-                ? options.seriesSettings.finalsBestOf
-                : options.seriesSettings.earlyRoundsBestOf,
-            [
-                createSwissSlot(byeParticipant),
-                createSwissSlot(null),
-            ],
-        )] : []);
-    }
-
     const bestOf = options.round >= options.totalRounds
         ? options.seriesSettings.finalsBestOf
         : options.seriesSettings.earlyRoundsBestOf;
+    const participantByProfileId = new Map(orderedParticipants.map((participant) => [participant.profileId, participant] as const));
+    const selection = selectSwissRoundPairing({
+        rankedProfileIds: orderedParticipants.map((participant) => participant.profileId),
+        playedPairings,
+        byeRecipients: new Set(standings.filter((standing) => standing.hadBye).map((standing) => standing.profileId)),
+        roundsAfterThis: Math.max(0, options.totalRounds - options.round),
+    });
+
+    let byeParticipant: SeededSwissParticipant | null;
+    let pairings: [SeededSwissParticipant, SeededSwissParticipant][];
+    if (selection) {
+        byeParticipant = selection.byeProfileId ? participantByProfileId.get(selection.byeProfileId) ?? null : null;
+        pairings = selection.pairs.map(([left, right]) => [participantByProfileId.get(left)!, participantByProfileId.get(right)!]);
+    } else {
+        // Every possible pairing for this round repeats an earlier match. Allow rematches from the
+        // oldest rounds first so players at least avoid their most recent opponents.
+        const relaxed = pairWithRelaxedRematches(orderedParticipants, standingByProfileId, options.existingMatches);
+        if (!relaxed) {
+            return [];
+        }
+
+        ({ byeParticipant, pairings } = relaxed);
+    }
 
     const matches = pairings.map(([leftParticipant, rightParticipant], index) => createSwissMatch(
         options.round,

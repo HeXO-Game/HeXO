@@ -15,6 +15,7 @@ import { SessionError } from '../session/sessionManager';
 import { buildDoubleEliminationMatches } from './tournamentBracket';
 import type { TournamentRecord } from './tournamentRepository';
 import { TournamentService } from './tournamentService';
+import { buildSwissRoundMatches } from './tournamentSwiss';
 
 function createParticipant(overrides: Partial<TournamentParticipant> & Pick<TournamentParticipant, `profileId` | `displayName`>): TournamentParticipant {
     return {
@@ -2746,4 +2747,92 @@ test(`players who already played cannot be replaced`, async () => {
         context.service.swapParticipant(context.tournamentId, kOrganizer, { profileId: `player-1`, replacementProfileId: substitute.id }),
         /already played/,
     );
+});
+
+function getPairKeys(matches: TournamentMatch[]): string[] {
+    return matches
+        .filter((match) => match.slots.every((slot) => slot.profileId))
+        .map((match) => match.slots.map((slot) => slot.profileId).sort().join(` v `));
+}
+
+test(`swiss pairing leaves the remaining rounds rematch-free (Hexagon League 27 regression)`, () => {
+    // Rounds 1-6 exactly as played in HL27 (9 players, 9 rounds), by seed. The old greedy pairing
+    // chose a round 7 after which rounds 8 and 9 could not avoid four rematches.
+    const history: Array<{ pairs: [number, number, number][]; bye: number }> = [
+        { pairs: [[1, 2, 1], [3, 4, 3], [5, 6, 5], [7, 8, 7]], bye: 9 },
+        { pairs: [[1, 3, 1], [5, 7, 5], [9, 2, 2], [4, 6, 6]], bye: 8 },
+        { pairs: [[1, 5, 1], [2, 7, 2], [3, 6, 3], [8, 9, 9]], bye: 4 },
+        { pairs: [[1, 9, 1], [2, 3, 2], [5, 4, 5], [6, 8, 6]], bye: 7 },
+        { pairs: [[1, 7, 1], [2, 5, 5], [3, 9, 9], [4, 8, 4]], bye: 6 },
+        { pairs: [[1, 6, 1], [5, 9, 9], [2, 8, 2], [7, 4, 7]], bye: 3 },
+    ];
+    const participants = createCheckedInParticipants(9).map((participant) => ({ ...participant, seed: participant.seed! }));
+    const matches: TournamentMatch[] = history.flatMap(({ pairs, bye }, roundIndex) => [
+        ...pairs.map(([left, right, winner], index) => createMatch({
+            id: `match-swiss-${roundIndex + 1}-${index + 1}`,
+            bracket: `swiss`,
+            round: roundIndex + 1,
+            order: index + 1,
+            state: `completed`,
+            resultType: `played`,
+            slots: [createPlayerSlot(`player-${left}`, left), createPlayerSlot(`player-${right}`, right)],
+            winnerProfileId: `player-${winner}`,
+            loserProfileId: `player-${winner === left ? right : left}`,
+        })),
+        createMatch({
+            id: `match-swiss-${roundIndex + 1}-5`,
+            bracket: `swiss`,
+            round: roundIndex + 1,
+            order: 5,
+            state: `completed`,
+            resultType: `bye`,
+            slots: [createPlayerSlot(`player-${bye}`, bye), createSlot({ displayName: `BYE`, isBye: true })],
+            winnerProfileId: `player-${bye}`,
+        }),
+    ]);
+
+    for (let round = 7; round <= 9; round += 1) {
+        const roundMatches = buildSwissRoundMatches({
+            participants,
+            existingMatches: matches,
+            round,
+            totalRounds: 9,
+            seriesSettings: { earlyRoundsBestOf: 1, finalsBestOf: 1, grandFinalBestOf: 1, grandFinalResetEnabled: false },
+        });
+        assert.equal(roundMatches.length, 5);
+        for (const match of roundMatches) {
+            const [left, right] = match.slots;
+            matches.push({
+                ...match,
+                state: `completed`,
+                resultType: right.isBye ? `bye` : `played`,
+                winnerProfileId: left.profileId,
+                loserProfileId: right.isBye ? null : right.profileId,
+            });
+        }
+    }
+
+    const pairKeys = getPairKeys(matches);
+    assert.equal(new Set(pairKeys).size, pairKeys.length, `a pairing was repeated`);
+    assert.equal(pairKeys.length, 36);
+});
+
+test(`a swiss event with as many rounds as a round robin pairs everyone exactly once`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 9, swissRoundCount: 9 });
+    const tournament = await playOutWithFavoritesWinning(context);
+
+    assert.equal(tournament.status, `completed`);
+    const pairKeys = getPairKeys(tournament.matches);
+    assert.equal(pairKeys.length, 36);
+    assert.equal(new Set(pairKeys).size, 36);
+    const byes = tournament.matches.filter((match) => match.resultType === `bye`).map((match) => match.winnerProfileId);
+    assert.equal(new Set(byes).size, 9);
+});
+
+test(`swiss round count is capped at what the checked-in field can play without rematches`, async () => {
+    const context = await startTournamentWithPlayers({ format: `swiss`, playerCount: 4, swissRoundCount: 9 });
+    const tournament = context.repository.getSync(context.tournamentId);
+
+    assert.equal(tournament.swissRoundCount, 3);
+    assert.ok(tournament.activity.some((entry) => entry.type === `swiss-rounds-capped`));
 });
