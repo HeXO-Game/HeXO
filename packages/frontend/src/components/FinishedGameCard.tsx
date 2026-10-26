@@ -40,6 +40,12 @@ function getResultPresentation(
             cardClassName: `${sharedCardClassName} pl-6 shadow-[inset_3px_0_0_rgba(244,63,94,1),inset_22px_0_28px_-24px_rgba(244,63,94,0.95)]`,
             titleClassName: `text-white`,
         };
+    } else if (result.tone === `draw`) {
+        return {
+            ...result,
+            cardClassName: `${sharedCardClassName} pl-6 shadow-[inset_3px_0_0_rgba(65,161,242,1),inset_22px_0_28px_-24px_rgba(65,161,242,0.95)]`,
+            titleClassName: `text-white`,
+        };
     }
 
     return {

@@ -51,7 +51,7 @@ export function getSpectatorRematchStatus(players: SessionPlayer[], state: Sessi
     }
 }
 
-export type PersonalResultTone = `win` | `loss` | `neutral`;
+export type PersonalResultTone = `win` | `loss` | `neutral` | `draw`;
 
 type ResultText = {
     reason: string

@@ -20,8 +20,10 @@ export function getPersonalResultLabel(game: FinishedGameSummary, currentProfile
     const reason = game.gameResult?.reason ?? `terminated`;
     const winningPlayerId = game.gameResult?.winningPlayerId ?? null;
 
-    const tone: PersonalResultTone = reason === `draw-agreement` || reason === `aborted` || !ownPlayerId || !winningPlayerId
+    const tone: PersonalResultTone = !ownPlayerId
         ? `neutral`
+        : reason === `draw-agreement` || reason === `aborted` ? `draw`
+        : !winningPlayerId ? `neutral`
         : ownPlayerId === winningPlayerId ? `win` : `loss`;
 
     return { label: getResultLabel(reason, tone), tone };
