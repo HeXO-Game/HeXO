@@ -2705,3 +2705,45 @@ test(`double elimination drops winners-bracket losers in alternating order`, () 
     assert.deepEqual(matchById.get(`match-winners-2-1`)?.advanceLoserTo, { matchId: `match-losers-2-2`, slotIndex: 1 });
     assert.deepEqual(matchById.get(`match-winners-2-2`)?.advanceLoserTo, { matchId: `match-losers-2-1`, slotIndex: 1 });
 });
+
+test(`players who have not played yet can be replaced after the bracket starts`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 6 });
+    const substitute = createAccountUser({ id: `substitute`, username: `Substitute` });
+    const otherSubstitute = createAccountUser({ id: `substitute-2`, username: `Substitute 2` });
+    context.authRepository.users.set(substitute.id, substitute);
+    context.authRepository.users.set(otherSubstitute.id, otherSubstitute);
+
+    // player-6 is waiting in an unplayed round-one lobby; player-1 advanced on a bye.
+    const before = context.repository.getSync(context.tournamentId);
+    const roundOneMatch = before.matches.find((match) => match.round === 1 && match.slots.some((slot) => slot.profileId === `player-6`))!;
+    const oldSessionId = roundOneMatch.sessionId;
+    assert.ok(oldSessionId);
+
+    await context.service.swapParticipant(context.tournamentId, kOrganizer, { profileId: `player-6`, replacementProfileId: substitute.id });
+    await context.service.swapParticipant(context.tournamentId, kOrganizer, { profileId: `player-1`, replacementProfileId: otherSubstitute.id });
+
+    const after = context.repository.getSync(context.tournamentId);
+    const replacedMatch = after.matches.find((match) => match.id === roundOneMatch.id)!;
+    assert.ok(replacedMatch.slots.some((slot) => slot.profileId === substitute.id));
+    assert.notEqual(replacedMatch.sessionId, oldSessionId);
+    assert.equal(replacedMatch.state, `in-progress`);
+    assert.deepEqual(context.sessionManager.sessions.get(replacedMatch.sessionId!)?.players.map((player) => player.profileId).sort(),
+        replacedMatch.slots.map((slot) => slot.profileId).sort());
+
+    const byeMatch = after.matches.find((match) => match.resultType === `bye` && match.slots.some((slot) => slot.profileId === otherSubstitute.id))!;
+    assert.equal(byeMatch.winnerProfileId, otherSubstitute.id);
+    assert.ok(after.matches.some((match) => match.round === 2 && match.slots.some((slot) => slot.profileId === otherSubstitute.id)));
+    assert.equal(after.matches.some((match) => match.slots.some((slot) => slot.profileId === `player-1` || slot.profileId === `player-6`)), false);
+});
+
+test(`players who already played cannot be replaced`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    const substitute = createAccountUser({ id: `substitute`, username: `Substitute` });
+    context.authRepository.users.set(substitute.id, substitute);
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+
+    await assert.rejects(
+        context.service.swapParticipant(context.tournamentId, kOrganizer, { profileId: `player-1`, replacementProfileId: substitute.id }),
+        /already played/,
+    );
+});

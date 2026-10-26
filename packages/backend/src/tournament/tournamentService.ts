@@ -2575,15 +2575,19 @@ export class TournamentService {
         return changed;
     }
 
+    /**
+     * Hands every match position of a player who has not played yet to their replacement.
+     * Byes they received carry over, and lobbies nobody has played in are recreated for the new player.
+     */
     private replaceProfileInMatches(
         tournament: TournamentRecord,
         oldProfileId: string,
-        nextProfileId: string | null,
+        nextProfileId: string,
         nextDisplayName: string,
         nextImage: string | null,
     ) {
         for (const match of tournament.matches) {
-            if (matchHasStarted(match)) {
+            if (!matchContainsProfileId(match, oldProfileId)) {
                 continue;
             }
 
@@ -2595,20 +2599,47 @@ export class TournamentService {
                 slot.profileId = nextProfileId;
                 slot.displayName = nextDisplayName;
                 slot.image = nextImage;
-                slot.isBye = nextProfileId === null;
+                slot.isBye = false;
             }
 
-            if (match.state !== `completed`) {
-                match.sessionId = null;
-                match.state = `pending`;
+            if (match.state === `completed`) {
+                if (match.winnerProfileId === oldProfileId) {
+                    match.winnerProfileId = nextProfileId;
+                }
+                continue;
             }
+
+            if (match.sessionId) {
+                this.clearSessionTournamentInfo(match.sessionId);
+            }
+            match.sessionId = null;
+            match.startedAt = null;
+            match.state = `pending`;
         }
     }
 
+    private hasPlayedInTournament(tournament: TournamentRecord, profileId: string): boolean {
+        return tournament.matches.some((match) => {
+            if (!matchContainsProfileId(match, profileId)) {
+                return false;
+            }
+
+            if (match.gameIds.length > 0) {
+                return true;
+            }
+
+            if (match.state === `completed`) {
+                return match.resultType !== `bye`;
+            }
+
+            return match.sessionId !== null
+                && this.sessionManager.getSessionInfo(match.sessionId)?.state.status === `in-game`;
+        });
+    }
+
     private assertParticipantEditable(tournament: TournamentRecord, profileId: string) {
-        const startedMatches = tournament.matches.filter((match) => matchContainsProfileId(match, profileId) && matchHasStarted(match));
-        if (startedMatches.length > 0) {
-            throw new SessionError(`This player can no longer be edited because one of their assigned matches has already started.`);
+        if (this.hasPlayedInTournament(tournament, profileId)) {
+            throw new SessionError(`This player can no longer be replaced because they have already played in this tournament.`);
         }
     }
 
