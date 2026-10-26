@@ -387,6 +387,12 @@ function TournamentEditorDialog({
                         )}
                     </div>
 
+                    {f.format === `swiss` && (
+                        <p className="-mt-1.5 mb-3 text-[10px] leading-4 text-slate-500">
+                            {t('swissRoundsCapHint', 'Players never meet twice. If fewer players check in than the rounds need, the round count is reduced when the tournament starts (at most one less than the number of players, or equal to it for an odd number).')}
+                        </p>
+                    )}
+
                     {/* Schedule — two inline fields */}
                     <div className="mb-3 grid grid-cols-2 gap-3">
                         <Row label={t('start', 'Start')}>

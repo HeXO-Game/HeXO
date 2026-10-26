@@ -673,6 +673,8 @@ export type TournamentUpdatedEvent = z.infer<typeof zTournamentUpdatedEvent>;
 
 export const zTournamentNotificationEvent = z.object({
     tournamentId: zIdentifier,
+    /** Match lobby the notification is about, so the client can offer to join it. */
+    sessionId: zIdentifier.nullable().optional(),
     kind: z.enum([`match-ready`, `tournament-started`, `participant-replaced`, `timeout-warning`, `extension-requested`, `extension-resolved`, `claim-win-started`, `claim-win-cancelled`, `claim-win-awarded`, `low-registration`, `waitlist-open`]),
     message: z.string(),
 });

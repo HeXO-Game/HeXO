@@ -852,6 +852,18 @@ export class SocketServerGateway {
             participantId: participation.participantId,
             participantRole: participation.participantRole,
         });
+
+        // Joining resets the client's claim state, so resend a win claim that is still counting down.
+        const tournamentMatchId = participation.session.tournament?.matchId;
+        const activeClaimWin = tournamentMatchId
+            ? this.tournamentService.getActiveClaimWin(tournamentMatchId, participation.session.id)
+            : null;
+        if (activeClaimWin) {
+            socket.emit(`session-claim-win`, {
+                sessionId: participation.session.id,
+                state: activeClaimWin,
+            });
+        }
     }
 
     emitTournamentUpdated(event: TournamentUpdatedEvent) {

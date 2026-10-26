@@ -50,7 +50,18 @@ function showTournamentMessageToast(
     message: string,
     tournamentId: string,
     kind: string,
+    sessionId: string | null,
 ) {
+    if (sessionId) {
+        // Notifications about a match lobby take the player there when clicked.
+        toast.info(`${message} ${i18next.t('clickToJoinMatch', 'Click to join.')}`, {
+            toastId: `tournament:${tournamentId}:${kind}:${message}`,
+            autoClose: 15_000,
+            onClick: () => navigateToSession(sessionId),
+        });
+        return;
+    }
+
     toast.info(message, {
         toastId: `tournament:${tournamentId}:${kind}:${message}`,
         autoClose: 6000,
@@ -282,6 +293,7 @@ export function startLiveGameClient() {
             event.message,
             event.tournamentId,
             event.kind,
+            event.sessionId ?? null,
         );
         if (
             event.kind === `match-ready` ||

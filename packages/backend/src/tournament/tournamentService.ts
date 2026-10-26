@@ -2998,6 +2998,7 @@ export class TournamentService {
             const opponent = match.slots.find((entry) => entry.profileId !== slot.profileId && !entry.isBye) ?? null;
             this.emitTournamentNotification(slot.profileId, {
                 tournamentId: tournament.id,
+                sessionId: match.sessionId,
                 kind: `match-ready`,
                 message: opponent
                     ? `Your ${tournament.name} match against ${opponent.displayName} is ready.`
@@ -3306,6 +3307,7 @@ export class TournamentService {
                 if (slot.profileId) {
                     this.emitTournamentNotification(slot.profileId, {
                         tournamentId: tournament.id,
+                        sessionId: match.sessionId,
                         kind: `timeout-warning`,
                         message: `Your match in ${tournament.name} is waiting for you. Join now or request an extension.`,
                     } satisfies TournamentNotificationEvent);
@@ -3507,9 +3509,9 @@ export class TournamentService {
         return claim;
     }
 
-    getActiveClaimWin(matchId: string): MatchClaimWinState | null {
+    getActiveClaimWin(matchId: string, sessionId?: string): MatchClaimWinState | null {
         const claim = this.activeClaimWins.get(matchId);
-        if (!claim) {
+        if (!claim || (sessionId !== undefined && claim.sessionId !== sessionId)) {
             return null;
         }
 
@@ -3652,6 +3654,7 @@ export class TournamentService {
         if (opponentSlot?.profileId) {
             this.emitTournamentNotification(opponentSlot.profileId, {
                 tournamentId: tournament.id,
+                sessionId,
                 kind: `claim-win-started`,
                 message: `Your opponent is claiming a win in ${tournament.name}. Join within 30 seconds or forfeit the match.`,
             } satisfies TournamentNotificationEvent);

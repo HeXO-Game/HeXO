@@ -3200,3 +3200,19 @@ test(`the player already waiting in the lobby cannot request an extension`, asyn
         /already in the match/,
     );
 });
+
+test(`active win claims can be looked up for the lobby they belong to`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, overrides: { noShowHandling: `automatic` } });
+    simulateTimedOutLobby(context, `match-winners-1-1`, [`player-1`]);
+    await context.service.reconcileAllTournaments();
+
+    const sessionId = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === `match-winners-1-1`)!.sessionId!;
+    const claim = context.service.getActiveClaimWin(`match-winners-1-1`, sessionId);
+    assert.equal(claim?.claimantProfileId, `player-1`);
+    assert.ok(claim!.expiresInMs > 0 && claim!.expiresInMs <= 30_000);
+    assert.equal(context.service.getActiveClaimWin(`match-winners-1-1`, `some-older-lobby`), null);
+
+    await (context.service as unknown as {
+        resolveClaimWin: (tournamentId: string, matchId: string) => Promise<void>;
+    }).resolveClaimWin(context.tournamentId, `match-winners-1-1`);
+});
