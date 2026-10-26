@@ -12,6 +12,7 @@ import pino from 'pino';
 
 import type { AccountUserProfile } from '../auth/authRepository';
 import { SessionError } from '../session/sessionManager';
+import { buildDoubleEliminationMatches } from './tournamentBracket';
 import type { TournamentRecord } from './tournamentRepository';
 import { TournamentService } from './tournamentService';
 
@@ -2517,4 +2518,190 @@ test(`reconcileAllTournaments keeps going when one tournament fails`, async () =
     await service.reconcileAllTournaments();
 
     assert.equal(repository.getSync(healthy.id).matches[0]!.state, `in-progress`);
+});
+
+const kOrganizer = createAccountUser({ id: `organizer-1`, username: `Organizer` });
+
+function createPlayerAccount(index: number): AccountUserProfile {
+    return createAccountUser({ id: `player-${index}`, username: `Player ${index}` });
+}
+
+async function startTournamentWithPlayers(options: {
+    format: TournamentRecord[`format`];
+    playerCount: number;
+    thirdPlaceMatchEnabled?: boolean;
+    grandFinalResetEnabled?: boolean;
+    swissRoundCount?: number | null;
+}) {
+    const tournament = createTournament({
+        status: `check-in-open`,
+        format: options.format,
+        maxPlayers: 32,
+        swissRoundCount: options.swissRoundCount ?? null,
+        thirdPlaceMatchEnabled: options.thirdPlaceMatchEnabled ?? false,
+        seriesSettings: {
+            earlyRoundsBestOf: 1,
+            finalsBestOf: 1,
+            grandFinalBestOf: 1,
+            grandFinalResetEnabled: options.grandFinalResetEnabled ?? false,
+        },
+        participants: createCheckedInParticipants(options.playerCount),
+    });
+    const repository = new FakeTournamentRepository(tournament);
+    const context = createServiceWithOverrides({ repository });
+    await context.service.startTournament(tournament.id, kOrganizer);
+    return { ...context, tournamentId: tournament.id };
+}
+
+type StartedTournament = Awaited<ReturnType<typeof startTournamentWithPlayers>>;
+
+async function finishMatchGame(context: StartedTournament, matchId: string, winnerProfileId: string) {
+    const match = context.repository.getSync(context.tournamentId).matches.find((entry) => entry.id === matchId);
+    assert.ok(match?.sessionId, `Match ${matchId} has no active session.`);
+    const session = context.sessionManager.sessions.get(match.sessionId);
+    assert.ok(session, `Session for ${matchId} not found.`);
+    const winner = session.players.find((player) => player.profileId === winnerProfileId);
+    assert.ok(winner, `${winnerProfileId} is not playing ${matchId}.`);
+    session.state = {
+        status: `finished`,
+        gameId: `game-${matchId}-${match.currentGameNumber}`,
+        winningPlayerId: winner.id,
+        finishReason: `six-in-a-row`,
+    };
+    await context.service.reconcileAllTournaments();
+}
+
+/** Plays every open match until none are left, letting the better (lower) seed win. */
+async function playOutWithFavoritesWinning(context: StartedTournament) {
+    for (let guard = 0; guard < 200; guard += 1) {
+        const tournament = context.repository.getSync(context.tournamentId);
+        const openMatch = tournament.matches.find((match) => match.state === `in-progress` && match.sessionId);
+        if (!openMatch) {
+            return tournament;
+        }
+
+        const [left, right] = openMatch.slots;
+        const winner = (left.seed ?? Number.MAX_SAFE_INTEGER) <= (right.seed ?? Number.MAX_SAFE_INTEGER) ? left : right;
+        await finishMatchGame(context, openMatch.id, winner.profileId!);
+    }
+
+    assert.fail(`Tournament did not finish within 200 matches.`);
+}
+
+test(`double elimination completes when two first-round byes feed the same losers match`, async () => {
+    for (const playerCount of [5, 9, 10, 11, 17]) {
+        const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount });
+        const tournament = await playOutWithFavoritesWinning(context);
+
+        assert.equal(tournament.status, `completed`, `${playerCount} players`);
+        assert.ok(tournament.matches.every((match) => match.state === `completed`), `${playerCount} players`);
+        assert.equal(tournament.matches.find((match) => match.bracket === `grand-final`)?.winnerProfileId, `player-1`);
+    }
+});
+
+test(`an empty third-place match resolves instead of blocking completion`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4, thirdPlaceMatchEnabled: true });
+    await context.service.removeParticipant(context.tournamentId, kOrganizer, `player-4`);
+    await context.service.removeParticipant(context.tournamentId, kOrganizer, `player-3`);
+    await finishMatchGame(context, `match-winners-2-1`, `player-2`);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const thirdPlace = tournament.matches.find((match) => match.bracket === `third-place`)!;
+    assert.equal(tournament.status, `completed`);
+    assert.equal(thirdPlace.state, `completed`);
+    assert.equal(thirdPlace.winnerProfileId, null);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    const rankOf = (profileId: string) => detail!.standings.find((standing) => standing.profileId === profileId)?.rank;
+    assert.equal(rankOf(`player-2`), 1);
+    assert.equal(rankOf(`player-1`), 2);
+    assert.equal(rankOf(`player-3`), rankOf(`player-4`));
+});
+
+test(`double elimination with a reset completes when the winners-bracket champion leaves`, async () => {
+    const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount: 4, grandFinalResetEnabled: true });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+    await finishMatchGame(context, `match-winners-2-1`, `player-1`);
+    await context.service.withdrawCurrentUser(context.tournamentId, createPlayerAccount(1));
+    await finishMatchGame(context, `match-losers-1-1`, `player-3`);
+    await finishMatchGame(context, `match-losers-2-1`, `player-2`);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    assert.equal(tournament.status, `completed`);
+    assert.equal(tournament.matches.find((match) => match.bracket === `grand-final`)?.winnerProfileId, `player-2`);
+    assert.equal(tournament.matches.some((match) => match.bracket === `grand-final-reset`), false);
+});
+
+test(`a disqualified player is never advanced into later matches`, async () => {
+    const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount: 8 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    context.eventSink.tournamentNotifications.length = 0;
+    await context.service.removeParticipant(context.tournamentId, kOrganizer, `player-5`);
+
+    const tournament = context.repository.getSync(context.tournamentId);
+    const activeMatchesWithDroppedPlayer = tournament.matches.filter((match) =>
+        match.state !== `completed` && match.slots.some((slot) => slot.profileId === `player-5`));
+    assert.deepEqual(activeMatchesWithDroppedPlayer, []);
+    assert.equal(context.eventSink.tournamentNotifications.some((notification) => notification.profileId === `player-5`), false);
+    assert.equal(tournament.participants.find((participant) => participant.profileId === `player-5`)?.status, `dropped`);
+});
+
+test(`dropping a player in double elimination leaves completed matches untouched`, async () => {
+    const context = await startTournamentWithPlayers({ format: `double-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+    await finishMatchGame(context, `match-winners-2-1`, `player-1`);
+    await context.service.removeParticipant(context.tournamentId, kOrganizer, `player-2`);
+
+    const winnersFinal = context.repository.getSync(context.tournamentId).matches.find((match) => match.id === `match-winners-2-1`)!;
+    assert.deepEqual(winnersFinal.slots.map((slot) => slot.profileId), [`player-1`, `player-2`]);
+    assert.equal(winnersFinal.loserProfileId, `player-2`);
+});
+
+test(`players cannot withdraw once their bracket run is over`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+
+    await assert.rejects(
+        context.service.withdrawCurrentUser(context.tournamentId, createPlayerAccount(4)),
+        /already over/,
+    );
+});
+
+test(`a player who withdraws while waiting for their next match ranks by the round they reached`, async () => {
+    const context = await startTournamentWithPlayers({ format: `single-elimination`, playerCount: 4 });
+    await finishMatchGame(context, `match-winners-1-1`, `player-1`);
+    await context.service.withdrawCurrentUser(context.tournamentId, createPlayerAccount(1));
+    await finishMatchGame(context, `match-winners-1-2`, `player-2`);
+
+    const detail = await context.service.getTournamentDetail(context.tournamentId, null);
+    assert.equal(detail?.status, `completed`);
+    const rankOf = (profileId: string) => detail!.standings.find((standing) => standing.profileId === profileId)?.rank;
+    assert.equal(rankOf(`player-2`), 1);
+    assert.equal(rankOf(`player-1`), 2);
+    assert.equal(rankOf(`player-3`), 3);
+    assert.equal(rankOf(`player-4`), 3);
+});
+
+test(`double elimination drops winners-bracket losers in alternating order`, () => {
+    const players = Array.from({ length: 8 }, (_, index) => ({
+        profileId: `player-${index + 1}`,
+        displayName: `Player ${index + 1}`,
+        image: null,
+        seed: index + 1,
+    }));
+    const matches = buildDoubleEliminationMatches(players, 8, {
+        earlyRoundsBestOf: 1,
+        finalsBestOf: 1,
+        grandFinalBestOf: 1,
+        grandFinalResetEnabled: false,
+    });
+    const matchById = new Map(matches.map((match) => [match.id, match] as const));
+
+    // The losers of the top half of winners round 2 meet survivors from the bottom half, and vice versa.
+    assert.deepEqual(matchById.get(`match-losers-2-1`)?.slots[1].source, { type: `loser`, matchId: `match-winners-2-2` });
+    assert.deepEqual(matchById.get(`match-losers-2-2`)?.slots[1].source, { type: `loser`, matchId: `match-winners-2-1` });
+    assert.deepEqual(matchById.get(`match-winners-2-1`)?.advanceLoserTo, { matchId: `match-losers-2-2`, slotIndex: 1 });
+    assert.deepEqual(matchById.get(`match-winners-2-2`)?.advanceLoserTo, { matchId: `match-losers-2-1`, slotIndex: 1 });
 });

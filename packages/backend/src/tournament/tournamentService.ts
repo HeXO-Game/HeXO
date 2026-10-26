@@ -445,6 +445,74 @@ function calculateEliminationStandings(tournament: TournamentRecord, activeParti
 
     const losersMatches = tournament.matches.filter((m) => m.bracket === `losers`);
     const maxLosersRound = losersMatches.reduce((max, m) => Math.max(max, m.round), 0);
+    const matchById = new Map(tournament.matches.map((m) => [m.id, m] as const));
+    const droppedProfileIds = new Set(activeParticipants.filter((p) => p.status === `dropped`).map((p) => p.profileId));
+
+    // Highest round each player won per bracket. Byes count as progress but not as a match actually contested.
+    const highestWinnersRoundWon = new Map<string, number>();
+    const highestWinnersRoundContested = new Map<string, number>();
+    const highestLosersRoundWon = new Map<string, number>();
+    const losersRoundEnteredFrom = new Map<string, number>();
+    for (const match of tournament.matches) {
+        if (match.state !== `completed`) continue;
+
+        if (match.winnerProfileId && match.bracket === `winners`) {
+            highestWinnersRoundWon.set(match.winnerProfileId, Math.max(highestWinnersRoundWon.get(match.winnerProfileId) ?? 0, match.round));
+            if (match.resultType !== `bye`) {
+                highestWinnersRoundContested.set(match.winnerProfileId, Math.max(highestWinnersRoundContested.get(match.winnerProfileId) ?? 0, match.round));
+            }
+        }
+        if (match.winnerProfileId && match.bracket === `losers`) {
+            highestLosersRoundWon.set(match.winnerProfileId, Math.max(highestLosersRoundWon.get(match.winnerProfileId) ?? 0, match.round));
+        }
+        if (match.loserProfileId && match.bracket === `winners` && match.advanceLoserTo) {
+            const target = matchById.get(match.advanceLoserTo.matchId);
+            if (target) {
+                losersRoundEnteredFrom.set(match.loserProfileId, target.round);
+            }
+        }
+    }
+
+    // The losers-bracket round that the losers of a given winners round drop into.
+    function getLosersRoundFedBy(winnersRound: number): number {
+        const feeder = winnersMatches.find((m) => m.round === winnersRound && m.advanceLoserTo);
+        const target = feeder?.advanceLoserTo ? matchById.get(feeder.advanceLoserTo.matchId) : null;
+        return target?.round ?? 1;
+    }
+
+    function getSingleEliminationScore(profileId: string): number {
+        const elim = eliminationRound.get(profileId);
+        if (elim) return elim.round;
+
+        // Players who left while waiting for an opponent rank just above the losers of the round they won,
+        // below everyone who actually played the next round.
+        if (droppedProfileIds.has(profileId)) return (highestWinnersRoundContested.get(profileId) ?? 0) + 0.5;
+
+        // Still alive: they have reached the round after their last win.
+        return (highestWinnersRoundWon.get(profileId) ?? 0) + 1;
+    }
+
+    function getDoubleEliminationScore(profileId: string): number {
+        const elim = eliminationRound.get(profileId);
+        const losses = lossesByProfile.get(profileId) ?? 0;
+        if (elim?.bracket === `losers`) return elim.round;
+
+        const isDropped = droppedProfileIds.has(profileId);
+        if (losses === 0) {
+            const contested = highestWinnersRoundContested.get(profileId) ?? 0;
+            if (isDropped) {
+                return contested >= maxWinnersRound
+                    ? maxLosersRound + 0.5
+                    : getLosersRoundFedBy(contested + 1) - 0.5;
+            }
+            return maxLosersRound + 1 + (highestWinnersRoundWon.get(profileId) ?? 0);
+        }
+
+        // One winners-bracket loss: rank by the losers-bracket round they reached.
+        const enteredRound = losersRoundEnteredFrom.get(profileId) ?? getLosersRoundFedBy(elim?.round ?? 1);
+        const currentRound = Math.max(enteredRound, (highestLosersRoundWon.get(profileId) ?? 0) + 1);
+        return isDropped ? currentRound - 0.5 : currentRound + 0.25;
+    }
 
     function getPlacementScore(profileId: string): number {
         if (profileId === championId) return Number.MAX_SAFE_INTEGER;
@@ -452,22 +520,9 @@ function calculateEliminationStandings(tournament: TournamentRecord, activeParti
         if (profileId === thirdPlaceWinnerId) return Number.MAX_SAFE_INTEGER - 2;
         if (profileId === fourthPlaceId) return Number.MAX_SAFE_INTEGER - 3;
 
-        const elim = eliminationRound.get(profileId);
-        if (!elim) return 0; // dropped/DQ'd before playing
-
-        if (tournament.format === `single-elimination`) {
-            // Higher round = better placement
-            return elim.round;
-        }
-
-        // Double elimination: losers bracket finishers ranked below same-level winners bracket
-        if (elim.bracket === `losers`) {
-            return elim.round; // losers round number
-        }
-        // Eliminated from winners bracket (sent to losers) — but then eliminated from losers
-        // Their final elimination is in losers bracket, handled above
-        // If they were only eliminated once from winners (shouldn't happen in DE completed), treat as winners round
-        return maxLosersRound + elim.round;
+        return tournament.format === `single-elimination`
+            ? getSingleEliminationScore(profileId)
+            : getDoubleEliminationScore(profileId);
     }
 
     const standings: TournamentStanding[] = activeParticipants.map((p) => ({
@@ -971,27 +1026,29 @@ export class TournamentService {
                 throw new SessionError(`You can no longer withdraw from this tournament.`);
             }
 
-            if (tournament.status === `live`) {
-                await this.forfeitAllMatchesForPlayer(tournament, user.id);
-            } else {
+            if (tournament.status !== `live`) {
                 const ownMatchesStarted = tournament.matches.some((match) => matchContainsProfileId(match, user.id) && matchHasStarted(match));
                 if (ownMatchesStarted) {
                     throw new SessionError(`You cannot withdraw after your tournament run has started.`);
                 }
+            } else if (tournament.format !== `swiss`) {
+                // In brackets a player who is still in the event always occupies an unresolved match.
+                const hasRemainingMatch = tournament.matches.some((match) => match.state !== `completed` && matchContainsProfileId(match, user.id));
+                if (!hasRemainingMatch) {
+                    throw new SessionError(`Your tournament run is already over.`);
+                }
             }
 
+            // Mark the player as dropped before forfeiting so reconciliation never advances them into new matches.
             participant.status = `dropped`;
             participant.removedAt = Date.now();
-
-            tournament.updatedAt = Date.now();
-            tournament.activity.unshift(createTournamentActivity(user, `participant-withdrew`, `${user.username} withdrew from the tournament.`));
-            await this.reconcileAndSaveTournamentRecord(tournament);
-
-            // Clean up any matches created by reconciliation that still reference this player.
             if (tournament.status === `live`) {
                 await this.forfeitAllMatchesForPlayer(tournament, user.id);
             }
 
+            tournament.updatedAt = Date.now();
+            tournament.activity.unshift(createTournamentActivity(user, `participant-withdrew`, `${user.username} withdrew from the tournament.`));
+            await this.reconcileAndSaveTournamentRecord(tournament);
             return tournament;
         });
 
@@ -1114,27 +1171,16 @@ export class TournamentService {
                 throw new SessionError(`Player is not registered for this tournament.`);
             }
 
-            if (tournament.status === `live`) {
-                // Forfeit all current matches, then reconcile, then forfeit any new matches
-                // that were created by bracket progression (e.g. losers bracket in DE).
-                // Loop until no more matches need forfeiting.
-                await this.forfeitAllMatchesForPlayer(tournament, profileId);
-            }
-
+            // Mark the player as dropped before forfeiting so reconciliation never advances them into new matches.
             participant.status = `dropped`;
             participant.removedAt = Date.now();
+            if (tournament.status === `live`) {
+                await this.forfeitAllMatchesForPlayer(tournament, profileId);
+            }
 
             tournament.updatedAt = Date.now();
             tournament.activity.unshift(createTournamentActivity(user, `participant-disqualified`, `${participant.displayName} was disqualified from the tournament.`));
             await this.reconcileAndSaveTournamentRecord(tournament);
-
-            // After final reconcile, bracket progression may have placed the DQ'd
-            // player into new matches (e.g. losers bracket slots that were TBD).
-            // Run the forfeit cascade again to clean those up.
-            if (tournament.status === `live`) {
-                await this.forfeitAllMatchesForPlayer(tournament, profileId);
-            }
-
             return tournament;
         });
 
@@ -1832,6 +1878,11 @@ export class TournamentService {
                         changed = true;
                         shouldContinue = true;
                         continue;
+                    } else if (match.slots.every((s) => s.isBye)) {
+                        this.completeEmptyMatch(match);
+                        changed = true;
+                        shouldContinue = true;
+                        continue;
                     }
                 }
 
@@ -1885,9 +1936,10 @@ export class TournamentService {
         while (shouldContinue) {
             shouldContinue = false;
             for (const match of tournament.matches) {
-                changed = this.hydrateMatchSlotsFromSources(tournament, match) || changed;
-
                 if (match.state === `pending`) {
+                    // Only pending matches follow their sources; resolved matches keep the players who actually played them.
+                    changed = this.hydrateMatchSlotsFromSources(tournament, match) || changed;
+
                     const actualPlayers = match.slots.filter((slot) => slot.profileId !== null);
                     const byeSlots = match.slots.filter((slot) => slot.isBye);
                     if (actualPlayers.length === 2 && this.canMatchBecomeReady(tournament, match)) {
@@ -1895,6 +1947,11 @@ export class TournamentService {
                         changed = true;
                     } else if (actualPlayers.length === 1 && byeSlots.length === 1) {
                         this.completeMatchSet(tournament, match, actualPlayers[0].profileId!, `bye`);
+                        shouldContinue = true;
+                        changed = true;
+                        continue;
+                    } else if (byeSlots.length === 2) {
+                        this.completeEmptyMatch(match);
                         shouldContinue = true;
                         changed = true;
                         continue;
@@ -2195,10 +2252,10 @@ export class TournamentService {
     }
 
     /**
-     * Forfeit all pending/ready/in-progress matches for a player, then reconcile
-     * and repeat to catch new matches created by bracket progression (e.g. losers
-     * bracket in DE). Matches where the opponent is still TBD have the player's
-     * slot cleared so reconciliation doesn't carry them forward.
+     * Forfeit all pending/ready/in-progress matches for a player who has already
+     * been marked as dropped, reconciling until no unresolved match references them.
+     * Matches where the opponent is still TBD become byes in hydrateMatchSlotsFromSources,
+     * because the participant is no longer active.
      */
     private async forfeitAllMatchesForPlayer(tournament: TournamentRecord, profileId: string): Promise<void> {
         let changed = true;
@@ -2211,15 +2268,26 @@ export class TournamentService {
                         this.completeMatchSet(tournament, match, opponentSlot.profileId, `walkover`);
                         changed = true;
                     }
-                    // If opponent is TBD, the slot will be converted to a BYE
-                    // by hydrateMatchSlotsFromSources once the participant is
-                    // marked as dropped (isActiveParticipant check).
                 }
             }
             if (changed) {
-                await this.reconcileAndSaveTournamentRecord(tournament);
+                await this.applyTournamentReconciliation(tournament);
             }
         }
+    }
+
+    /**
+     * Resolves a match that can never be played because both of its sources produced a bye,
+     * e.g. a losers-bracket match fed by two first-round byes. The empty result propagates
+     * as a bye to whichever matches it feeds.
+     */
+    private completeEmptyMatch(match: TournamentMatch) {
+        match.winnerProfileId = null;
+        match.loserProfileId = null;
+        match.resultType = `bye`;
+        match.state = `completed`;
+        match.resolvedAt = Date.now();
+        match.sessionId = null;
     }
 
     private completeMatchSet(
@@ -2309,8 +2377,8 @@ export class TournamentService {
             return false;
         }
 
-        const losersFinalistProfileId = grandFinal.slots[1].profileId;
-        if (tournament.seriesSettings.grandFinalResetEnabled && losersFinalistProfileId && grandFinal.winnerProfileId === losersFinalistProfileId) {
+        // completeMatchSet creates the reset when one is needed; if it exists it has to be played first.
+        if (grandFinalReset) {
             return false;
         }
 

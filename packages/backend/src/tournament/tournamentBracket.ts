@@ -216,6 +216,21 @@ export function buildSingleEliminationMatches(
     return matches;
 }
 
+/**
+ * Winners-bracket losers drop into the losers bracket in an alternating order (reversed, then
+ * halves swapped, ...). Dropping them in straight order pairs players with someone from the same
+ * part of the bracket they just came from, which produced avoidable early rematches.
+ */
+function getDropInSourceIndex(dropInRound: number, targetIndex: number, roundSize: number): number {
+    if (roundSize <= 1) {
+        return targetIndex;
+    }
+
+    return dropInRound % 2 === 1
+        ? roundSize - 1 - targetIndex
+        : (targetIndex + roundSize / 2) % roundSize;
+}
+
 export function buildDoubleEliminationMatches(
     participants: SeededTournamentParticipant[],
     bracketSize: TournamentBracketSize,
@@ -335,7 +350,7 @@ export function buildDoubleEliminationMatches(
             const previousLoserRound = loserRounds[loserRound - 2] ?? [];
             const sourceWinnerRound = winnerRounds[(loserRound / 2)] ?? [];
             for (let matchIndex = 0; matchIndex < sourceWinnerRound.length; matchIndex += 1) {
-                const loserSource = sourceWinnerRound[matchIndex]!;
+                const loserSource = sourceWinnerRound[getDropInSourceIndex(loserRound / 2, matchIndex, sourceWinnerRound.length)]!;
                 const previousWinner = previousLoserRound[matchIndex]!;
                 const match = createMatch(
                     `losers`,
@@ -414,10 +429,11 @@ export function buildDoubleEliminationMatches(
             continue;
         }
 
-        for (let matchIndex = 0; matchIndex < sourceRound.length; matchIndex += 1) {
-            const match = matchById.get(sourceRound[matchIndex]!.id)!;
+        for (let targetIndex = 0; targetIndex < targetRound.length; targetIndex += 1) {
+            const sourceIndex = getDropInSourceIndex(winnerRound - 1, targetIndex, sourceRound.length);
+            const match = matchById.get(sourceRound[sourceIndex]!.id)!;
             match.advanceLoserTo = {
-                matchId: targetRound[matchIndex]!.id,
+                matchId: targetRound[targetIndex]!.id,
                 slotIndex: 1,
             };
         }
