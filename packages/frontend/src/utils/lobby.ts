@@ -30,9 +30,11 @@ export function formatLobbyLiveDuration(startedAt: number | null, now: number) {
 
 export function formatActiveSessionDuration(startedAt: number, now: number) {
     const totalSeconds = Math.max(0, Math.round((now - startedAt) / 1000));
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds - 3600 * hours) / 60);
     const seconds = totalSeconds % 60;
-    return i18next.t('valval2', '{{val}}:{{val2}}', { val: String(minutes).padStart(2, `0`), val2: String(seconds).padStart(2, `0`) });
+    return (hours ? `${hours}:${minutes.toString().padStart(2, `0`)}` : `${minutes}`)
+        + `:${seconds.toString().padStart(2, `0`)}`;
 }
 
 export function sortLobbySessions(sessions: LobbyInfo[]) {
