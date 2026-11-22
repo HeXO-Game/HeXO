@@ -212,6 +212,15 @@ export class ApiRouter {
             res.json(response);
         });
 
+        router.get(`/profiles/by-discord/:discordId`, async (req, res) => {
+            const response = await this.apiQueryService.getProfileByDiscordId(req.params.discordId);
+            if (!response) {
+                res.status(404).json({ error: `Profile not found.` });
+                return;
+            }
+            res.json(response);
+        });
+
         router.get(`/profiles/:profileId`, async (req, res) => {
             const response = await this.apiQueryService.getProfile(req.params.profileId);
             if (!response) {

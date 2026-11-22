@@ -796,6 +796,7 @@ export const kDefaultAccountPreferences: AccountPreferences = {
 
 export const zAccountProfile = z.object({
     id: zIdentifier,
+    discordId: z.string().nullable(),
     username: z.string(),
     email: z.string().nullable(),
     image: z.string().nullable(),

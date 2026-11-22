@@ -398,6 +398,7 @@ class FakeTournamentEventSink {
 function createAccountUser(overrides: Partial<AccountUserProfile> & Pick<AccountUserProfile, `id` | `username`>): AccountUserProfile {
     return {
         id: overrides.id,
+        discordId: overrides.discordId ?? null,
         username: overrides.username,
         email: overrides.email ?? null,
         image: overrides.image ?? null,
