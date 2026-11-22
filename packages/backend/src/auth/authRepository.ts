@@ -84,6 +84,7 @@ export type AdminUserWindowStats = {
 
 export type AccountUserProfile = {
     id: string;
+    discordId: string | null;
     username: string;
     email: string | null;
     image: string | null;
@@ -388,6 +389,15 @@ export class AuthRepository implements Adapter {
         return document
             ? this.mapAccountUserProfile(this.mapUserDocument(document))
             : null;
+    }
+
+    async getUserProfileByDiscordId(discordId: string): Promise<AccountUserProfile | null> {
+        const accounts = await this.getAccountsCollection();
+        const account = await accounts.findOne({ provider: `discord`, providerAccountId: discordId });
+        if (!account) {
+            return null;
+        }
+        return this.getUserProfileById(account.userId.toHexString());
     }
 
     async updateUsername(
@@ -852,6 +862,7 @@ export class AuthRepository implements Adapter {
 
         return {
             id: user.id,
+            discordId: user.id,
             username: user.name?.trim() ?? `Player`,
             email: user.email || null,
             image: user.image ?? null,

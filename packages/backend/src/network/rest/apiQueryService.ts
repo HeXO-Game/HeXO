@@ -80,6 +80,11 @@ export class ApiQueryService {
         return { preferences };
     }
 
+    async getProfileByDiscordId(discordId: string): Promise<ProfileResponse | null> {
+        const user = await this.authRepository.getUserProfileByDiscordId(discordId);
+        return user ? { user: this.toPublicAccountProfile(user) } : null;
+    }
+
     async getProfile(profileId: string): Promise<ProfileResponse | null> {
         const user = await this.authRepository.getUserProfileById(profileId);
         if (!user) {
